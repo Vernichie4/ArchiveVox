@@ -1,0 +1,452 @@
+# ArchiveVox Student Dashboard — student.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ArchiveVox — Student Dashboard</title>
+
+    <link
+        rel="stylesheet"
+        href="student.css"
+    >
+</head>
+
+<body>
+
+    <div class="student-app">
+
+        <!-- =====================================================
+             SIDEBAR
+        ====================================================== -->
+        <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    📖
+                </div>
+
+                <div>
+                    <h1>ArchiveVox</h1>
+                    <span>Student</span>
+                </div>
+            </div>
+
+
+            <nav class="student-nav">
+
+                <button
+                    class="nav-item active"
+                    data-view="dashboard"
+                >
+                    <span class="nav-icon">🏠</span>
+                    <span>Home</span>
+                </button>
+
+                <button
+                    class="nav-item"
+                    data-view="assignments"
+                >
+                    <span class="nav-icon">📚</span>
+                    <span>My Assignments</span>
+                </button>
+
+                <button
+                    class="nav-item"
+                    data-view="progress"
+                >
+                    <span class="nav-icon">⭐</span>
+                    <span>My Progress</span>
+                </button>
+
+            </nav>
+
+
+            <div class="sidebar-bottom">
+
+                <div class="student-mini-profile">
+
+                    <div
+                        class="avatar"
+                        id="sidebarAvatar"
+                    >
+                        S
+                    </div>
+
+                    <div class="student-mini-info">
+
+                        <strong id="sidebarStudentName">
+                            Student
+                        </strong>
+
+                        <span id="sidebarStudentGrade">
+                            Loading...
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =====================================================
+             MAIN CONTENT
+        ====================================================== -->
+        <main class="main-content">
+
+            <!-- Header -->
+            <header class="topbar">
+
+                <div class="mobile-brand">
+                    <span>📖</span>
+                    <strong>ArchiveVox</strong>
+                </div>
+
+                <div class="topbar-student">
+
+                    <div
+                        class="avatar small"
+                        id="topbarAvatar"
+                    >
+                        S
+                    </div>
+
+                    <div>
+
+                        <strong id="topbarStudentName">
+                            Student
+                        </strong>
+
+                        <span>
+                            Learner
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- =================================================
+                 VIEW: DASHBOARD
+            ================================================== -->
+            <section
+                id="dashboardView"
+                class="view active"
+            >
+
+                <div class="welcome-section">
+
+                    <div>
+
+                        <p class="eyebrow">
+                            STUDENT DASHBOARD
+                        </p>
+
+                        <h2>
+                            Good day,
+                            <span id="welcomeStudentName">
+                                Student
+                            </span>! 👋
+                        </h2>
+
+                        <p>
+                            Let's practice reading and keep
+                            improving together.
+                        </p>
+
+                    </div>
+
+                    <div class="welcome-illustration">
+                        📚
+                    </div>
+
+                </div>
+
+
+                <!-- Statistics -->
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon blue">
+                            📖
+                        </div>
+
+                        <div>
+                            <span>Assignments</span>
+                            <strong id="statAssignments">
+                                0
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon green">
+                            ✓
+                        </div>
+
+                        <div>
+                            <span>Completed</span>
+                            <strong id="statCompleted">
+                                0
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon yellow">
+                            ⭐
+                        </div>
+
+                        <div>
+                            <span>Average Score</span>
+                            <strong id="statAverageScore">
+                                —
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Current Assignments -->
+                <div class="section-header">
+
+                    <div>
+                        <p class="eyebrow">
+                            YOUR WORK
+                        </p>
+
+                        <h3>
+                            My Assignments
+                        </h3>
+                    </div>
+
+                    <button
+                        class="text-button"
+                        data-view-target="assignments"
+                    >
+                        View all →
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="dashboardAssignments"
+                    class="assignment-grid"
+                >
+
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading your assignments...</p>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 VIEW: ASSIGNMENTS
+            ================================================== -->
+            <section
+                id="assignmentsView"
+                class="view"
+            >
+
+                <div class="page-heading">
+
+                    <p class="eyebrow">
+                        LEARNING
+                    </p>
+
+                    <h2>
+                        My Assignments 📚
+                    </h2>
+
+                    <p>
+                        Complete the reading activities assigned
+                        by your teacher.
+                    </p>
+
+                </div>
+
+
+                <div
+                    id="allAssignments"
+                    class="assignment-grid"
+                >
+
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading assignments...</p>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 VIEW: PROGRESS
+            ================================================== -->
+            <section
+                id="progressView"
+                class="view"
+            >
+
+                <div class="page-heading">
+
+                    <p class="eyebrow">
+                        YOUR JOURNEY
+                    </p>
+
+                    <h2>
+                        My Progress ⭐
+                    </h2>
+
+                    <p>
+                        Keep reading, keep practicing, and keep
+                        improving.
+                    </p>
+
+                </div>
+
+
+                <div class="empty-progress">
+
+                    <div class="empty-icon">
+                        🌱
+                    </div>
+
+                    <h3>
+                        Your progress will appear here
+                    </h3>
+
+                    <p>
+                        Complete your reading assignments and
+                        quizzes to see your progress.
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 GLOBAL ERROR
+            ================================================== -->
+            <div
+                id="errorMessage"
+                class="error-message hidden"
+            ></div>
+
+        </main>
+
+    </div>
+
+
+    <!-- Assignment details modal -->
+    <div
+        id="assignmentModal"
+        class="modal hidden"
+    >
+
+        <div class="modal-overlay"></div>
+
+        <div class="modal-card">
+
+            <button
+                id="closeAssignmentModal"
+                class="modal-close"
+                type="button"
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+
+            <div class="modal-header">
+
+                <div class="modal-icon">
+                    📖
+                </div>
+
+                <div>
+
+                    <p class="eyebrow">
+                        READING ASSIGNMENT
+                    </p>
+
+                    <h2 id="modalAssignmentTitle">
+                        Assignment
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-body">
+
+                <div
+                    id="modalInstructions"
+                    class="instructions-box"
+                ></div>
+
+
+                <div class="modal-section">
+
+                    <h3>
+                        Reading Materials
+                    </h3>
+
+                    <div
+                        id="modalMaterials"
+                        class="material-list"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button
+                    id="modalStartButton"
+                    class="primary-button"
+                    type="button"
+                >
+                    Start Assignment →
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script src="student.js"></script>
+
+</body>
+</html>

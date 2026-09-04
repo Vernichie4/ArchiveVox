@@ -1,0 +1,140 @@
+{
+  "teacher_id": 1,
+  "class_id": 1,
+  "material_id": 3,
+  "title": "Test Assignment - Ang Batang Matulungin",
+  "instructions": "Please read the assigned material carefully and complete the activity.",
+  "due_date": null,
+  "questions": [
+    {
+      "question_number": 1,
+      "question_text": "Sino ang pangunahing tauhan sa kuwento?",
+      "choices": [
+        {
+          "choice_label": "A",
+          "choice_text": "Juan",
+          "is_correct": true
+        },
+        {
+          "choice_label": "B",
+          "choice_text": "Pedro",
+          "is_correct": false
+        },
+        {
+          "choice_label": "C",
+          "choice_text": "Maria",
+          "is_correct": false
+        },
+        {
+          "choice_label": "D",
+          "choice_text": "Ana",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 2,
+      "question_text": "Ano ang ipinakita ng bata?",
+      "choices": [
+        {
+          "choice_label": "A",
+          "choice_text": "Katamaran",
+          "is_correct": false
+        },
+        {
+          "choice_label": "B",
+          "choice_text": "Kabaitan",
+          "is_correct": true
+        },
+        {
+          "choice_label": "C",
+          "choice_text": "Galit",
+          "is_correct": false
+        },
+        {
+          "choice_label": "D",
+          "choice_text": "Takot",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 3,
+      "question_text": "Ano ang ginawa ng bata?",
+      "choices": [
+        {
+          "choice_label": "A",
+          "choice_text": "Tumulong sa iba",
+          "is_correct": true
+        },
+        {
+          "choice_label": "B",
+          "choice_text": "Umalis sa bahay",
+          "is_correct": false
+        },
+        {
+          "choice_label": "C",
+          "choice_text": "Natutulog buong araw",
+          "is_correct": false
+        },
+        {
+          "choice_label": "D",
+          "choice_text": "Nakipag-away",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 4,
+      "question_text": "Ano ang magandang aral sa kuwento?",
+      "choices": [
+        {
+          "choice_label": "A",
+          "choice_text": "Maging matulungin",
+          "is_correct": true
+        },
+        {
+          "choice_label": "B",
+          "choice_text": "Huwag makinig",
+          "is_correct": false
+        },
+        {
+          "choice_label": "C",
+          "choice_text": "Iwasang tumulong",
+          "is_correct": false
+        },
+        {
+          "choice_label": "D",
+          "choice_text": "Laging magalit",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 5,
+      "question_text": "Bakit mahalagang tumulong sa kapwa?",
+      "choices": [
+        {
+          "choice_label": "A",
+          "choice_text": "Dahil nakatutulong ito sa komunidad",
+          "is_correct": true
+        },
+        {
+          "choice_label": "B",
+          "choice_text": "Dahil masaya ang makipag-away",
+          "is_correct": false
+        },
+        {
+          "choice_label": "C",
+          "choice_text": "Dahil hindi kailangang makinig",
+          "is_correct": false
+        },
+        {
+          "choice_label": "D",
+          "choice_text": "Dahil mas madaling umiwas",
+          "is_correct": false
+        }
+      ]
+    }
+  ]
+}
