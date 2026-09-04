@@ -1,0 +1,210 @@
+// ============================================================
+// TTS & AUTO-DETECTION FUNCTIONS
+// ============================================================
+
+/**
+ * Play the passage using Text-to-Speech (Web Speech API)
+ */
+function playPassageAudio() {
+    const text = assessmentState.material?.ocr_text || '';
+    if (!text) {
+        alert('No passage text available to read.');
+        return;
+    }
+
+    // Cancel any existing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9; // Slightly slower for clarity
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    // Optional: Try to use English voice
+    const englishVoice = window.speechSynthesis.getVoices().find(v => v.lang.includes('en'));
+    if (englishVoice) {
+        utterance.voice = englishVoice;
+    }
+
+    utterance.onstart = () => {
+        const btn = document.getElementById('play-passage-btn');
+        if (btn) {
+            btn.textContent = '⏸️ Stop';
+            btn.disabled = false;
+        }
+    };
+
+    utterance.onend = () => {
+        const btn = document.getElementById('play-passage-btn');
+        if (btn) {
+            btn.textContent = '🔊 Hear Passage';
+        }
+    };
+
+    utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error);
+        const btn = document.getElementById('play-passage-btn');
+        if (btn) {
+            btn.textContent = '🔊 Hear Passage';
+        }
+    };
+
+    // Toggle stop on click
+    const btn = document.getElementById('play-passage-btn');
+    if (btn && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        btn.textContent = '🔊 Hear Passage';
+        return;
+    }
+
+    window.speechSynthesis.speak(utterance);
+}
+
+/**
+ * Render Step 4 (revised): Review detected miscues and enter comprehension score
+ */
+function renderStep4ReviewDetectedMiscues() {
+    const detectedScores = assessmentState.detectedScores || {};
+    const student = assessmentState.student;
+    const material = assessmentState.material;
+
+    viewContainer.innerHTML = `
+        <div class="assessment-container">
+            <div class="assessment-header">
+                <h2>Reading Assessment - Review Detected Results</h2>
+                <div class="step-indicator">
+                    <span class="step done">1. Student</span>
+                    <span class="step done">2. Material</span>
+                    <span class="step done">3. Record & Process</span>
+                    <span class="step active">4. Review & Confirm</span>
+                    <span class="step">5. Results</span>
+                </div>
+            </div>
+
+            <div class="assessment-step panel">
+                <div style="background: #d4edda; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
+                    <h4 style="margin-top: 0; color: #155724;">✅ Audio Processed Successfully</h4>
+                    <p style="margin: 0; color: #155724;">
+                        Miscues automatically detected from speech transcription. 
+                        Review the detected scores below and enter the comprehension test score.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <!-- Auto-Detected Metrics -->
+                    <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+                        <h4 style="margin-top: 0; color: #0c4a6e;">📊 Auto-Detected Metrics</h4>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.95rem;">
+                            <div>
+                                <strong>Accuracy:</strong><br>
+                                <span style="font-size: 1.3rem; color: #0c4a6e;">${(detectedScores.accuracy || 0).toFixed(1)}%</span>
+                            </div>
+                            <div>
+                                <strong>WCPM:</strong><br>
+                                <span style="font-size: 1.3rem; color: #0c4a6e;">${detectedScores.wcpm || 0}</span>
+                            </div>
+                        </div>
+
+                        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
+
+                        <div style="font-size: 0.9rem;">
+                            <p style="margin: 8px 0;"><strong>Substitutions:</strong> <span style="color: #dc3545; font-weight: bold;">${detectedScores.substitutions || 0}</span></p>
+                            <p style="margin: 8px 0;"><strong>Omissions:</strong> <span style="color: #dc3545; font-weight: bold;">${detectedScores.omissions || 0}</span></p>
+                            <p style="margin: 8px 0;"><strong>Insertions:</strong> <span style="color: #dc3545; font-weight: bold;">${detectedScores.insertions || 0}</span></p>
+                            <p style="margin: 8px 0;"><strong>Repetitions:</strong> <span style="color: #dc3545; font-weight: bold;">${detectedScores.repetitions || 0}</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Comprehension Entry -->
+                    <div style="background: #fff3cd; padding: 16px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                        <h4 style="margin-top: 0; color: #856404;">📝 Manual Entry Required</h4>
+                        <p style="color: #856404; font-size: 0.9rem; margin-bottom: 12px;">
+                            Comprehension questions were administered separately. How many questions did ${student?.first_name || 'the student'} answer correctly?
+                        </p>
+                        <div>
+                            <label style="display: block; font-weight: 500; margin-bottom: 8px;">Comprehension Score (0-7)</label>
+                            <input type="number" id="comprehension-review-input" min="0" max="7" value="0" 
+                                   style="width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 6px; font-size: 1.1rem;">
+                            <small style="color: #856404;">Number of correct answers (0-7 questions)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transcript Display -->
+                <div style="background: #ecf0f1; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">🎤 Detected Transcript</h4>
+                    <p id="detected-transcript" style="margin: 0; font-style: italic; color: #555; line-height: 1.6;">
+                        ${detectedScores.transcript || '(No transcript detected)'}
+                    </p>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; gap: 12px;">
+                    <button id="review-back-btn" class="btn-secondary">← Back to Recording</button>
+                    <button id="review-confirm-btn" class="btn-primary">Confirm & Save Assessment ✓</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const comprehensionInput = document.getElementById('comprehension-review-input');
+    if (comprehensionInput) {
+        comprehensionInput.addEventListener('change', () => {
+            assessmentState.comprehension_score = parseInt(comprehensionInput.value || 0);
+        });
+    }
+
+    document.getElementById('review-back-btn')?.addEventListener('click', () => {
+        assessmentState.step = 3;
+        renderAssessment();
+    });
+
+    document.getElementById('review-confirm-btn')?.addEventListener('click', finalizeAssessmentSubmission);
+}
+
+/**
+ * Final submission after comprehension score confirmed
+ */
+async function finalizeAssessmentSubmission() {
+    const comprehensionScore = parseInt(document.getElementById('comprehension-review-input')?.value || 0);
+    
+    if (comprehensionScore < 0 || comprehensionScore > 7) {
+        alert('Comprehension score must be between 0 and 7.');
+        return;
+    }
+
+    const btn = document.getElementById('review-confirm-btn');
+    if (btn) btn.disabled = true;
+
+    try {
+        // Update the assessment with comprehension score
+        const detectedScores = assessmentState.detectedScores || {};
+        const formData = new FormData();
+        
+        formData.append('activity_id', String(detectedScores.activity_id || 0));
+        formData.append('comprehension_score', String(comprehensionScore));
+
+        const response = await fetch('php/api/modules/assessment.php?action=update_comprehension', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to finalize assessment.');
+        }
+
+        // Update results and move to final display
+        assessmentState.results = data;
+        assessmentState.step = 5;
+
+        await loadAssessments();
+        await loadDashboardData();
+        renderAssessment();
+    } catch (error) {
+        alert('Error finalizing assessment: ' + error.message);
+        if (btn) btn.disabled = false;
+    }
+}
