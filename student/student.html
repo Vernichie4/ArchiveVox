@@ -1,4 +1,3 @@
-# ArchiveVox Student Dashboard — student.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,6 +86,11 @@
                         <span id="sidebarStudentGrade">
                             Loading...
                         </span>
+
+                        <!-- Add this where you want the logout button to appear -->
+                        <button id="studentLogoutBtn" class="logout-btn">
+                            Logout
+                        </button>
 
                     </div>
 
@@ -337,9 +341,10 @@
                         🌱
                     </div>
 
-                    <h3>
-                        Your progress will appear here
-                    </h3>
+                        <h3 class="u-mt-32">Completed Assessments</h3>
+                        <div id="completed-assignments-container">
+                            <!-- JS will inject the scorecards here -->
+                        </div>
 
                     <p>
                         Complete your reading assignments and
@@ -349,7 +354,6 @@
                 </div>
 
             </section>
-
 
             <!-- =================================================
                  GLOBAL ERROR

@@ -62,18 +62,51 @@ if ($user === null) {
     exit;
 }
 
-// Login success - create session
+// ==========================================
+// 1. PROCESS ROLE & FETCH STUDENT ID FIRST
+// ==========================================
+$role = $user['role'] ?? 'unknown_role';
+$user['role'] = strtolower($role);
+
+if ($user['role'] === 'student') {
+    try {
+        // Fetch the student ID using the user ID
+        $stmt = $pdo->prepare("SELECT student_id FROM student WHERE user_id = ?");
+        $stmt->execute([$user['user_id']]);
+        $studentRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($studentRow) {
+            // Attach it to the $user array
+            $user['student_id'] = $studentRow['student_id'];
+        }
+    } catch (Exception $e) {
+        error_log("Database error fetching student_id: " . $e->getMessage());
+    }
+}
+
+// ==========================================
+// 2. NOW CREATE THE SESSION WITH FULL DATA
+// ==========================================
 loginUser($user);
+
+// ALWAYS regenerate session ID on login to prevent session fixation attacks
+session_regenerate_id(true);
 
 // Handle "Remember Me" - store in session cookie
 if ($remember) {
-    // Set session cookie to last longer (30 days)
-    session_set_cookie_params(60 * 60 * 24 * 30); // 30 days
-    session_regenerate_id(true);
+    // Set secure session cookie parameters (30 days)
+    $cookieParams = session_get_cookie_params();
+    session_set_cookie_params(
+        60 * 60 * 24 * 30, // 30 days
+        $cookieParams["path"],
+        $cookieParams["domain"],
+        isset($_SERVER['HTTPS']), // Secure flag (only send over HTTPS if active)
+        true // HttpOnly flag (prevents XSS Javascript theft)
+    );
 }
 
-// Log successful login with details
-error_log("User logged in: {$user['username']} (ID: {$user['user_id']}) from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+// Log successful login with the user's role for better debugging
+error_log("User logged in: {$user['username']} (Role: {$user['role']}, ID: {$user['user_id']}) from IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
 
 // Return success with user data
 echo json_encode([

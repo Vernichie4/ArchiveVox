@@ -3,7 +3,15 @@
    ============================================================ */
 
 const API_BASE_URL = "http://127.0.0.1:5000";
-const STUDENT_ID = 29;
+// Grab the logged-in user from localStorage
+const storedUser = JSON.parse(localStorage.getItem("archivevox_user") || "null");
+
+// Redirect to login page if no user is found!
+if (!storedUser) {
+    window.location.href = "/index.php"; // Update this path to your actual login page
+}
+
+const STUDENT_ID = storedUser ? storedUser.student_id : null;
 
 /* ============================================================
    STATE
@@ -84,17 +92,59 @@ async function fetchJson(url, options = {}) {
 }
 
 /* ============================================================
-   INIT
+   INIT & GLOBAL STATE
 ============================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+    // Start the dashboard
+    initializeStudentDashboard();
 
-document.addEventListener("DOMContentLoaded", initializeStudentDashboard);
+    // 2. Safely attach the logout listener
+    const logoutBtn = document.getElementById("studentLogoutBtn"); 
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", handleLogout);
+    } else {
+        console.warn("Logout button with ID 'logoutButton' not found in HTML.");
+    }
+});
 
 async function initializeStudentDashboard() {
+    // If no student is found in localStorage, kick them back to login
+    if (!STUDENT_ID) {
+        console.error("No valid student found. Redirecting to login...");
+        await handleLogout();
+        return;
+    }
+
     setupNavigation();
     setupModal();
     setupViewButtons();
     setStudentPlaceholder();
+    
     await loadAssignments();
+    loadCompletedAssignments();
+}
+
+/* ============================================================
+   LOGOUT FUNCTIONALITY
+============================================================ */
+async function handleLogout() {
+    try {
+        // UPDATE: Added { method: 'POST' }
+        await fetch('../php/api/auth/logout.php', { method: 'POST' }); 
+        
+        // Clear the student data from the browser's memory
+        localStorage.removeItem('archivevox_user');
+        
+        // Redirect back to the main login page
+        window.location.href = '../index.php'; 
+        
+    } catch (error) {
+        console.error('Logout error:', error);
+        
+        localStorage.removeItem('archivevox_user');
+        window.location.href = '../index.php';
+    }
 }
 
 /* ============================================================
@@ -195,15 +245,33 @@ function normalizeAssignment(assignment) {
     const materials = assignment.materials || assignment.reading_materials || assignment.material || [];
     const normalizedMaterials = Array.isArray(materials) ? materials : [materials];
 
+    // --- NEW LOGIC: Calculate progress based on completed quizzes ---
+    let completedCount = 0;
+    let totalScore = 0;
+
+    normalizedMaterials.forEach(m => {
+        // If the backend attached a completed quiz attempt, count it!
+        if (m.quiz_attempt && m.quiz_attempt.status === 'completed') {
+            completedCount++;
+            totalScore += Number(m.quiz_attempt.percentage || 0);
+        }
+    });
+
+    const totalMaterials = normalizedMaterials.length;
+    const isCompleted = (totalMaterials > 0 && completedCount === totalMaterials);
+    const calcProgress = totalMaterials > 0 ? (completedCount / totalMaterials) * 100 : 0;
+    const avgScore = completedCount > 0 ? (totalScore / completedCount) : null;
+
     return {
         id: assignment.assignment_id ?? assignment.id,
         title: assignment.title || "Reading Assignment",
         instructions: assignment.instructions || "Complete the reading activity.",
-        status: assignment.status || "assigned",
+        status: isCompleted ? "completed" : (assignment.status || "assigned"),
         teacherName: assignment.teacher_name || assignment.teacher || "",
         materials: normalizedMaterials,
-        progress: assignment.progress ?? assignment.completion_percentage ?? 0,
-        completed: Boolean(assignment.completed ?? assignment.is_completed ?? false)
+        progress: calcProgress,
+        completed: isCompleted,
+        score: avgScore // This feeds the "Average Score" star badge!
     };
 }
 
@@ -636,7 +704,7 @@ function startRecording() {
                 // Enable submit / playback buttons
                 document.getElementById('play-record-btn').disabled = false;
                 document.getElementById('clear-record-btn').disabled = false;
-                document.getElementById('submit-reading-btn').disabled = false;
+                document.getElementById('modalStartButton').disabled = false;
                 document.getElementById('recording-status').textContent = 'Recording complete. Ready to submit.';
             };
 
@@ -732,7 +800,7 @@ async function submitReading() {
     if (statusEl) statusEl.textContent = "Submitting and analyzing audio...";
 
     try {
-        const response = await fetch('php/api/shared/assessment.php?action=record', {
+        const response = await fetch('../php/api/shared/assessment.php?action=record', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'
@@ -816,7 +884,7 @@ function showQuizStartScreen() {
             <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
             <h3 style="margin-bottom: 8px;">Reading Started!</h3>
             <p style="color: var(--muted); margin-bottom: 4px;">
-                Activity ID: ${state.currentActivityId}
+                Activity ID: ${readingState.activityId}
             </p>
             <p style="color: var(--muted); margin-top: 8px;">
                 Now you can proceed to the comprehension quiz.
@@ -834,9 +902,13 @@ function showQuizStartScreen() {
 ============================================================ */
 
 async function startQuiz() {
+    if (state.isStartingQuiz) return;
+    state.isStartingQuiz = true;
+
     const detail = state.currentAssignmentDetail;
     if (!detail) {
         showError("No assignment detail loaded.");
+        state.isStartingQuiz = false; // Release lock
         return;
     }
 
@@ -847,10 +919,11 @@ async function startQuiz() {
     }
 
     const assignment = state.currentAssignment;
-    const assignmentId = assignment.id;
+    const assignmentId = assignment.assignment_id || assignment.id; // Added fallback just in case!
     const assignmentMaterialId = material.assignment_material_id;
 
-    if (!state.currentActivityId) {
+    // FIX 1: Look at readingState instead of state
+    if (!readingState.activityId) {
         showError("No reading activity found. Please start reading first.");
         return;
     }
@@ -866,7 +939,8 @@ async function startQuiz() {
                 method: "POST",
                 body: JSON.stringify({
                     student_id: STUDENT_ID,
-                    activity_id: state.currentActivityId
+                    // FIX 2: Send the correct readingState ID to the backend!
+                    activity_id: readingState.activityId 
                 })
             }
         );
@@ -891,6 +965,9 @@ async function startQuiz() {
         const startButton = $("#modalStartButton");
         startButton.disabled = false;
         startButton.textContent = "📝 Take Quiz";
+    } finally {
+        // 2. ADD THIS FINALLY BLOCK TO RELEASE THE LOCK
+        state.isStartingQuiz = false;
     }
 }
 
@@ -952,9 +1029,13 @@ function renderQuiz() {
 ============================================================ */
 
 async function submitQuiz() {
+    if (state.isSubmittingQuiz) return;
+    state.isSubmittingQuiz = true;
+
     const form = document.getElementById("quizForm");
     if (!form) {
         showError("Quiz form not found.");
+        state.isSubmittingQuiz = false; // Release lock
         return;
     }
 
@@ -1001,6 +1082,8 @@ async function submitQuiz() {
         const submitButton = $("#modalStartButton");
         submitButton.disabled = false;
         submitButton.textContent = "✅ Submit Quiz";
+    } finally {
+        state.isSubmittingQuiz = false;
     }
 }
 
@@ -1039,6 +1122,7 @@ function showQuizResults(result) {
     };
 }
 
+
 /* ============================================================
    CLOSE MODAL
 ============================================================ */
@@ -1048,7 +1132,7 @@ function closeAssignmentModal() {
     state.currentAssignment = null;
     state.currentAssignmentDetail = null;
     state.currentActivityId = null;
-    state.currentAttempt
+    state.currentAttemptId = null;
     const modalCard = document.querySelector(".modal-card");
     if (modalCard) modalCard.classList.remove("reading-modal");
     // Reset button handler
@@ -1063,6 +1147,141 @@ function closeAssignmentModal() {
     if (readingState.playbackUrl) {
         URL.revokeObjectURL(readingState.playbackUrl);
         readingState.playbackUrl = null;
+    }
+}
+
+// ============================================================
+// LOAD COMPLETED ASSIGNMENTS
+// ============================================================
+
+async function loadCompletedAssignments() {
+    const container = document.getElementById('completed-assignments-container');
+    if (!container) return; 
+
+    try {
+        container.innerHTML = '<p>Loading your past scores...</p>';
+        const response = await fetchJson(`/api/student/${STUDENT_ID}/completed`);
+
+        if (!response.completed_assignments || response.completed_assignments.length === 0) {
+            container.innerHTML = '<p style="color: var(--muted);">No completed assignments yet. Keep reading!</p>';
+            return;
+        }
+
+        let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">';
+        
+        response.completed_assignments.forEach(item => {
+            html += `
+                <div style="background: var(--bg-alt); padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
+                    <h4 style="margin: 0 0 4px 0;">${escapeHtml(item.assignment_title)}</h4>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--muted);">${escapeHtml(item.material_title)}</p>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Accuracy:</span>
+                        <strong style="color: var(--primary);">${Math.round(item.accuracy_percentage || 0)}%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Fluency (WCPM):</span>
+                        <strong style="color: var(--primary);">${item.wcpm || 0}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Quiz Score:</span>
+                        <strong style="color: var(--primary);">${item.score}/${item.total_questions}</strong>
+                    </div>
+
+                    <hr style="border-top: 1px solid var(--border); margin: 12px 0;">
+                    <button class="btn-secondary" style="width: 100%;" onclick="viewActivityDetails(${item.activity_id})">
+                        🔍 View Details
+                    </button>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error("Failed to load completed assignments:", error);
+        container.innerHTML = '<p style="color: red;">Error loading your scores.</p>';
+    }
+}
+
+// ============================================================
+// VIEW ACTIVITY DETAILS
+// ============================================================
+
+async function viewActivityDetails(activityId) {
+    try {
+        // We will reuse your existing assignment modal to display this!
+        const modal = $("#assignmentModal");
+        const modalTitle = $("#modalAssignmentTitle");
+        const modalBody = modal.querySelector(".modal-body");
+        const startButton = $("#modalStartButton");
+
+        modalTitle.textContent = "Assessment Details";
+        modalBody.innerHTML = '<div style="text-align:center; padding: 40px;">⏳ Loading details...</div>';
+        
+        // Show modal and hide action button since this is just a view
+        modal.classList.remove("hidden");
+        startButton.style.display = "none"; 
+
+        const response = await fetchJson(`/api/shared/activity/${activityId}/details`);
+        const data = response.assessment;
+        const quiz = response.quiz_details;
+
+        modalBody.innerHTML = `
+            <div style="padding: 16px;">
+                <h3 style="margin-top: 0;">Reading Fluency</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">WCPM</span>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.wcpm}</div>
+                    </div>
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">Accuracy</span>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${Math.round(data.accuracy_percentage)}%</div>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 8px;">Miscue Breakdown (AI Analysis)</h4>
+                <div style="display: flex; gap: 16px; margin-bottom: 24px; font-size: 14px;">
+                    <span style="color: #d97706;">🔄 Substitutions: <strong>${data.substitutions || 0}</strong></span>
+                    <span style="color: #dc2626;">➖ Omissions: <strong>${data.omissions || 0}</strong></span>
+                    <span style="color: #2563eb;">➕ Insertions: <strong>${data.insertions || 0}</strong></span>
+                </div>
+
+                <h4 style="margin-bottom: 8px;">What You Read:</h4>
+                <div style="background: #f8fafc; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-style: italic; color: #475569; margin-bottom: 32px;">
+                    "${escapeHtml(data.transcript || 'No transcript available.')}"
+                </div>
+                
+                <h3 style="margin-top: 0; border-top: 1px solid var(--border); padding-top: 24px;">Quiz Results</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${quiz.map(q => `
+                        <div style="display: flex; align-items: flex-start; gap: 8px;">
+                            <span style="font-size: 18px;">${q.is_correct ? '✅' : '❌'}</span>
+                            <div>
+                                <div style="font-weight: 500; font-size: 14px;">${q.question_number}. ${escapeHtml(q.question_text)}</div>
+                                <div style="font-size: 13px; color: ${q.is_correct ? 'var(--success)' : 'var(--danger)'};">
+                                    Your answer: ${escapeHtml(q.student_answer)}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        // When they close the modal, make sure the button comes back for future assignments
+        const closeBtn = modal.querySelector(".modal-close");
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                startButton.style.display = "block";
+            }, { once: true });
+        }
+
+    } catch (error) {
+        console.error("Error loading details:", error);
+        document.querySelector(".modal-body").innerHTML = `<div style="color: red; padding: 20px;">Failed to load details: ${error.message}</div>`;
     }
 }
 

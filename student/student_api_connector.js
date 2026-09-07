@@ -19,7 +19,7 @@
 
 const ARCHIVEVOX_API_BASE =
     "http://127.0.0.1:5000/api";
-
+const PHP_API_BASE = "/php/api";
 
 /* ============================================================
    GENERIC REQUEST HELPER
@@ -331,7 +331,6 @@ async function submitStudentQuiz(
 
 }
 
-
 /* ============================================================
    DEVELOPMENT: CREATE TEST ASSIGNMENT
 ============================================================ */
@@ -364,6 +363,45 @@ async function seedTestAssignment() {
 
 }
 
+/* ============================================================
+   AUTHENTICATION (PHP BACKEND)
+============================================================ */
+
+async function loginStudent(username, password, remember = false) {
+    const response = await fetch(`${PHP_API_BASE}/auth/login.php`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password, remember })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || "Login failed.");
+    }
+
+    // Save the user data to localStorage so student.js knows who is logged in
+    localStorage.setItem("archivevox_user", JSON.stringify(data.user));
+    return data;
+}
+
+async function logoutStudent() {
+    const response = await fetch(`${PHP_API_BASE}/auth/logout.php`, {
+        method: "POST"
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || "Logout failed.");
+    }
+
+    // Clear the user from local storage
+    localStorage.removeItem("archivevox_user");
+    return data;
+}
 
 /* ============================================================
    EXPORT
@@ -378,15 +416,11 @@ async function seedTestAssignment() {
 window.ArchiveVoxStudentApi = {
 
     checkArchiveVoxApi,
-
     loadStudentAssignments,
-
     loadStudentAssignment,
-
     startStudentReading,
-
     submitStudentQuiz,
-
-    seedTestAssignment
-
+    seedTestAssignment,
+    loginStudent,
+    logoutStudent
 };

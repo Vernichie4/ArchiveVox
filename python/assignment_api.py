@@ -528,292 +528,110 @@ def create_assignment(
 ):
 
     try:
-
-        teacher_id = int(
-            payload.get("teacher_id", 0)
-        )
-
-        class_id = int(
-            payload.get("class_id", 0)
-        )
-
+        teacher_id = int(payload.get("teacher_id", 0))
+        class_id = int(payload.get("class_id", 0))
     except (TypeError, ValueError):
+        raise ValueError("teacher_id and class_id are required.")
 
-        raise ValueError(
-            "teacher_id and class_id are required."
-        )
-
-    title = str(
-        payload.get("title") or ""
-    ).strip()
-
-    instructions = str(
-        payload.get("instructions") or ""
-    ).strip()
-
-    due_date = (
-        payload.get("due_date")
-        or None
-    )
-
-    materials = payload.get(
-        "materials"
-    )
-    
+    title = str(payload.get("title") or "").strip()
+    instructions = str(payload.get("instructions") or "").strip()
+    due_date = payload.get("due_date") or None
+    materials = payload.get("materials")
 
     # --------------------------------------------------------
     # BASIC VALIDATION
     # --------------------------------------------------------
 
-    if not teacher_id:
-
-        raise ValueError(
-            "teacher_id is required."
-        )
-
-    if not class_id:
-
-        raise ValueError(
-            "class_id is required."
-        )
-
-    if not title:
-
-        raise ValueError(
-            "Assignment title is required."
-        )
-
-    if not isinstance(materials, list):
-
-        raise ValueError(
-            "materials must be an array."
-        )
-
+    if not teacher_id: raise ValueError("teacher_id is required.")
+    if not class_id: raise ValueError("class_id is required.")
+    if not title: raise ValueError("Assignment title is required.")
+    if not isinstance(materials, list): raise ValueError("materials must be an array.")
     if len(materials) < 1 or len(materials) > 2:
-
-        raise ValueError(
-            "An assignment must contain 1 to 2 materials."
-        )
+        raise ValueError("An assignment must contain 1 to 2 materials.")
 
     # --------------------------------------------------------
     # NORMALIZE MATERIAL IDS
     # --------------------------------------------------------
 
     material_ids = []
-
     for item in materials:
-
         if isinstance(item, dict):
-
-            material_id = item.get(
-                "material_id"
-            )
-
+            material_id = item.get("material_id")
         else:
-
             material_id = item
-
         try:
-
-            material_id = int(
-                material_id
-            )
-
+            material_id = int(material_id)
         except (TypeError, ValueError):
-
-            raise ValueError(
-                "Each material must contain a valid material_id."
-            )
-
+            raise ValueError("Each material must contain a valid material_id.")
         if material_id in material_ids:
-
-            raise ValueError(
-                "The same material cannot be assigned twice."
-            )
-
-        material_ids.append(
-            material_id
-        )
+            raise ValueError("The same material cannot be assigned twice.")
+        material_ids.append(material_id)
 
     connection = get_db()
-
     try:
-
         with connection.cursor() as cursor:
 
             # ------------------------------------------------
             # TEACHER → CLASS OWNERSHIP
             # ------------------------------------------------
-
-            if not teacher_owns_class(
-                cursor,
-                teacher_id,
-                class_id
-            ):
-
-                raise PermissionError(
-                    "This class does not belong to the teacher."
-                )
-
-            # ------------------------------------------------
-            # CLASS GRADE
-            # ------------------------------------------------
-
-            cursor.execute(
-                """
-                SELECT
-                    grade_level
-
-                FROM class
-
-                WHERE class_id = %s
-
-                LIMIT 1
-                """,
-                (class_id,)
-            )
-
-            class_row = cursor.fetchone()
-
-            if not class_row:
-
-                raise ValueError(
-                    "Class not found."
-                )
-
-            class_grade = (
-                class_row["grade_level"]
-            )
+            if not teacher_owns_class(cursor, teacher_id, class_id):
+                raise PermissionError("This class does not belong to the teacher.")
 
             # ------------------------------------------------
             # VALIDATE EACH MATERIAL
             # ------------------------------------------------
-
             validated_materials = []
+            for order, material_id in enumerate(material_ids, start=1):
 
-            for order, material_id in enumerate(
-                material_ids,
-                start=1
-            ):
-
-                if not teacher_owns_material(
-                    cursor,
-                    teacher_id,
-                    material_id
-                ):
-
-                    raise PermissionError(
-                        f"Material {material_id} "
-                        "does not belong to the teacher."
-                    )
+                if not teacher_owns_material(cursor, teacher_id, material_id):
+                    raise PermissionError(f"Material {material_id} does not belong to the teacher.")
 
                 cursor.execute(
                     """
-                    SELECT
-                        material_id,
-                        title,
-                        grade_level,
-                        status
-
+                    SELECT material_id, title, grade_level, status
                     FROM reading_material
-
                     WHERE material_id = %s
-
                     LIMIT 1
                     """,
                     (material_id,)
                 )
-
                 material = cursor.fetchone()
 
                 if not material:
-
-                    raise ValueError(
-                        f"Material {material_id} was not found."
-                    )
-
-                if (
-                    class_grade
-                    and material["grade_level"]
-                    and class_grade
-                    != material["grade_level"]
-                ):
-
-                    raise ValueError(
-                        f"Material '{material['title']}' "
-                        "does not match the class grade."
-                    )
+                    raise ValueError(f"Material {material_id} was not found.")
 
                 # --------------------------------------------
-                # EXISTING MATERIAL QUIZ
+                # THE RESTORED QUIZ CHECK
                 # --------------------------------------------
-
                 cursor.execute(
                     """
-                    SELECT
-                        quiz_id,
-                        material_id,
-                        title,
-                        total_questions,
-                        status
-
+                    SELECT quiz_id, material_id, title, total_questions, status
                     FROM quiz
-
                     WHERE material_id = %s
-
                     LIMIT 1
                     """,
                     (material_id,)
                 )
-
                 quiz = cursor.fetchone()
 
                 if not quiz:
-
-                    raise ValueError(
-                        f"Material '{material['title']}' "
-                        "does not have a quiz yet."
-                    )
+                    raise ValueError(f"Material '{material['title']}' does not have a quiz yet. Please create one in the Library first.")
 
                 if quiz["status"] != "active":
-
-                    raise ValueError(
-                        f"The quiz for material "
-                        f"'{material['title']}' "
-                        "is not active."
-                    )
+                    raise ValueError(f"The quiz for material '{material['title']}' is not active.")
 
                 if quiz["total_questions"] != 5:
-
-                    raise ValueError(
-                        f"The quiz for material "
-                        f"'{material['title']}' "
-                        "must contain exactly 5 questions."
-                    )
+                    raise ValueError(f"The quiz for material '{material['title']}' must contain exactly 5 questions.")
 
                 cursor.execute(
-                    """
-                    SELECT COUNT(*) AS question_count
-
-                    FROM quiz_question
-
-                    WHERE quiz_id = %s
-                    """,
+                    "SELECT COUNT(*) AS question_count FROM quiz_question WHERE quiz_id = %s",
                     (quiz["quiz_id"],)
                 )
+                
+                if cursor.fetchone()["question_count"] != 5:
+                    raise ValueError(f"The quiz for material '{material['title']}' must have exactly 5 questions.")
 
-                question_count = cursor.fetchone()[
-                    "question_count"
-                ]
-
-                if question_count != 5:
-
-                    raise ValueError(
-                        f"The quiz for material "
-                        f"'{material['title']}' "
-                        "must have exactly 5 questions."
-                    )
-
+                # Everything passed! Attach the real quiz data.
                 validated_materials.append({
                     "material_id": material_id,
                     "assigned_order": order,
@@ -824,67 +642,25 @@ def create_assignment(
             # ------------------------------------------------
             # CREATE ASSIGNMENT
             # ------------------------------------------------
-
             cursor.execute(
                 """
-                INSERT INTO reading_assignment
-                (
-                    teacher_id,
-                    class_id,
-                    title,
-                    instructions,
-                    due_date,
-                    status
-                )
-
-                VALUES
-                (
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    'assigned'
-                )
+                INSERT INTO reading_assignment (teacher_id, class_id, title, instructions, due_date, status)
+                VALUES (%s, %s, %s, %s, %s, 'assigned')
                 """,
-                (
-                    teacher_id,
-                    class_id,
-                    title,
-                    instructions or None,
-                    due_date
-                )
+                (teacher_id, class_id, title, instructions or None, due_date)
             )
-
             assignment_id = cursor.lastrowid
 
             # ------------------------------------------------
-            # ATTACH 1–2 MATERIALS
+            # ATTACH 1–2 MATERIALS TO THE DATABASE
             # ------------------------------------------------
-
             for item in validated_materials:
-
                 cursor.execute(
                     """
-                    INSERT INTO reading_assignment_material
-                    (
-                        assignment_id,
-                        material_id,
-                        assigned_order
-                    )
-
-                    VALUES
-                    (
-                        %s,
-                        %s,
-                        %s
-                    )
+                    INSERT INTO reading_assignment_material (assignment_id, material_id, assigned_order)
+                    VALUES (%s, %s, %s)
                     """,
-                    (
-                        assignment_id,
-                        item["material_id"],
-                        item["assigned_order"]
-                    )
+                    (assignment_id, item["material_id"], item["assigned_order"])
                 )
 
         connection.commit()
@@ -903,13 +679,9 @@ def create_assignment(
         }, 201
 
     except Exception:
-
         connection.rollback()
-
         raise
-
     finally:
-
         connection.close()
 
 
@@ -1445,6 +1217,9 @@ def student_assignment_detail(
                 material["reading_result"] = (
                     cursor.fetchone()
                 )
+
+            # --- THE FIX: Tuck materials inside the assignment object ---
+            assignment["materials"] = materials
 
             return success({
                 "assignment":
@@ -2738,6 +2513,68 @@ def teacher_delete_assignment(assignment_id: int):
         connection.close()
 
 # ============================================================
+# TEACHER — GET EXISTING QUIZ
+# ============================================================
+
+@app.get("/api/teacher/materials/<int:material_id>/quiz")
+def teacher_get_quiz(material_id: int):
+    teacher_id = request.args.get("teacher_id", type=int)
+    
+    if not teacher_id:
+        return error("teacher_id is required.")
+
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            # 1. Verify ownership
+            if not teacher_owns_material(cursor, teacher_id, material_id):
+                return error("Material not found or access denied.", 403)
+
+            # 2. Look for an existing quiz
+            cursor.execute(
+                "SELECT quiz_id, title FROM quiz WHERE material_id = %s LIMIT 1", 
+                (material_id,)
+            )
+            quiz = cursor.fetchone()
+
+            if not quiz:
+                # Return success with empty data so the frontend knows it's a brand new quiz
+                return success({"quiz": None})
+
+            # 3. Get Questions
+            cursor.execute(
+                """
+                SELECT question_id, question_number, question_text 
+                FROM quiz_question 
+                WHERE quiz_id = %s 
+                ORDER BY question_number
+                """, 
+                (quiz["quiz_id"],)
+            )
+            questions = cursor.fetchall()
+
+            # 4. Get Choices for each question
+            for q in questions:
+                cursor.execute(
+                    """
+                    SELECT choice_label, choice_text, is_correct 
+                    FROM quiz_choice 
+                    WHERE question_id = %s 
+                    ORDER BY choice_label
+                    """, 
+                    (q["question_id"],)
+                )
+                q["choices"] = cursor.fetchall()
+
+            quiz["questions"] = questions
+            return success({"quiz": quiz})
+
+    except Exception as e:
+        return error(f"Failed to fetch quiz: {str(e)}", 500)
+    finally:
+        connection.close()
+
+# ============================================================
 # TEACHER — LIST MATERIALS (for assignment dropdown)
 # ============================================================
 
@@ -2795,6 +2632,109 @@ def teacher_list_classes():
             for cls in classes:
                 cls["display_name"] = f"{cls['grade_level']} - {cls['section']} ({cls['school_year']})"
             return success({"classes": serialize(classes)})
+    finally:
+        connection.close()
+
+# ============================================================
+# TEACHER — CREATE / UPDATE QUIZ
+# ============================================================
+
+@app.post("/api/teacher/materials/<int:material_id>/quiz")
+def teacher_save_quiz(material_id: int):
+    teacher_id = request.args.get("teacher_id", type=int)
+    payload = request.get_json(silent=True) or {}
+    
+    if not teacher_id:
+        return error("teacher_id is required.")
+        
+    title = payload.get("title", "Comprehension Quiz")
+    questions = payload.get("questions", [])
+    
+    if len(questions) != 5:
+        return error("Exactly 5 questions are required.")
+
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            # 1. Verify material ownership
+            if not teacher_owns_material(cursor, teacher_id, material_id):
+                return error("Material not found or you do not have permission.", 403)
+
+            # 2. Check if a quiz already exists for this material
+            cursor.execute("SELECT quiz_id FROM quiz WHERE material_id = %s LIMIT 1", (material_id,))
+            existing_quiz = cursor.fetchone()
+
+            if existing_quiz:
+                quiz_id = existing_quiz["quiz_id"]
+                # Update title
+                cursor.execute("UPDATE quiz SET title = %s, status = 'active' WHERE quiz_id = %s", (title, quiz_id))
+                
+                # Fetch existing questions to update them IN PLACE (This prevents breaking student answers!)
+                cursor.execute("SELECT question_id, question_number FROM quiz_question WHERE quiz_id = %s", (quiz_id,))
+                existing_q_map = {row["question_number"]: row["question_id"] for row in cursor.fetchall()}
+                
+                for q in questions:
+                    q_num = q["number"]
+                    if q_num in existing_q_map:
+                        q_id = existing_q_map[q_num]
+                        
+                        # Update the question text
+                        cursor.execute("UPDATE quiz_question SET question_text = %s WHERE question_id = %s", (q["text"], q_id))
+                        
+                        # Update the choices (A, B, C, D)
+                        for choice in q["choices"]:
+                            cursor.execute(
+                                """
+                                UPDATE quiz_choice 
+                                SET choice_text = %s, is_correct = %s 
+                                WHERE question_id = %s AND choice_label = %s
+                                """,
+                                (choice["text"], choice["is_correct"], q_id, choice["label"])
+                            )
+                    else:
+                        # Fallback: Insert if missing
+                        cursor.execute(
+                            "INSERT INTO quiz_question (quiz_id, question_number, question_text) VALUES (%s, %s, %s)",
+                            (quiz_id, q_num, q["text"])
+                        )
+                        q_id = cursor.lastrowid
+                        for choice in q["choices"]:
+                            cursor.execute(
+                                "INSERT INTO quiz_choice (question_id, choice_label, choice_text, is_correct) VALUES (%s, %s, %s, %s)",
+                                (q_id, choice["label"], choice["text"], choice["is_correct"])
+                            )
+
+            else:
+                # Insert brand new quiz (if none existed)
+                cursor.execute(
+                    "INSERT INTO quiz (material_id, title, total_questions, status) VALUES (%s, %s, 5, 'active')",
+                    (material_id, title)
+                )
+                quiz_id = cursor.lastrowid
+
+                # Insert the 5 questions and 20 choices
+                for q in questions:
+                    cursor.execute(
+                        "INSERT INTO quiz_question (quiz_id, question_number, question_text) VALUES (%s, %s, %s)",
+                        (quiz_id, q["number"], q["text"])
+                    )
+                    question_id = cursor.lastrowid
+                    
+                    for choice in q["choices"]:
+                        cursor.execute(
+                            """
+                            INSERT INTO quiz_choice (question_id, choice_label, choice_text, is_correct)
+                            VALUES (%s, %s, %s, %s)
+                            """,
+                            (question_id, choice["label"], choice["text"], choice["is_correct"])
+                        )
+
+        connection.commit()
+        return success({"message": "Quiz saved successfully", "quiz_id": quiz_id})
+
+    except Exception as e:
+        connection.rollback()
+        return error(f"Failed to save quiz: {str(e)}", 500)
     finally:
         connection.close()
 
@@ -2863,6 +2803,99 @@ def seed_test_assignment():
             500
         )
 
+# ============================================================
+# STUDENT — COMPLETED ASSIGNMENTS
+# ============================================================
+
+@app.get("/api/student/<int:student_id>/completed")
+def student_get_completed(student_id: int):
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            # We use LEFT JOINs and trace through quiz_attempt to bypass any missing PHP links!
+            cursor.execute(
+                """
+                SELECT
+                    qa.activity_id,
+                    a.title AS assignment_title,
+                    m.title AS material_title,
+                    COALESCE(ar.wcpm, 0) AS wcpm,
+                    COALESCE(ar.accuracy_percentage, 0) AS accuracy_percentage,
+                    qa.score,
+                    qa.total_questions
+                FROM quiz_attempt qa
+                JOIN reading_assignment_material ram ON qa.assignment_material_id = ram.assignment_material_id
+                JOIN reading_assignment a ON ram.assignment_id = a.assignment_id
+                JOIN reading_material m ON ram.material_id = m.material_id
+                LEFT JOIN assessment_result ar ON qa.activity_id = ar.activity_id
+                WHERE qa.student_id = %s AND qa.status = 'completed'
+                ORDER BY qa.completed_at DESC
+                """,
+                (student_id,)
+            )
+            completed_work = cursor.fetchall()
+
+        return success({"completed_assignments": serialize(completed_work)})
+    except Exception as e:
+        return error(f"Failed to fetch completed work: {str(e)}", 500)
+    finally:
+        connection.close()
+
+# ============================================================
+# SHARED — VIEW ACTIVITY DETAILS (Used by Students & Teachers)
+# ============================================================
+
+@app.get("/api/shared/activity/<int:activity_id>/details")
+def get_activity_details(activity_id: int):
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            # 1. Fetch reading performance details
+            cursor.execute(
+                """
+                SELECT 
+                    ar.*,
+                    m.ocr_text AS original_text
+                FROM assessment_result ar
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                JOIN reading_material m ON ra.material_id = m.material_id
+                WHERE ar.activity_id = %s
+                LIMIT 1
+                """,
+                (activity_id,)
+            )
+            assessment = cursor.fetchone()
+
+            # 2. Fetch the detailed quiz answers (Fixed the selected_choice_id column!)
+            cursor.execute(
+                """
+                SELECT 
+                    qa.score, qa.total_questions,
+                    qq.question_number, qq.question_text,
+                    qc_selected.choice_label AS student_answer,
+                    qc_selected.is_correct AS is_correct
+                FROM quiz_attempt qa
+                JOIN quiz_answer q_ans ON qa.attempt_id = q_ans.attempt_id
+                JOIN quiz_question qq ON q_ans.question_id = qq.question_id
+                JOIN quiz_choice qc_selected ON q_ans.selected_choice_id = qc_selected.choice_id
+                WHERE qa.activity_id = %s
+                ORDER BY qq.question_number
+                """,
+                (activity_id,)
+            )
+            quiz_details = cursor.fetchall()
+
+            if not assessment:
+                return error("Activity details not found.", 404)
+
+        return success({
+            "assessment": assessment,
+            "quiz_details": quiz_details
+        })
+    except Exception as e:
+        return error(f"Failed to fetch details: {str(e)}", 500)
+    finally:
+        connection.close()
 
 # ============================================================
 # ERROR HANDLERS
