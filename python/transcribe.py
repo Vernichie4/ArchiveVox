@@ -39,13 +39,12 @@ def main():
     try:
         # Load model - tiny is fast, but for Tagalog you might want base or small
         # Use 'base' for better accuracy with Tagalog
-        model = whisper.load_model("base")
+        model = whisper.load_model("small")
         
         # Transcribe with language hint for Tagalog
         # This forces Whisper to use Tagalog (tl) language model
         result = model.transcribe(
             audio_path,
-            language="tl",  # Tagalog language code
             task="transcribe",
             fp16=False  # Use FP32 for better compatibility
         )

@@ -202,51 +202,40 @@ async function loadStudentAssignment(
 ============================================================ */
 
 /*
- * Creates a reading_activity record.
+ * Creates a reading_activity record linked to an assignment.
  *
  * Returns:
- *
- * activity_id
- * assignment_id
- * material_id
- * attempt_number
+ * activity_id, assignment_id, material_id, attempt_number
  */
 
 async function startStudentReading(
     studentId,
-    assignmentId
+    assignmentId,
+    assignmentMaterialId // <-- Added this critical parameter
 ) {
 
     if (!studentId) {
-
-        throw new Error(
-            "Student ID is required."
-        );
-
+        throw new Error("Student ID is required.");
     }
-
 
     if (!assignmentId) {
-
-        throw new Error(
-            "Assignment ID is required."
-        );
-
+        throw new Error("Assignment ID is required.");
     }
 
+    if (!assignmentMaterialId) {
+        throw new Error("Assignment Material ID is required.");
+    }
 
+    // Fixed the URL to match the Python API perfectly
     return apiRequest(
-        `/student/assignments/${encodeURIComponent(assignmentId)}/start-reading`,
+        `/student/assignments/${encodeURIComponent(assignmentId)}/materials/${encodeURIComponent(assignmentMaterialId)}/start-reading`,
         {
             method: "POST",
-
             body: JSON.stringify({
-                student_id:
-                    Number(studentId)
+                student_id: Number(studentId)
             })
         }
     );
-
 }
 
 

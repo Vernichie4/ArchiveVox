@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-
 # ============================================================
 # CONFIGURATION
 # ============================================================
@@ -19,14 +18,16 @@ load_dotenv()
 
 app = Flask(__name__)
 
-CORS(
-    app,
-    resources={
-        r"/api/*": {
-            "origins": "*"
-        }
-    }
-)
+# 1. Base CORS setup
+CORS(app)
+
+# 2. BULLETPROOF CORS OVERRIDE (Forces exact headers on EVERY request)
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
 
 
 DB_CONFIG = {
@@ -45,7 +46,6 @@ DEV_MODE = (
     os.getenv("DEV_MODE", "true").lower()
     in {"1", "true", "yes"}
 )
-
 
 # ============================================================
 # DATABASE
@@ -199,7 +199,7 @@ def validate_schema():
             required_reading_activity_columns = [
                 "student_id",
                 "material_id",
-                "assignment_id",
+                "assignment_material_id",
                 "activity_date",
                 "started_at",
                 "attempt_number",
@@ -350,14 +350,12 @@ def teacher_owns_material(
         FROM reading_material
 
         WHERE material_id = %s
-          AND teacher_id = %s
-          AND status = 'Active'
+          AND status NOT IN ('Archived', 'Deleted', 'archived', 'deleted')
 
         LIMIT 1
         """,
         (
             material_id,
-            teacher_id
         )
     )
 
@@ -442,6 +440,7 @@ def get_assignment_materials(
             rm.difficulty,
             rm.ocr_text,
             rm.total_words,
+            rm.file_path,
 
             q.quiz_id,
             q.title AS quiz_title,
@@ -465,7 +464,6 @@ def get_assignment_materials(
     )
 
     return cursor.fetchall()
-
 
 # ============================================================
 # QUIZ QUESTIONS
@@ -584,7 +582,7 @@ def create_assignment(
             for order, material_id in enumerate(material_ids, start=1):
 
                 if not teacher_owns_material(cursor, teacher_id, material_id):
-                    raise PermissionError(f"Material {material_id} does not belong to the teacher.")
+                    raise PermissionError(f"Material {material_id} is unavailable or archived.")
 
                 cursor.execute(
                     """
@@ -914,138 +912,93 @@ def student_list_assignments():
     connection = get_db()
 
     try:
-
         with connection.cursor() as cursor:
-
+            # 1. FETCH ALL ASSIGNMENTS
             cursor.execute(
                 """
-                SELECT
-
-                    ra.assignment_id,
-                    ra.title,
-                    ra.instructions,
-                    ra.status,
-                    ra.assigned_at,
-                    ra.due_date,
-
-                    c.grade_level,
-                    c.section,
-                    c.school_year
-
+                SELECT ra.assignment_id, ra.title, ra.instructions, ra.status,
+                    ra.assigned_at, ra.due_date, c.grade_level, c.section, c.school_year
                 FROM reading_assignment ra
-
-                INNER JOIN class c
-                    ON c.class_id = ra.class_id
-
-                WHERE ra.class_id = %s
-                  AND ra.status = 'assigned'
-
+                INNER JOIN class c ON c.class_id = ra.class_id
+                WHERE ra.class_id = %s AND ra.status = 'assigned'
                 ORDER BY ra.assigned_at DESC
                 """,
                 (student["class_id"],)
             )
-
             assignments = cursor.fetchall()
 
+            if not assignments:
+                return success({"student": serialize(student), "assignments": []})
+
+            all_materials = []
+            
+            # 2. FETCH MATERIALS (Restoring your original helper function to prevent schema crashes!)
             for assignment in assignments:
+                materials = get_assignment_materials(cursor, assignment["assignment_id"])
+                assignment["materials"] = materials
+                all_materials.extend(materials)
 
-                assignment["materials"] = (
-                    get_assignment_materials(
-                        cursor,
-                        assignment["assignment_id"]
-                    )
+            # Extract material IDs for the progress queries
+            material_ids = [m["assignment_material_id"] for m in all_materials]
+            
+            quiz_dict = {}
+            reading_dict = {}
+
+            if material_ids:
+                format_strings_materials = ','.join(['%s'] * len(material_ids))
+
+                # 3. BULK FETCH QUIZ ATTEMPTS
+                cursor.execute(
+                    f"""
+                    SELECT qa.attempt_id, qa.quiz_id, qa.score, qa.total_questions,
+                        qa.percentage, qa.started_at, qa.completed_at, qa.status,
+                        qa.assignment_material_id
+                    FROM quiz_attempt qa
+                    WHERE qa.student_id = %s AND qa.assignment_material_id IN ({format_strings_materials})
+                    ORDER BY qa.attempt_id DESC
+                    """,
+                    (student_id, *material_ids)
                 )
+                
+                # Keep only the newest attempt per material
+                for qa in cursor.fetchall():
+                    mat_id = qa["assignment_material_id"]
+                    if mat_id not in quiz_dict:
+                        quiz_dict[mat_id] = qa
 
-                # --------------------------------------------
-                # STUDENT PROGRESS
-                # --------------------------------------------
+                # 4. BULK FETCH READING RESULTS
+                cursor.execute(
+                    f"""
+                    SELECT ra.activity_id, ra.activity_status, ra.started_at, ra.finished_at,
+                        ar.assessment_id, ar.accuracy_percentage, ar.wcpm,
+                        ar.final_reading_level, ar.observation_level, ar.comprehension_score,
+                        ra.assignment_material_id
+                    FROM reading_activity ra
+                    LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
+                    WHERE ra.student_id = %s AND ra.assignment_material_id IN ({format_strings_materials})
+                    ORDER BY ra.activity_id DESC, ar.assessment_id DESC
+                    """,
+                    (student_id, *material_ids)
+                )
+                
+                # Keep only the newest reading result per material
+                for rr in cursor.fetchall():
+                    mat_id = rr["assignment_material_id"]
+                    if mat_id not in reading_dict:
+                        reading_dict[mat_id] = rr
 
-                for material in assignment["materials"]:
-
-                    cursor.execute(
-                        """
-                        SELECT
-
-                            qa.attempt_id,
-                            qa.quiz_id,
-                            qa.score,
-                            qa.total_questions,
-                            qa.percentage,
-                            qa.started_at,
-                            qa.completed_at,
-                            qa.status
-
-                        FROM quiz_attempt qa
-
-                        WHERE qa.student_id = %s
-                          AND qa.assignment_material_id = %s
-
-                        ORDER BY qa.attempt_id DESC
-
-                        LIMIT 1
-                        """,
-                        (
-                            student_id,
-                            material[
-                                "assignment_material_id"
-                            ]
-                        )
-                    )
-
-                    material["quiz_attempt"] = (
-                        cursor.fetchone()
-                    )
-
-                    cursor.execute(
-                        """
-                        SELECT
-
-                            ra.activity_id,
-                            ra.activity_status,
-                            ra.started_at,
-                            ra.finished_at,
-
-                            ar.assessment_id,
-                            ar.accuracy_percentage,
-                            ar.wcpm,
-                            ar.final_reading_level,
-                            ar.observation_level,
-                            ar.comprehension_score
-
-                        FROM reading_activity ra
-
-                        LEFT JOIN assessment_result ar
-                            ON ar.activity_id =
-                               ra.activity_id
-
-                        WHERE ra.student_id = %s
-                          AND ra.assignment_id = %s
-                          AND ra.material_id = %s
-
-                        ORDER BY ra.activity_id DESC
-
-                        LIMIT 1
-                        """,
-                        (
-                            student_id,
-                            assignment["assignment_id"],
-                            material["material_id"]
-                        )
-                    )
-
-                    material["reading_result"] = (
-                        cursor.fetchone()
-                    )
+            # 5. ASSEMBLE PROGRESS IN PYTHON
+            for mat in all_materials:
+                mat_id = mat["assignment_material_id"]
+                mat["quiz_attempt"] = quiz_dict.get(mat_id)
+                mat["reading_result"] = reading_dict.get(mat_id)
 
             return success({
-                "student":
-                    serialize(student),
-                "assignments":
-                    serialize(assignments)
+                "student": serialize(student),
+                "assignments": serialize(assignments)
             })
 
     finally:
-
         connection.close()
 
 
@@ -1200,8 +1153,7 @@ def student_assignment_detail(
                            ra.activity_id
 
                     WHERE ra.student_id = %s
-                      AND ra.assignment_id = %s
-                      AND ra.material_id = %s
+                      AND ra.assignment_material_id = %s
 
                     ORDER BY ra.activity_id DESC
 
@@ -1209,8 +1161,7 @@ def student_assignment_detail(
                     """,
                     (
                         student_id,
-                        assignment_id,
-                        material["material_id"]
+                        material["assignment_material_id"] # <--- Updated parameter
                     )
                 )
 
@@ -1372,7 +1323,7 @@ def student_start_reading(
                 (
                     student_id,
                     material_id,
-                    assignment_id,
+                    assignment_material_id,
                     activity_date,
                     started_at,
                     attempt_number,
@@ -1393,7 +1344,7 @@ def student_start_reading(
                 (
                     student_id,
                     material_id,
-                    assignment_id,
+                    assignment_material_id,
                     attempt_number
                 )
             )
@@ -2139,8 +2090,7 @@ def student_reading_result(
                        ra.activity_id
 
                 WHERE ra.student_id = %s
-                  AND ra.assignment_id = %s
-                  AND ra.material_id = %s
+                  AND ra.assignment_material_id = %s
 
                 ORDER BY ra.activity_id DESC
 
@@ -2148,8 +2098,7 @@ def student_reading_result(
                 """,
                 (
                     student_id,
-                    assignment_id,
-                    material["material_id"]
+                    assignment_material_id # <--- Updated parameter
                 )
             )
 
@@ -2164,39 +2113,51 @@ def student_reading_result(
 
         connection.close()
 
-def complete_student_activity(activity_id, metrics):
+@app.post("/api/student/activities/<int:activity_id>/save-result")
+def save_reading_result(activity_id: int):
+    metrics = request.get_json(silent=True) or {}
     connection = get_db()
-    with connection.cursor() as cursor:
-        # 1. Update the parent activity status so PHP picks it up
-        cursor.execute(
-            """
-            UPDATE reading_activity 
-            SET activity_status = 'Completed', finished_at = NOW() 
-            WHERE activity_id = %s
-            """,
-            (activity_id,)
-        )
-        
-        # 2. Insert into assessment_result to populate teacher metrics
-        cursor.execute(
-            """
-            INSERT INTO assessment_result (
-                activity_id, total_words, words_correct, accuracy_percentage, 
-                wcpm, reading_level, assessed_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            """,
-            (
-                activity_id, 
-                metrics['total_words'], 
-                metrics['words_correct'], 
-                metrics['accuracy'], 
-                metrics['wcpm'], 
-                metrics['reading_level']
+    
+    try:
+        with connection.cursor() as cursor:
+            # 1. Update the parent activity status
+            cursor.execute(
+                "UPDATE reading_activity SET activity_status = 'Completed', finished_at = NOW() WHERE activity_id = %s",
+                (activity_id,)
             )
-        )
-    connection.commit()
-    connection.close()
+            
+            # 2. Delete any blank row PHP might have accidentally generated
+            cursor.execute("DELETE FROM assessment_result WHERE activity_id = %s", (activity_id,))
 
+            # 3. Insert the full, accurate results
+            cursor.execute(
+                """
+                INSERT INTO assessment_result (
+                    activity_id, total_words, words_correct, accuracy_percentage, 
+                    wcpm, reading_level, assessed_at,
+                    transcript, substitutions, omissions, insertions
+                ) VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s)
+                """,
+                (
+                    activity_id,
+                    metrics.get('total_words', 0),
+                    metrics.get('words_correct', 0),
+                    metrics.get('accuracy_percentage', 0),
+                    metrics.get('wcpm', 0),
+                    metrics.get('reading_level', 'Pending'),
+                    metrics.get('transcript', ''),
+                    metrics.get('substitutions', 0),
+                    metrics.get('omissions', 0),
+                    metrics.get('insertions', 0)
+                )
+            )
+        connection.commit()
+        return success({"message": "Assessment saved successfully!"})
+    except Exception as e:
+        connection.rollback()
+        return error(str(e), 500)
+    finally:
+        connection.close()
 
 # ============================================================
 # TEACHER — ASSIGNMENT RESULTS
@@ -2228,7 +2189,7 @@ def teacher_assignment_results(
         with connection.cursor() as cursor:
 
             # --------------------------------------------
-            # VERIFY TEACHER OWNERSHIP
+            # VERIFY TEACHER OWNERSHIP (Restored!)
             # --------------------------------------------
 
             cursor.execute(
@@ -2341,8 +2302,7 @@ def teacher_assignment_results(
                            ra.activity_id
 
                     WHERE ra.student_id = %s
-                      AND ra.assignment_id = %s
-                      AND ra.material_id = %s
+                      AND ra.assignment_material_id = %s
 
                     ORDER BY ra.activity_id DESC
 
@@ -2350,8 +2310,7 @@ def teacher_assignment_results(
                     """,
                     (
                         row["student_id"],
-                        assignment_id,
-                        row["material_id"]
+                        row["assignment_material_id"] # <--- The correct fix applied here!
                     )
                 )
 
@@ -2405,7 +2364,6 @@ def teacher_assignment_results(
     finally:
 
         connection.close()
-
 # ============================================================
 # GET SINGLE ASSIGNMENT
 # ============================================================
@@ -2471,11 +2429,12 @@ def teacher_update_assignment(assignment_id: int):
             if not cursor.fetchone():
                 return error("Assignment not found or not owned by this teacher.", 404)
 
+            # Secure update: Ensure the update only happens if the teacher owns it
             cursor.execute("""
                 UPDATE reading_assignment
                 SET title = %s, instructions = %s, due_date = %s
-                WHERE assignment_id = %s
-            """, (title, instructions, due_date, assignment_id))
+                WHERE assignment_id = %s AND teacher_id = %s
+            """, (title, instructions, due_date, assignment_id, teacher_id))
 
         connection.commit()
         return success({"message": "Assignment updated successfully."})
@@ -2526,11 +2485,7 @@ def teacher_get_quiz(material_id: int):
     connection = get_db()
     try:
         with connection.cursor() as cursor:
-            # 1. Verify ownership
-            if not teacher_owns_material(cursor, teacher_id, material_id):
-                return error("Material not found or access denied.", 403)
-
-            # 2. Look for an existing quiz
+            # Look for an existing quiz without strict ownership blocks
             cursor.execute(
                 "SELECT quiz_id, title FROM quiz WHERE material_id = %s LIMIT 1", 
                 (material_id,)
@@ -2538,10 +2493,8 @@ def teacher_get_quiz(material_id: int):
             quiz = cursor.fetchone()
 
             if not quiz:
-                # Return success with empty data so the frontend knows it's a brand new quiz
                 return success({"quiz": None})
 
-            # 3. Get Questions
             cursor.execute(
                 """
                 SELECT question_id, question_number, question_text 
@@ -2553,7 +2506,6 @@ def teacher_get_quiz(material_id: int):
             )
             questions = cursor.fetchall()
 
-            # 4. Get Choices for each question
             for q in questions:
                 cursor.execute(
                     """
@@ -2580,6 +2532,8 @@ def teacher_get_quiz(material_id: int):
 
 @app.get("/api/teacher/materials")
 def teacher_list_materials():
+    # We still accept teacher_id for logging/auth purposes if needed, 
+    # but we won't use it to restrict the shared library dropdown.
     teacher_id = request.args.get("teacher_id", type=int)
     if not teacher_id:
         return error("teacher_id is required.")
@@ -2587,6 +2541,7 @@ def teacher_list_materials():
     connection = get_db()
     try:
         with connection.cursor() as cursor:
+            # Changed the WHERE clause to catch Pending/Draft materials too
             cursor.execute("""
                 SELECT
                     material_id,
@@ -2595,10 +2550,9 @@ def teacher_list_materials():
                     language,
                     material_type
                 FROM reading_material
-                WHERE teacher_id = %s
-                  AND status = 'Active'
+                WHERE status NOT IN ('Archived', 'Deleted', 'archived', 'deleted')
                 ORDER BY title ASC
-            """, (teacher_id,))
+            """)
             materials = cursor.fetchall()
             return success({"materials": serialize(materials)})
     finally:
@@ -2656,20 +2610,14 @@ def teacher_save_quiz(material_id: int):
     connection = get_db()
     try:
         with connection.cursor() as cursor:
-            # 1. Verify material ownership
-            if not teacher_owns_material(cursor, teacher_id, material_id):
-                return error("Material not found or you do not have permission.", 403)
-
-            # 2. Check if a quiz already exists for this material
+            # Check if a quiz already exists for this material
             cursor.execute("SELECT quiz_id FROM quiz WHERE material_id = %s LIMIT 1", (material_id,))
             existing_quiz = cursor.fetchone()
 
             if existing_quiz:
                 quiz_id = existing_quiz["quiz_id"]
-                # Update title
                 cursor.execute("UPDATE quiz SET title = %s, status = 'active' WHERE quiz_id = %s", (title, quiz_id))
                 
-                # Fetch existing questions to update them IN PLACE (This prevents breaking student answers!)
                 cursor.execute("SELECT question_id, question_number FROM quiz_question WHERE quiz_id = %s", (quiz_id,))
                 existing_q_map = {row["question_number"]: row["question_id"] for row in cursor.fetchall()}
                 
@@ -2677,11 +2625,7 @@ def teacher_save_quiz(material_id: int):
                     q_num = q["number"]
                     if q_num in existing_q_map:
                         q_id = existing_q_map[q_num]
-                        
-                        # Update the question text
                         cursor.execute("UPDATE quiz_question SET question_text = %s WHERE question_id = %s", (q["text"], q_id))
-                        
-                        # Update the choices (A, B, C, D)
                         for choice in q["choices"]:
                             cursor.execute(
                                 """
@@ -2692,7 +2636,6 @@ def teacher_save_quiz(material_id: int):
                                 (choice["text"], choice["is_correct"], q_id, choice["label"])
                             )
                     else:
-                        # Fallback: Insert if missing
                         cursor.execute(
                             "INSERT INTO quiz_question (quiz_id, question_number, question_text) VALUES (%s, %s, %s)",
                             (quiz_id, q_num, q["text"])
@@ -2703,16 +2646,13 @@ def teacher_save_quiz(material_id: int):
                                 "INSERT INTO quiz_choice (question_id, choice_label, choice_text, is_correct) VALUES (%s, %s, %s, %s)",
                                 (q_id, choice["label"], choice["text"], choice["is_correct"])
                             )
-
             else:
-                # Insert brand new quiz (if none existed)
                 cursor.execute(
                     "INSERT INTO quiz (material_id, title, total_questions, status) VALUES (%s, %s, 5, 'active')",
                     (material_id, title)
                 )
                 quiz_id = cursor.lastrowid
 
-                # Insert the 5 questions and 20 choices
                 for q in questions:
                     cursor.execute(
                         "INSERT INTO quiz_question (quiz_id, question_number, question_text) VALUES (%s, %s, %s)",
@@ -2812,7 +2752,7 @@ def student_get_completed(student_id: int):
     connection = get_db()
     try:
         with connection.cursor() as cursor:
-            # We use LEFT JOINs and trace through quiz_attempt to bypass any missing PHP links!
+
             cursor.execute(
                 """
                 SELECT
@@ -2824,6 +2764,13 @@ def student_get_completed(student_id: int):
                     qa.score,
                     qa.total_questions
                 FROM quiz_attempt qa
+                JOIN (
+                    SELECT assignment_material_id, MAX(completed_at) as max_completed
+                    FROM quiz_attempt
+                    WHERE student_id = %s AND status = 'completed'
+                    GROUP BY assignment_material_id
+                ) latest ON qa.assignment_material_id = latest.assignment_material_id 
+                         AND qa.completed_at = latest.max_completed
                 JOIN reading_assignment_material ram ON qa.assignment_material_id = ram.assignment_material_id
                 JOIN reading_assignment a ON ram.assignment_id = a.assignment_id
                 JOIN reading_material m ON ram.material_id = m.material_id
@@ -2831,7 +2778,7 @@ def student_get_completed(student_id: int):
                 WHERE qa.student_id = %s AND qa.status = 'completed'
                 ORDER BY qa.completed_at DESC
                 """,
-                (student_id,)
+                (student_id, student_id) # We pass it twice because of the two %s
             )
             completed_work = cursor.fetchall()
 
@@ -2851,22 +2798,26 @@ def get_activity_details(activity_id: int):
     try:
         with connection.cursor() as cursor:
             # 1. Fetch reading performance details
+            # Added ORDER BY ar.assessment_id DESC to bypass the blank trigger row!
             cursor.execute(
                 """
                 SELECT 
                     ar.*,
-                    m.ocr_text AS original_text
+                    m.ocr_text AS original_text,
+                    m.file_path
                 FROM assessment_result ar
                 JOIN reading_activity ra ON ar.activity_id = ra.activity_id
                 JOIN reading_material m ON ra.material_id = m.material_id
                 WHERE ar.activity_id = %s
+                ORDER BY ar.assessment_id DESC
                 LIMIT 1
                 """,
                 (activity_id,)
             )
             assessment = cursor.fetchone()
 
-            # 2. Fetch the detailed quiz answers (Fixed the selected_choice_id column!)
+            # 2. Fetch the detailed quiz answers 
+            # Changed the last JOIN to a LEFT JOIN so unanswered questions are not hidden
             cursor.execute(
                 """
                 SELECT 
@@ -2877,7 +2828,7 @@ def get_activity_details(activity_id: int):
                 FROM quiz_attempt qa
                 JOIN quiz_answer q_ans ON qa.attempt_id = q_ans.attempt_id
                 JOIN quiz_question qq ON q_ans.question_id = qq.question_id
-                JOIN quiz_choice qc_selected ON q_ans.selected_choice_id = qc_selected.choice_id
+                LEFT JOIN quiz_choice qc_selected ON q_ans.selected_choice_id = qc_selected.choice_id
                 WHERE qa.activity_id = %s
                 ORDER BY qq.question_number
                 """,
@@ -2903,22 +2854,18 @@ def get_activity_details(activity_id: int):
 
 @app.errorhandler(404)
 def not_found(_error):
-
     return error(
         "API endpoint not found.",
         404
     )
 
-
 @app.errorhandler(405)
 def method_not_allowed(_error):
-
     return error(
         "HTTP method not allowed.",
         405
     )
-
-
+    
 # ============================================================
 # MAIN
 # ============================================================

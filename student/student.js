@@ -589,14 +589,34 @@ function showReadingContent() {
     const language = material.language || "Unknown";
     const gradeLevel = material.grade_level || "N/A";
 
+    // NEW: Uses file_path and adds the correct folder URL!
+    const friendlyImageHtml = material.file_path 
+        ? `<div style="text-align: center; margin-bottom: 20px;">
+               <img src="../uploads/materials/${material.file_path}" alt="Story Illustration" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+           </div>` 
+        : '';
+
     // Build recording UI
+// Build recording UI (This injects directly inside the Modal!)
     modalBody.innerHTML = `
         <div class="reading-content">
-            <div class="reading-meta">
-                <span>🌐 ${escapeHtml(language)}</span>
-                <span>📚 Grade ${escapeHtml(gradeLevel)}</span>
-                <span>📝 ${escapeHtml(String(wordCount))} words</span>
+            
+            <!-- TTS Button & Info Header -->
+            <div class="reading-meta" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span>🌐 ${escapeHtml(language)}</span>
+                    <span>📚 Grade ${escapeHtml(gradeLevel)}</span>
+                    <span>📝 ${escapeHtml(String(wordCount))} words</span>
+                </div>
+                <button id="tts-btn" class="btn-secondary" style="display: flex; align-items: center; gap: 6px;">
+                    🔊 Read to Me
+                </button>
+                <audio id="tts-audio" style="display: none;"></audio>
             </div>
+            
+            <!-- The friendly image is injected right here, just above the text! -->
+            ${friendlyImageHtml}
+
             <div class="reading-text">
                 ${escapeHtml(ocrText).replace(/\n/g, '<br>')}
             </div>
@@ -624,14 +644,64 @@ function showReadingContent() {
     document.getElementById('play-record-btn').addEventListener('click', playRecording);
     document.getElementById('clear-record-btn').addEventListener('click', clearRecording);
 
+    window.speechSynthesis.getVoices(); 
+
+    // Bind Text-to-Speech Event Listener (Browser Built-in)
+    const ttsBtn = document.getElementById('tts-btn');
+
+    ttsBtn.addEventListener('click', () => {
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            ttsBtn.innerHTML = "🔊 Read to Me";
+            return;
+        }
+
+        ttsBtn.innerHTML = "⏳ Preparing...";
+
+        const utterance = new SpeechSynthesisUtterance(ocrText);
+        
+        // Pitch/Rate settings for a younger sound
+        utterance.pitch = 2.0; 
+        utterance.rate = 0.85;  
+        
+        // 2. Strict search for known female local voices ONLY
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find(v => 
+            v.localService === true && 
+            (
+                v.name.includes('Zira') ||       // Windows Female
+                v.name.includes('Samantha') ||   // macOS Female
+                v.name.includes('Susan') ||      // macOS Female
+                v.name.includes('Hazel') ||      // Windows UK Female
+                v.name.includes('Catherine') ||  // macOS Female
+                v.name.includes('Karen')         // macOS Female
+            )
+        );
+        
+        if (femaleVoice) {
+            utterance.voice = femaleVoice;
+        }
+
+        utterance.onstart = () => {
+            ttsBtn.innerHTML = "⏹️ Stop Audio";
+        };
+
+        utterance.onend = () => {
+            ttsBtn.innerHTML = "🔊 Read to Me";
+        };
+
+        utterance.onerror = () => {
+            ttsBtn.innerHTML = "🔊 Read to Me";
+            console.error("Speech synthesis interrupted.");
+        };
+
+        window.speechSynthesis.speak(utterance);
+    });
+
     // Set footer button to "Submit Reading"
     startButton.textContent = "📤 Submit Reading";
     startButton.dataset.action = "submit-reading";
     startButton.disabled = true;  // enabled after recording
-    // We'll enable it when audioBlob is available (in onstop)
-    // But we also need a way to re-enable if the user records again.
-    // We'll add a listener to enable when audioBlob changes.
-    // We'll also override the onclick for submit-reading later.
 }
 
 /* ============================================================
@@ -688,41 +758,42 @@ async function startReadingActivity() {
 // ---- Recording helpers ----
 function startRecording() {
     if (readingState.recording) return;
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            readingState.stream = stream;
-            readingState.mediaRecorder = new MediaRecorder(stream);
-            readingState.audioChunks = [];
-            readingState.seconds = 0;
+    navigator.mediaDevices.getUserMedia({ 
+        audio: { noiseSuppression: true, echoCancellation: true } 
+    })
+    .then(stream => {
+        readingState.stream = stream;
+        readingState.mediaRecorder = new MediaRecorder(stream);
+        readingState.audioChunks = [];
+        readingState.seconds = 0;
 
-            readingState.mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) readingState.audioChunks.push(e.data);
-            };
+        readingState.mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) readingState.audioChunks.push(e.data);
+        };
 
-            readingState.mediaRecorder.onstop = () => {
-                readingState.audioBlob = new Blob(readingState.audioChunks, { type: 'audio/webm' });
-                // Enable submit / playback buttons
-                document.getElementById('play-record-btn').disabled = false;
-                document.getElementById('clear-record-btn').disabled = false;
-                document.getElementById('modalStartButton').disabled = false;
-                document.getElementById('recording-status').textContent = 'Recording complete. Ready to submit.';
-            };
+        readingState.mediaRecorder.onstop = () => {
+            readingState.audioBlob = new Blob(readingState.audioChunks, { type: 'audio/webm' });
+            document.getElementById('play-record-btn').disabled = false;
+            document.getElementById('clear-record-btn').disabled = false;
+            document.getElementById('modalStartButton').disabled = false;
+            document.getElementById('recording-status').textContent = 'Recording complete. Ready to submit.';
+        };
 
-            readingState.mediaRecorder.start();
-            readingState.recording = true;
-            readingState.timerInterval = setInterval(() => {
-                readingState.seconds++;
-                updateTimerDisplay();
-            }, 1000);
+        // Collect audio data every 1 second
+        readingState.mediaRecorder.start(1000);
+        readingState.recording = true;
+        readingState.timerInterval = setInterval(() => {
+            readingState.seconds++;
+            updateTimerDisplay();
+        }, 1000);
 
-            // Update UI
-            document.getElementById('start-record-btn').classList.add('hidden');
-            document.getElementById('stop-record-btn').classList.remove('hidden');
-            document.getElementById('recording-status').textContent = '⏺️ Recording...';
-        })
-        .catch(err => {
-            alert('Microphone access denied: ' + err.message);
-        });
+        document.getElementById('start-record-btn').classList.add('hidden');
+        document.getElementById('stop-record-btn').classList.remove('hidden');
+        document.getElementById('recording-status').textContent = '⏺️ Recording...';
+    })
+    .catch(err => {
+        alert('Microphone access denied: ' + err.message);
+    });
 }
 
 function stopRecording() {
@@ -771,26 +842,30 @@ function updateTimerDisplay() {
 // Sumbit Reading
 
 async function submitReading() {
-    if (!readingState.audioBlob) {
-        showError("No recording to submit.");
+    // Force stop recording if student clicked submit while mic was active
+    if (readingState.recording) {
+        stopRecording();
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    if (!readingState.audioBlob || readingState.audioBlob.size === 0) {
+        showError("No audio captured. Please click Start Recording and read aloud before submitting.");
         return;
     }
+
     if (!state.currentAssignment || !state.currentAssignmentDetail) {
         showError("Assignment data missing.");
         return;
     }
 
     const material = state.currentAssignmentDetail.materials[0];
-    const studentId = STUDENT_ID;
-    const materialId = material.material_id;
-
+    const assignmentId = state.currentAssignment.id || state.currentAssignment.assignment_id;
     const formData = new FormData();
     formData.append('audio', readingState.audioBlob, 'reading.webm');
-    formData.append('student_id', studentId);
-    formData.append('material_id', materialId);
+    formData.append('student_id', STUDENT_ID);
+    formData.append('material_id', material.material_id);
+    formData.append('assignment_material_id', material.assignment_material_id);
     formData.append('duration_seconds', String(Math.max(1, readingState.seconds)));
-
-    // If you have original text for alignment, include it
     formData.append('original_text', material.ocr_text || '');
 
     const submitBtn = $("#modalStartButton");
@@ -811,13 +886,9 @@ async function submitReading() {
             throw new Error(data.message || 'Assessment processing failed.');
         }
 
-        // Save results
         readingState.results = data;
         readingState.activityId = data.activity_id;
-        readingState.assessmentId = data.assessment_id;
         readingState.submitted = true;
-
-        // Show results in the modal
         showReadingResults(data);
 
     } catch (error) {
@@ -1135,11 +1206,14 @@ function closeAssignmentModal() {
     state.currentAttemptId = null;
     const modalCard = document.querySelector(".modal-card");
     if (modalCard) modalCard.classList.remove("reading-modal");
+    
     // Reset button handler
     const startButton = $("#modalStartButton");
-    startButton.onclick = null;
-    startButton.dataset.action = "show-reading";
-    startButton.textContent = "Start Assignment →";
+    if (startButton) {
+        startButton.onclick = null;
+        startButton.dataset.action = "show-reading";
+        startButton.textContent = "Start Assignment →";
+    }
 
     if (readingState.recording) {
         stopRecording();
@@ -1148,6 +1222,10 @@ function closeAssignmentModal() {
         URL.revokeObjectURL(readingState.playbackUrl);
         readingState.playbackUrl = null;
     }
+
+    // --- NEW: Automatically refresh the dashboard & progress tab! ---
+    loadAssignments();
+    loadCompletedAssignments();
 }
 
 // ============================================================
@@ -1155,7 +1233,11 @@ function closeAssignmentModal() {
 // ============================================================
 
 async function loadCompletedAssignments() {
+    // 1. Define all the container elements here at the top!
     const container = document.getElementById('completed-assignments-container');
+    const emptyState = document.getElementById('progressEmptyState');
+    const contentState = document.getElementById('progressContentState');
+    
     if (!container) return; 
 
     try {
@@ -1163,9 +1245,15 @@ async function loadCompletedAssignments() {
         const response = await fetchJson(`/api/student/${STUDENT_ID}/completed`);
 
         if (!response.completed_assignments || response.completed_assignments.length === 0) {
-            container.innerHTML = '<p style="color: var(--muted);">No completed assignments yet. Keep reading!</p>';
+            container.innerHTML = ''; // Clear the loading text
+            if (emptyState) emptyState.style.display = 'flex'; // Show the plant icon
+            if (contentState) contentState.style.display = 'none'; // Hide the grid
             return;
         }
+
+        // We have data! Swap the views.
+        if (emptyState) emptyState.style.display = 'none';
+        if (contentState) contentState.style.display = 'block';
 
         let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">';
         
@@ -1225,8 +1313,18 @@ async function viewActivityDetails(activityId) {
         startButton.style.display = "none"; 
 
         const response = await fetchJson(`/api/shared/activity/${activityId}/details`);
-        const data = response.assessment;
-        const quiz = response.quiz_details;
+        
+        // Ensure we safely extract the data based on your API's response wrapper
+        // If your API wraps everything in a 'data' object, adjust this slightly (e.g., response.data.assessment)
+        const data = response.assessment || response.data?.assessment;
+        const quiz = response.quiz_details || response.data?.quiz_details;
+
+        // NEW: Uses file_path and adds the correct folder URL!
+        const friendlyImageHtml = data.file_path 
+            ? `<div style="text-align: center; margin-bottom: 20px;">
+                   <img src="../uploads/materials/${data.file_path}" alt="Story Illustration" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+               </div>` 
+            : '';
 
         modalBody.innerHTML = `
             <div style="padding: 16px;">
@@ -1250,6 +1348,10 @@ async function viewActivityDetails(activityId) {
                 </div>
 
                 <h4 style="margin-bottom: 8px;">What You Read:</h4>
+                
+                <!-- NEW: The friendly image is injected right here, just above the text! -->
+                ${friendlyImageHtml}
+
                 <div style="background: #f8fafc; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-style: italic; color: #475569; margin-bottom: 32px;">
                     "${escapeHtml(data.transcript || 'No transcript available.')}"
                 </div>
@@ -1262,7 +1364,7 @@ async function viewActivityDetails(activityId) {
                             <div>
                                 <div style="font-weight: 500; font-size: 14px;">${q.question_number}. ${escapeHtml(q.question_text)}</div>
                                 <div style="font-size: 13px; color: ${q.is_correct ? 'var(--success)' : 'var(--danger)'};">
-                                    Your answer: ${escapeHtml(q.student_answer)}
+                                    Your answer: ${escapeHtml(q.student_answer || 'Skipped / Unanswered')}
                                 </div>
                             </div>
                         </div>

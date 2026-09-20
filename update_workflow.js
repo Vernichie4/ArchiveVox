@@ -53,7 +53,7 @@ function renderStep4ReviewComprehension() {
                 <div class="metrics-grid">
                     <div class="metric-box">
                         <div class="metric-label">Accuracy</div>
-                        <div class="metric-value">\${(scores.accuracy || 0).toFixed(1)}%</div>
+                        <div class="metric-value">${((scores.accuracy !== undefined ? scores.accuracy : scores.accuracy_percentage) || 0).toFixed(1)}%</div>
                     </div>
                     <div class="metric-box">
                         <div class="metric-label">WCPM</div>
@@ -131,7 +131,14 @@ function renderStep4ReviewComprehension() {
 
     if (confirmBtn) {
         confirmBtn.addEventListener('click', async () => {
+            const comprehensionInput = document.getElementById('comprehension-input');
             const comprehensionScore = parseInt(comprehensionInput?.value || 0);
+            
+            // Block out-of-bounds metrics prior to remote network transmission
+            if (comprehensionScore < 0 || comprehensionScore > 7) {
+                alert('Comprehension score must be an integer between 0 and 7.');
+                return;
+            }
             await finalizeAssessmentWithComprehension(comprehensionScore);
         });
     }

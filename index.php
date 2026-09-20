@@ -7,6 +7,9 @@ header('Content-Type: text/html; charset=utf-8');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArchiveVox - Reading Assessment Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -31,7 +34,7 @@ header('Content-Type: text/html; charset=utf-8');
                 <button type="submit" class="btn-primary">Sign In</button>
                 <a href="#" class="forgot-password">Forgot password?</a>
             </form>
-            <p class="hint">Demo: teacher1 / password123</p>
+            <p class="hint">Demo: teacher1 / stacruzCen3lem</p>
         </div>
     </div>
 
@@ -81,7 +84,6 @@ header('Content-Type: text/html; charset=utf-8');
                         <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Zm8.8-3.2a7.8 7.8 0 0 0-.1-1.2l2-1.6-2-3.5-2.5 1a8.9 8.9 0 0 0-2-1.2l-.4-2.7h-4l-.4 2.7a8.9 8.9 0 0 0-2 1.2l-2.5-1-2 3.5 2 1.6a7.8 7.8 0 0 0-.1 1.2c0 .4 0 .8.1 1.2l-2 1.6 2 3.5 2.5-1c.6.5 1.3.9 2 1.2l.4 2.7h4l.4-2.7c.7-.3 1.4-.7 2-1.2l2.5 1 2-3.5-2-1.6c.1-.4.1-.8.1-1.2Z"/>
                     </svg>
                 </button>
-                <button id="logout-btn" class="btn-secondary">Sign Out</button>
             </div>
         </div>
 
@@ -94,7 +96,7 @@ header('Content-Type: text/html; charset=utf-8');
         <main id="view-container" class="view-container"></main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="assets/chart.js"></script>
     <script src="assets/app.js"></script>
 </body>
 </html>

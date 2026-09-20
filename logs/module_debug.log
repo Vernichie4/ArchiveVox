@@ -1,0 +1,2800 @@
+[2026-09-11 02:52:29] File uploaded: test_students.xlsx (9581 bytes)
+
+[2026-09-11 02:52:29] Parsing XLSX file: C:\xampp\tmp\phpDE28.tmp
+
+[2026-09-11 02:52:29] Shared strings loaded: 27
+
+[2026-09-11 02:52:29] Excel rows read: 6
+
+[2026-09-11 02:52:29] normalizeImportRows called with 6 rows
+
+[2026-09-11 02:52:29] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-11 02:52:29] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-11 02:52:29] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-11 02:52:29] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-11 02:52:29] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-11 02:52:29] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-11 02:52:29] Mapped 'section' to column 5 ('Section')
+
+[2026-09-11 02:52:29] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-11 02:52:29] Mapped 'birthdate' to column 7 ('Birthdate')
+
+[2026-09-11 02:52:29] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-11 02:52:29] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-11 02:52:29] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-11 02:52:29] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-11 02:52:29] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-11 02:52:29] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-11 02:52:29] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-11 02:52:29] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-11 02:52:29] isHeaderRow: YES
+
+[2026-09-11 02:52:29] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-11 02:52:29] Data rows to process: 5
+
+[2026-09-11 02:52:29] Row 1 normalized: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 02:52:29] Row 2 normalized: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 02:52:29] Row 3 normalized: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 02:52:29] Row 4 normalized: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 02:52:29] Row 5 normalized: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 02:52:29] Normalization complete. Returning 5 rows
+
+[2026-09-11 02:52:29] Normalized rows: 5
+
+[2026-09-11 02:52:29] previewStudents called with 5 rows
+
+[2026-09-11 02:52:29] Previewing row 1: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 02:52:29] Row 2 valid: Juan Dela Cruz
+
+[2026-09-11 02:52:29] Previewing row 2: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 02:52:29] Row 3 valid: Maria Clara
+
+[2026-09-11 02:52:29] Previewing row 3: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 02:52:29] Row 4 valid: Jose Rizal
+
+[2026-09-11 02:52:29] Previewing row 4: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 02:52:29] Row 5 valid: Andres Bonifacio
+
+[2026-09-11 02:52:29] Previewing row 5: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 02:52:29] Row 6 valid: Gabriela Silang
+
+[2026-09-11 02:52:29] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-11 02:52:29] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [middle_name] => Santos
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => 
+    [gender] => 
+    [birthdate] => 
+)
+
+
+[2026-09-11 02:52:29] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 02:52:29] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 101222
+    [student] => Juan Dela Cruz
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 02:52:29] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [middle_name] => Reyes
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 02:52:29] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 02:52:29] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 202333
+    [student] => Maria Clara
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 02:52:29] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [middle_name] => Mercado
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 02:52:29] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 02:52:29] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 303444
+    [student] => Jose Rizal
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 02:52:29] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [middle_name] => Castro
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 02:52:29] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 02:52:29] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 404555
+    [student] => Andres Bonifacio
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 02:52:29] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [middle_name] => Diego
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 02:52:29] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 02:52:29] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 505666
+    [student] => Gabriela Silang
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:07:49] File uploaded: test_students.xlsx (9581 bytes)
+
+[2026-09-11 03:07:49] Parsing XLSX file: C:\xampp\tmp\phpE52A.tmp
+
+[2026-09-11 03:07:49] Shared strings loaded: 27
+
+[2026-09-11 03:07:49] Excel rows read: 6
+
+[2026-09-11 03:07:49] normalizeImportRows called with 6 rows
+
+[2026-09-11 03:07:49] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-11 03:07:49] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-11 03:07:49] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-11 03:07:49] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-11 03:07:49] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-11 03:07:49] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-11 03:07:49] Mapped 'section' to column 5 ('Section')
+
+[2026-09-11 03:07:49] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-11 03:07:49] Mapped 'birthdate' to column 7 ('Birthdate')
+
+[2026-09-11 03:07:49] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-11 03:07:49] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-11 03:07:49] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-11 03:07:49] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-11 03:07:49] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-11 03:07:49] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-11 03:07:49] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-11 03:07:49] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-11 03:07:49] isHeaderRow: YES
+
+[2026-09-11 03:07:49] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-11 03:07:49] Data rows to process: 5
+
+[2026-09-11 03:07:49] Row 1 normalized: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:07:49] Row 2 normalized: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:07:49] Row 3 normalized: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:07:49] Row 4 normalized: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:07:49] Row 5 normalized: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:07:49] Normalization complete. Returning 5 rows
+
+[2026-09-11 03:07:49] Normalized rows: 5
+
+[2026-09-11 03:07:49] previewStudents called with 5 rows
+
+[2026-09-11 03:07:49] Previewing row 1: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:07:49] Row 2 valid: Juan Dela Cruz
+
+[2026-09-11 03:07:49] Previewing row 2: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:07:49] Row 3 valid: Maria Clara
+
+[2026-09-11 03:07:49] Previewing row 3: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:07:49] Row 4 valid: Jose Rizal
+
+[2026-09-11 03:07:49] Previewing row 4: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:07:49] Row 5 valid: Andres Bonifacio
+
+[2026-09-11 03:07:49] Previewing row 5: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:07:49] Row 6 valid: Gabriela Silang
+
+[2026-09-11 03:07:49] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-11 03:07:49] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [middle_name] => Santos
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => 
+    [gender] => 
+    [birthdate] => 
+)
+
+
+[2026-09-11 03:07:49] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:07:49] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 101222
+    [student] => Juan Dela Cruz
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:07:49] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [middle_name] => Reyes
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:07:49] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:07:49] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 202333
+    [student] => Maria Clara
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:07:49] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [middle_name] => Mercado
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:07:49] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:07:49] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 303444
+    [student] => Jose Rizal
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:07:49] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [middle_name] => Castro
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:07:49] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:07:49] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 404555
+    [student] => Andres Bonifacio
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:07:49] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [middle_name] => Diego
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:07:49] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:07:49] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 505666
+    [student] => Gabriela Silang
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:11:59] File uploaded: test_students.xlsx (9581 bytes)
+
+[2026-09-11 03:11:59] Parsing XLSX file: C:\xampp\tmp\phpB752.tmp
+
+[2026-09-11 03:11:59] Shared strings loaded: 27
+
+[2026-09-11 03:11:59] Excel rows read: 6
+
+[2026-09-11 03:11:59] normalizeImportRows called with 6 rows
+
+[2026-09-11 03:11:59] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-11 03:11:59] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-11 03:11:59] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-11 03:11:59] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-11 03:11:59] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-11 03:11:59] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-11 03:11:59] Mapped 'section' to column 5 ('Section')
+
+[2026-09-11 03:11:59] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-11 03:11:59] Mapped 'birthdate' to column 7 ('Birthdate')
+
+[2026-09-11 03:11:59] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-11 03:11:59] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-11 03:11:59] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-11 03:11:59] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-11 03:11:59] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-11 03:11:59] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-11 03:11:59] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-11 03:11:59] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-11 03:11:59] isHeaderRow: YES
+
+[2026-09-11 03:11:59] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-11 03:11:59] Data rows to process: 5
+
+[2026-09-11 03:11:59] Row 1 normalized: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:11:59] Row 2 normalized: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:11:59] Row 3 normalized: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:11:59] Row 4 normalized: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:11:59] Row 5 normalized: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:11:59] Normalization complete. Returning 5 rows
+
+[2026-09-11 03:11:59] Normalized rows: 5
+
+[2026-09-11 03:11:59] previewStudents called with 5 rows
+
+[2026-09-11 03:11:59] Previewing row 1: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:11:59] Row 2 valid: Juan Dela Cruz
+
+[2026-09-11 03:11:59] Previewing row 2: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:11:59] Row 3 valid: Maria Clara
+
+[2026-09-11 03:11:59] Previewing row 3: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:11:59] Row 4 valid: Jose Rizal
+
+[2026-09-11 03:11:59] Previewing row 4: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:11:59] Row 5 valid: Andres Bonifacio
+
+[2026-09-11 03:11:59] Previewing row 5: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:11:59] Row 6 valid: Gabriela Silang
+
+[2026-09-11 03:11:59] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-11 03:11:59] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [middle_name] => Santos
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => 
+    [gender] => 
+    [birthdate] => 
+)
+
+
+[2026-09-11 03:11:59] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:11:59] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 101222
+    [student] => Juan Dela Cruz
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:11:59] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [middle_name] => Reyes
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:11:59] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:11:59] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 202333
+    [student] => Maria Clara
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:11:59] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [middle_name] => Mercado
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:11:59] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:11:59] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 303444
+    [student] => Jose Rizal
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:12:00] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [middle_name] => Castro
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:12:00] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:12:00] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 404555
+    [student] => Andres Bonifacio
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:12:00] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [middle_name] => Diego
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:12:00] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:12:00] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 505666
+    [student] => Gabriela Silang
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:12:33] File uploaded: test_students.xlsx (9581 bytes)
+
+[2026-09-11 03:12:33] Parsing XLSX file: C:\xampp\tmp\php3BE4.tmp
+
+[2026-09-11 03:12:33] Shared strings loaded: 27
+
+[2026-09-11 03:12:33] Excel rows read: 6
+
+[2026-09-11 03:12:33] normalizeImportRows called with 6 rows
+
+[2026-09-11 03:12:33] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-11 03:12:33] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-11 03:12:33] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-11 03:12:33] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-11 03:12:33] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-11 03:12:33] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-11 03:12:33] Mapped 'section' to column 5 ('Section')
+
+[2026-09-11 03:12:33] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-11 03:12:33] Mapped 'birthdate' to column 7 ('Birthdate')
+
+[2026-09-11 03:12:33] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-11 03:12:33] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-11 03:12:33] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-11 03:12:33] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-11 03:12:33] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-11 03:12:33] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-11 03:12:33] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-11 03:12:33] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-11 03:12:33] isHeaderRow: YES
+
+[2026-09-11 03:12:33] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-11 03:12:33] Data rows to process: 5
+
+[2026-09-11 03:12:33] Row 1 normalized: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:12:33] Row 2 normalized: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:12:33] Row 3 normalized: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:12:33] Row 4 normalized: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:12:33] Row 5 normalized: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:12:33] Normalization complete. Returning 5 rows
+
+[2026-09-11 03:12:33] Normalized rows: 5
+
+[2026-09-11 03:12:33] previewStudents called with 5 rows
+
+[2026-09-11 03:12:33] Previewing row 1: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:12:33] Row 2 valid: Juan Dela Cruz
+
+[2026-09-11 03:12:33] Previewing row 2: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:12:33] Row 3 valid: Maria Clara
+
+[2026-09-11 03:12:33] Previewing row 3: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:12:33] Row 4 valid: Jose Rizal
+
+[2026-09-11 03:12:33] Previewing row 4: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:12:33] Row 5 valid: Andres Bonifacio
+
+[2026-09-11 03:12:33] Previewing row 5: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:12:33] Row 6 valid: Gabriela Silang
+
+[2026-09-11 03:12:33] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-11 03:12:33] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [middle_name] => Santos
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => 
+    [gender] => 
+    [birthdate] => 
+)
+
+
+[2026-09-11 03:12:33] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:12:33] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 101222
+    [student] => Juan Dela Cruz
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:12:33] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [middle_name] => Reyes
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:12:33] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:12:33] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 202333
+    [student] => Maria Clara
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:12:33] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [middle_name] => Mercado
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:12:33] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:12:33] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 303444
+    [student] => Jose Rizal
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:12:33] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [middle_name] => Castro
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:12:33] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:12:33] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 404555
+    [student] => Andres Bonifacio
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:12:33] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [middle_name] => Diego
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:12:33] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:12:33] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 505666
+    [student] => Gabriela Silang
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:13:10] File uploaded: test_students.xlsx (9581 bytes)
+
+[2026-09-11 03:13:10] Parsing XLSX file: C:\xampp\tmp\phpCB83.tmp
+
+[2026-09-11 03:13:10] Shared strings loaded: 27
+
+[2026-09-11 03:13:10] Excel rows read: 6
+
+[2026-09-11 03:13:10] normalizeImportRows called with 6 rows
+
+[2026-09-11 03:13:10] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-11 03:13:10] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-11 03:13:10] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-11 03:13:10] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-11 03:13:10] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-11 03:13:10] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-11 03:13:10] Mapped 'section' to column 5 ('Section')
+
+[2026-09-11 03:13:10] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-11 03:13:10] Mapped 'birthdate' to column 7 ('Birthdate')
+
+[2026-09-11 03:13:10] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-11 03:13:10] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-11 03:13:10] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-11 03:13:10] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-11 03:13:10] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-11 03:13:10] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-11 03:13:10] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-11 03:13:10] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-11 03:13:10] isHeaderRow: YES
+
+[2026-09-11 03:13:10] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-11 03:13:10] Data rows to process: 5
+
+[2026-09-11 03:13:10] Row 1 normalized: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:13:10] Row 2 normalized: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:13:10] Row 3 normalized: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:13:10] Row 4 normalized: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:13:10] Row 5 normalized: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:13:10] Normalization complete. Returning 5 rows
+
+[2026-09-11 03:13:10] Normalized rows: 5
+
+[2026-09-11 03:13:10] previewStudents called with 5 rows
+
+[2026-09-11 03:13:10] Previewing row 1: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:13:10] Row 2 valid: Juan Dela Cruz
+
+[2026-09-11 03:13:10] Previewing row 2: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:13:10] Row 3 valid: Maria Clara
+
+[2026-09-11 03:13:10] Previewing row 3: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:13:10] Row 4 valid: Jose Rizal
+
+[2026-09-11 03:13:10] Previewing row 4: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:13:10] Row 5 valid: Andres Bonifacio
+
+[2026-09-11 03:13:10] Previewing row 5: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:13:10] Row 6 valid: Gabriela Silang
+
+[2026-09-11 03:13:10] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-11 03:13:10] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [middle_name] => Santos
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => 
+    [gender] => 
+    [birthdate] => 
+)
+
+
+[2026-09-11 03:13:10] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:13:10] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 101222
+    [student] => Juan Dela Cruz
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:13:10] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [middle_name] => Reyes
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:13:10] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:13:10] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 202333
+    [student] => Maria Clara
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:13:10] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [middle_name] => Mercado
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:13:10] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:13:10] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 303444
+    [student] => Jose Rizal
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:13:10] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [middle_name] => Castro
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:13:10] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:13:10] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 404555
+    [student] => Andres Bonifacio
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:13:10] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [middle_name] => Diego
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:13:10] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:13:10] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 505666
+    [student] => Gabriela Silang
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:15:37] File uploaded: test_students.xlsx (9581 bytes)
+
+[2026-09-11 03:15:37] Parsing XLSX file: C:\xampp\tmp\phpAA6.tmp
+
+[2026-09-11 03:15:37] Shared strings loaded: 27
+
+[2026-09-11 03:15:37] Excel rows read: 6
+
+[2026-09-11 03:15:37] normalizeImportRows called with 6 rows
+
+[2026-09-11 03:15:37] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-11 03:15:37] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-11 03:15:37] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-11 03:15:37] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-11 03:15:37] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-11 03:15:37] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-11 03:15:37] Mapped 'section' to column 5 ('Section')
+
+[2026-09-11 03:15:37] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-11 03:15:37] Mapped 'birthdate' to column 7 ('Birthdate')
+
+[2026-09-11 03:15:37] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-11 03:15:37] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-11 03:15:37] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-11 03:15:37] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-11 03:15:37] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-11 03:15:37] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-11 03:15:37] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-11 03:15:37] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-11 03:15:37] isHeaderRow: YES
+
+[2026-09-11 03:15:37] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-11 03:15:37] Data rows to process: 5
+
+[2026-09-11 03:15:37] Row 1 normalized: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:15:37] Row 2 normalized: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:15:37] Row 3 normalized: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:15:37] Row 4 normalized: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:15:37] Row 5 normalized: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:15:37] Normalization complete. Returning 5 rows
+
+[2026-09-11 03:15:37] Normalized rows: 5
+
+[2026-09-11 03:15:37] previewStudents called with 5 rows
+
+[2026-09-11 03:15:37] Previewing row 1: Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:15:37] Row 2 valid: Juan Dela Cruz
+
+[2026-09-11 03:15:37] Previewing row 2: Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [middle_name] => Reyes
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:15:37] Row 3 valid: Maria Clara
+
+[2026-09-11 03:15:37] Previewing row 3: Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [middle_name] => Mercado
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:15:37] Row 4 valid: Jose Rizal
+
+[2026-09-11 03:15:37] Previewing row 4: Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [middle_name] => Castro
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:15:37] Row 5 valid: Andres Bonifacio
+
+[2026-09-11 03:15:37] Previewing row 5: Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [middle_name] => Diego
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42813
+)
+
+
+[2026-09-11 03:15:37] Row 6 valid: Gabriela Silang
+
+[2026-09-11 03:15:37] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-11 03:15:37] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [middle_name] => Santos
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => 
+    [gender] => 
+    [birthdate] => 
+)
+
+
+[2026-09-11 03:15:37] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 101222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:15:37] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 101222
+    [student] => Juan Dela Cruz
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:15:37] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [middle_name] => Reyes
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42870
+)
+
+
+[2026-09-11 03:15:37] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 202333
+    [first_name] => Maria
+    [last_name] => Clara
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:15:37] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 202333
+    [student] => Maria Clara
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:15:37] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [middle_name] => Mercado
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42969
+)
+
+
+[2026-09-11 03:15:37] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 303444
+    [first_name] => Jose
+    [last_name] => Rizal
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:15:37] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 303444
+    [student] => Jose Rizal
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:15:37] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [middle_name] => Castro
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42905
+)
+
+
+[2026-09-11 03:15:37] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 404555
+    [first_name] => Andres
+    [last_name] => Bonifacio
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:15:37] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 404555
+    [student] => Andres Bonifacio
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-11 03:15:37] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [middle_name] => Diego
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43069
+)
+
+
+[2026-09-11 03:15:37] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 505666
+    [first_name] => Gabriela
+    [last_name] => Silang
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-11 03:15:37] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 505666
+    [student] => Gabriela Silang
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 30
+)
+
+
+[2026-09-18 13:56:23] File uploaded: Mayon_Students.xlsx (9563 bytes)
+
+[2026-09-18 13:56:23] Parsing XLSX file: C:\xampp\tmp\phpA1F3.tmp
+
+[2026-09-18 13:56:23] Shared strings loaded: 27
+
+[2026-09-18 13:56:23] Excel rows read: 6
+
+[2026-09-18 13:56:23] normalizeImportRows called with 6 rows
+
+[2026-09-18 13:56:23] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-18 13:56:23] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-18 13:56:23] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-18 13:56:23] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-18 13:56:23] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-18 13:56:23] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-18 13:56:23] Mapped 'section' to column 5 ('Section')
+
+[2026-09-18 13:56:23] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-18 13:56:23] Mapped 'birthdate' to column 7 ('Birthdate')
+
+[2026-09-18 13:56:23] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-18 13:56:23] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-18 13:56:23] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-18 13:56:23] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-18 13:56:23] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-18 13:56:23] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-18 13:56:23] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-18 13:56:23] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-18 13:56:23] isHeaderRow: YES
+
+[2026-09-18 13:56:23] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-18 13:56:23] Data rows to process: 5
+
+[2026-09-18 13:56:23] Row 1 normalized: Array
+(
+    [lrn] => 606777
+    [first_name] => Emilio
+    [last_name] => Aguinaldo
+    [middle_name] => Famy
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42816
+)
+
+
+[2026-09-18 13:56:23] Row 2 normalized: Array
+(
+    [lrn] => 707888
+    [first_name] => Melchora
+    [last_name] => Aquino
+    [middle_name] => Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42741
+)
+
+
+[2026-09-18 13:56:23] Row 3 normalized: Array
+(
+    [lrn] => 808999
+    [first_name] => Apolinario
+    [last_name] => Mabini
+    [middle_name] => Maranan
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42939
+)
+
+
+[2026-09-18 13:56:23] Row 4 normalized: Array
+(
+    [lrn] => 909111
+    [first_name] => Teresa
+    [last_name] => Magbanua
+    [middle_name] => Ferraris
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 43021
+)
+
+
+[2026-09-18 13:56:23] Row 5 normalized: Array
+(
+    [lrn] => 111222
+    [first_name] => Antonio
+    [last_name] => Luna
+    [middle_name] => Novicio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43037
+)
+
+
+[2026-09-18 13:56:23] Normalization complete. Returning 5 rows
+
+[2026-09-18 13:56:23] Normalized rows: 5
+
+[2026-09-18 13:56:23] previewStudents called with 5 rows
+
+[2026-09-18 13:56:23] Previewing row 1: Array
+(
+    [lrn] => 606777
+    [first_name] => Emilio
+    [last_name] => Aguinaldo
+    [middle_name] => Famy
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42816
+)
+
+
+[2026-09-18 13:56:23] Row 2 valid: Emilio Aguinaldo
+
+[2026-09-18 13:56:23] Previewing row 2: Array
+(
+    [lrn] => 707888
+    [first_name] => Melchora
+    [last_name] => Aquino
+    [middle_name] => Cruz
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42741
+)
+
+
+[2026-09-18 13:56:23] Row 3 valid: Melchora Aquino
+
+[2026-09-18 13:56:23] Previewing row 3: Array
+(
+    [lrn] => 808999
+    [first_name] => Apolinario
+    [last_name] => Mabini
+    [middle_name] => Maranan
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42939
+)
+
+
+[2026-09-18 13:56:23] Row 4 valid: Apolinario Mabini
+
+[2026-09-18 13:56:23] Previewing row 4: Array
+(
+    [lrn] => 909111
+    [first_name] => Teresa
+    [last_name] => Magbanua
+    [middle_name] => Ferraris
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 43021
+)
+
+
+[2026-09-18 13:56:23] Row 5 valid: Teresa Magbanua
+
+[2026-09-18 13:56:23] Previewing row 5: Array
+(
+    [lrn] => 111222
+    [first_name] => Antonio
+    [last_name] => Luna
+    [middle_name] => Novicio
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 43037
+)
+
+
+[2026-09-18 13:56:23] Row 6 valid: Antonio Luna
+
+[2026-09-18 13:56:23] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-18 13:56:23] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 606777
+    [first_name] => Emilio
+    [middle_name] => Famy
+    [last_name] => Aguinaldo
+    [grade_level] => Grade 3
+    [section] => 
+    [gender] => 
+    [birthdate] => 
+)
+
+
+[2026-09-18 13:56:23] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 606777
+    [first_name] => Emilio
+    [last_name] => Aguinaldo
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-18 13:56:23] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 606777
+    [student] => Emilio Aguinaldo
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 35
+)
+
+
+[2026-09-18 13:56:23] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 707888
+    [first_name] => Melchora
+    [middle_name] => Cruz
+    [last_name] => Aquino
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42816
+)
+
+
+[2026-09-18 13:56:23] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 707888
+    [first_name] => Melchora
+    [last_name] => Aquino
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-18 13:56:23] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 707888
+    [student] => Melchora Aquino
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 35
+)
+
+
+[2026-09-18 13:56:24] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 808999
+    [first_name] => Apolinario
+    [middle_name] => Maranan
+    [last_name] => Mabini
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 42741
+)
+
+
+[2026-09-18 13:56:24] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 808999
+    [first_name] => Apolinario
+    [last_name] => Mabini
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-18 13:56:24] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 808999
+    [student] => Apolinario Mabini
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 35
+)
+
+
+[2026-09-18 13:56:24] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 909111
+    [first_name] => Teresa
+    [middle_name] => Ferraris
+    [last_name] => Magbanua
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Male
+    [birthdate] => 42939
+)
+
+
+[2026-09-18 13:56:24] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 909111
+    [first_name] => Teresa
+    [last_name] => Magbanua
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-18 13:56:24] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 909111
+    [student] => Teresa Magbanua
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 35
+)
+
+
+[2026-09-18 13:56:24] NORMALIZED ROW TEST
+Array
+(
+    [lrn] => 111222
+    [first_name] => Antonio
+    [middle_name] => Novicio
+    [last_name] => Luna
+    [grade_level] => Grade 3
+    [section] => Apitong
+    [gender] => Female
+    [birthdate] => 43021
+)
+
+
+[2026-09-18 13:56:24] IMPORT SECTION TEST
+Array
+(
+    [lrn] => 111222
+    [first_name] => Antonio
+    [last_name] => Luna
+    [grade_level] => Grade 3
+    [section] => Apitong
+)
+
+
+[2026-09-18 13:56:24] CLASS ASSIGNMENT TEST
+Array
+(
+    [lrn] => 111222
+    [student] => Antonio Luna
+    [grade_level] => Grade 3
+    [section_from_excel] => Apitong
+    [class_id_returned] => 35
+)
+
+
