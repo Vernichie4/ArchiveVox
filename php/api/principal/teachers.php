@@ -29,12 +29,28 @@ try {
                     t.email,
                     t.first_name,
                     t.last_name,
+                    (SELECT 
+                        CASE 
+                            WHEN COUNT(CASE WHEN grade_level IN ("Grade 1", "Grade 2", "Grade 3") THEN 1 END) > 0 
+                             AND COUNT(CASE WHEN grade_level IN ("Grade 4", "Grade 5", "Grade 6") THEN 1 END) > 0 
+                            THEN "Mixed"
+                            WHEN COUNT(CASE WHEN grade_level IN ("Grade 1", "Grade 2", "Grade 3") THEN 1 END) > 0 
+                            THEN "Primary"
+                            WHEN COUNT(CASE WHEN grade_level IN ("Grade 4", "Grade 5", "Grade 6") THEN 1 END) > 0 
+                            THEN "Intermediate"
+                            ELSE "N/A"
+                        END
+                     FROM class 
+                     WHERE teacher_id = t.teacher_id) AS department,
+                    tc.grade_level,
+                    tc.section,
                     (SELECT COUNT(*)
                      FROM student s
                      WHERE s.teacher_id = t.teacher_id
                        AND s.is_active = 1) AS student_count
                 FROM teacher t
                 JOIN user u ON t.user_id = u.user_id
+                LEFT JOIN teacher_category tc ON t.teacher_category_id = tc.teacher_category_id
                 ORDER BY t.first_name, t.last_name
             ');
             $stmt->execute();
@@ -53,7 +69,22 @@ try {
                     t.email,
                     t.first_name,
                     t.last_name,
+                    (SELECT 
+                        CASE 
+                            WHEN COUNT(CASE WHEN grade_level IN ("Grade 1", "Grade 2", "Grade 3") THEN 1 END) > 0 
+                             AND COUNT(CASE WHEN grade_level IN ("Grade 4", "Grade 5", "Grade 6") THEN 1 END) > 0 
+                            THEN "Mixed"
+                            WHEN COUNT(CASE WHEN grade_level IN ("Grade 1", "Grade 2", "Grade 3") THEN 1 END) > 0 
+                            THEN "Primary"
+                            WHEN COUNT(CASE WHEN grade_level IN ("Grade 4", "Grade 5", "Grade 6") THEN 1 END) > 0 
+                            THEN "Intermediate"
+                            ELSE "N/A"
+                        END
+                     FROM class 
+                     WHERE teacher_id = t.teacher_id) AS department,
                     t.teacher_category_id,
+                    COALESCE(tc.grade_level, c.grade_level) AS grade_level,
+                    COALESCE(tc.section, c.section) AS section,
                     (SELECT COUNT(*)
                     FROM student s
                     WHERE s.teacher_id = t.teacher_id
@@ -66,6 +97,8 @@ try {
                     AND ar.wcpm > 0) AS avg_wcpm
                 FROM teacher t
                 JOIN user u ON t.user_id = u.user_id
+                LEFT JOIN teacher_category tc ON t.teacher_category_id = tc.teacher_category_id
+                LEFT JOIN class c ON c.teacher_id = t.teacher_id
                 WHERE t.teacher_id = :teacher_id
             ');
             $stmt->execute([':teacher_id' => $teacherId]);
@@ -99,7 +132,7 @@ try {
             
             sendJson(['success' => true, 'teacher' => $teacher]);
 
-        } elseif ($action === 'students') {
+            } elseif ($action === 'students') {
             $teacherId = $_GET['id'] ?? 0;
             if (!$teacherId) {
                 sendJson(['success' => false, 'message' => 'Teacher ID required'], 400);
@@ -131,7 +164,12 @@ try {
                     (SELECT MAX(ar.assessed_at) 
                     FROM assessment_result ar 
                     INNER JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
-                    WHERE ra.student_id = s.student_id) AS last_assessment_date
+                    WHERE ra.student_id = s.student_id) AS last_assessed,
+                    (SELECT ar2.reading_level 
+                     FROM assessment_result ar2 
+                     JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id 
+                     WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL
+                     ORDER BY ar2.assessed_at DESC LIMIT 1) as reading_level
                 FROM student s
                 LEFT JOIN student_category sc ON s.category_id = sc.category_id
                 LEFT JOIN class c ON s.class_id = c.class_id
@@ -169,7 +207,6 @@ try {
             $updates[] = 'last_name = :last_name';
             $params[':last_name'] = $lastName;
         }
-        // Note: we don't update department because it doesn't exist
 
         if ($updates) {
             $sql = 'UPDATE teacher SET ' . implode(', ', $updates) . ' WHERE teacher_id = :teacher_id';
@@ -210,7 +247,6 @@ try {
         $action = $_GET['action'] ?? '';
 
         if ($action === 'create') {
-            // Validate required fields
             $firstName = trim($data['first_name'] ?? '');
             $lastName  = trim($data['last_name'] ?? '');
             $gradeLevel = trim($data['grade_level'] ?? '');
@@ -220,13 +256,10 @@ try {
                 sendJson(['success' => false, 'message' => 'First name, last name, grade level and section are required.'], 400);
             }
 
-            // --- 1) Get or create teacher_category ---
-            // Determine school year (use current academic year, e.g., "2025-2026")
             $currentYear = date('Y');
             $nextYear = $currentYear + 1;
             $schoolYear = $currentYear . '-' . $nextYear;
 
-            // Check if category exists for this grade & section & school year
             $stmt = $pdo->prepare('
                 SELECT teacher_category_id 
                 FROM teacher_category 
@@ -242,7 +275,6 @@ try {
             $category = $stmt->fetch();
 
             if (!$category) {
-                // Insert new category
                 $stmt = $pdo->prepare('
                     INSERT INTO teacher_category (grade_level, section, school_year)
                     VALUES (:grade_level, :section, :school_year)
@@ -257,7 +289,6 @@ try {
                 $teacherCategoryId = $category['teacher_category_id'];
             }
 
-            // --- 2) Generate username and email ---
             $baseUsername = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $firstName) . '.' . preg_replace('/[^a-zA-Z0-9]/', '', $lastName));
             $username = $baseUsername;
             $counter = 1;
@@ -268,13 +299,11 @@ try {
                 $username = $baseUsername . $counter++;
             }
 
-            $email = $username . '@school.org';
+            $email = $username . '@scces.org';
             $defaultPassword = password_hash('stacruzCen3lem', PASSWORD_DEFAULT);
 
-            // --- 3) Insert user and teacher (transaction) ---
             $pdo->beginTransaction();
             try {
-                // Insert user
                 $stmt = $pdo->prepare('
                     INSERT INTO user (username, password, role, status)
                     VALUES (:username, :password, :role, :status)
@@ -287,7 +316,6 @@ try {
                 ]);
                 $userId = $pdo->lastInsertId();
 
-                // Insert teacher (without department)
                 $stmt = $pdo->prepare('
                     INSERT INTO teacher (user_id, teacher_category_id, first_name, last_name, email)
                     VALUES (:user_id, :teacher_category_id, :first_name, :last_name, :email)
@@ -301,15 +329,15 @@ try {
                 ]);
                 $teacherId = $pdo->lastInsertId();
 
-                // Insert class (grade + section) for this teacher
                 $stmt = $pdo->prepare('
-                    INSERT INTO class (grade_level, section, teacher_id)
-                    VALUES (:grade_level, :section, :teacher_id)
+                    INSERT INTO class (grade_level, section, teacher_id, school_year)
+                    VALUES (:grade_level, :section, :teacher_id, :school_year)
                 ');
                 $stmt->execute([
                     ':grade_level' => $gradeLevel,
                     ':section'     => $section,
-                    ':teacher_id'  => $teacherId
+                    ':teacher_id'  => $teacherId,
+                    ':school_year' => $schoolYear
                 ]);
 
                 $pdo->commit();

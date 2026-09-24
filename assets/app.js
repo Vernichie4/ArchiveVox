@@ -228,6 +228,8 @@ function stripHardcodedInlineColors(root = document) {
     ];
 
     targets.forEach((el) => {
+        if (el.closest('[data-preserve-inline-colors]')) return;
+
         let changed = false;
         colorProps.forEach((prop) => {
             const value = el.style.getPropertyValue(prop);
@@ -272,52 +274,77 @@ function initStyleGuard() {
     });
 }
 
+// Replace ensureSettingsPopover() in app.js
 function ensureSettingsPopover() {
     if (settingsPopover) return settingsPopover;
 
     settingsPopover = document.createElement('div');
     settingsPopover.id = 'settings-popover';
     settingsPopover.className = 'settings-popover hidden';
+    
+    // New HTML structure matching the mockup
     settingsPopover.innerHTML = `
-        <div class="setting-row">
-            <label for="settings-font-size">Font Size</label>
-            <select id="settings-font-size">
-                <option value="default">Default</option>
-                <option value="large">Large</option>
-            </select>
+        <div class="settings-popover-header">
+            <div class="sph-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Settings
+            </div>
+            <button type="button" class="sph-close" id="settings-close-btn">×</button>
         </div>
-        <div class="setting-row">
-            <label for="settings-mic-input">Mic Input</label>
-            <select id="settings-mic-input">
-                <option value="">System default</option>
-            </select>
+        <div class="settings-popover-body">
+            <div class="setting-row">
+                <label><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg> Font Size</label>
+                <div class="font-size-toggles" id="settings-font-toggles">
+                    <button type="button" data-size="small">Small</button>
+                    <button type="button" data-size="default" class="active">Medium</button>
+                    <button type="button" data-size="large">Large</button>
+                </div>
+                <div class="font-preview" id="settings-font-preview">15px — preview text</div>
+            </div>
+            <div class="setting-row">
+                <label for="settings-mic-input"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> Microphone Input</label>
+                <div class="select-wrapper">
+                    <select id="settings-mic-input">
+                        <option value="">Default Microphone</option>
+                    </select>
+                </div>
+            </div>
+            <div class="setting-row">
+                <label for="settings-audio-output"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg> Audio Output</label>
+                <div class="select-wrapper">
+                    <select id="settings-audio-output">
+                        <option value="">Default Speaker</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" id="settings-signout" class="settings-signout-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                Sign Out
+            </button>
         </div>
-        <div class="setting-row">
-            <label for="settings-audio-output">Audio Output</label>
-            <select id="settings-audio-output">
-                <option value="">System default</option>
-            </select>
-        </div>
-        <button type="button" id="settings-signout" class="btn-secondary">Sign Out</button>
     `;
 
     document.body.appendChild(settingsPopover);
     return settingsPopover;
 }
 
+// Replace setSettingsPopoverPosition() in app.js
 function setSettingsPopoverPosition() {
     if (!settingsPopover || settingsPopover.classList.contains('hidden') || !settingsBtn) return;
     const rect = settingsBtn.getBoundingClientRect();
-    // Calculate ideal width, respecting screen edges
-    const popoverWidth = Math.min(320, window.innerWidth - 32);
-    // Center the popover below the gear icon
+    
+    const popoverWidth = 260; // Fixed width to match mockup
     let left = rect.left + rect.width / 2 - popoverWidth / 2;
-    // Prevent it from going off-screen
-    left = Math.max(8, Math.min(left, window.innerWidth - popoverWidth - 8));
+    left = Math.max(16, Math.min(left, window.innerWidth - popoverWidth - 16)); // Keep on screen
     
     settingsPopover.style.width = `${popoverWidth}px`;
     settingsPopover.style.left = `${left}px`;
-    settingsPopover.style.top = `${rect.bottom + 8}px`;
+    
+    // CRITICAL FIX: Position it ABOVE the gear icon instead of below
+    const popoverHeight = settingsPopover.offsetHeight;
+    const top = rect.top - popoverHeight - 12; // 12px gap above the button
+    
+    settingsPopover.style.top = `${top}px`;
 }
 
 async function refreshAudioDeviceOptions() {
@@ -403,24 +430,41 @@ function applyAudioOutputPreference(audioElement) {
     });
 }
 
+// Replace initSettingsControls() in app.js
 function initSettingsControls() {
     if (settingsPopoverInitialized) return;
     settingsPopoverInitialized = true;
 
     const popover = ensureSettingsPopover();
-    const fontSelect = popover.querySelector('#settings-font-size');
+    
+    // Font Size Toggles logic
+    const fontBtns = popover.querySelectorAll('#settings-font-toggles button');
+    const fontPreview = popover.querySelector('#settings-font-preview');
+    
+    function updateFontSelection(size) {
+        fontBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.size === size));
+        let px = size === 'large' ? '18px' : (size === 'small' ? '14px' : '15px');
+        if (fontPreview) fontPreview.textContent = `${px} — preview text`;
+    }
+
+    // Set initial state
+    updateFontSelection(uiSettings.fontSize || 'default');
+
+    fontBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const size = btn.dataset.size;
+            uiSettings.fontSize = size;
+            updateFontSelection(size);
+            document.documentElement.dataset.fontScale = size; // Apply immediately
+            persistUiSettings();
+        });
+    });
+
+    // Inputs & Signout logic
     const micSelect = popover.querySelector('#settings-mic-input');
     const outputSelect = popover.querySelector('#settings-audio-output');
     const signOutBtn = popover.querySelector('#settings-signout');
-
-    if (fontSelect) {
-        fontSelect.value = uiSettings.fontSize;
-        fontSelect.addEventListener('change', () => {
-            uiSettings.fontSize = fontSelect.value === 'large' ? 'large' : 'default';
-            applyFontSizeSetting();
-            persistUiSettings();
-        });
-    }
+    const closeBtn = popover.querySelector('#settings-close-btn');
 
     if (micSelect) {
         micSelect.addEventListener('change', () => {
@@ -438,9 +482,8 @@ function initSettingsControls() {
         });
     }
 
-    signOutBtn?.addEventListener('click', async () => {
-        await handleLogout();
-    });
+    signOutBtn?.addEventListener('click', async () => await handleLogout());
+    closeBtn?.addEventListener('click', closeSettingsPopover);
 
     settingsBtn?.addEventListener('click', async (event) => {
         event.stopPropagation();
@@ -900,15 +943,12 @@ function renderNavigation() {
             { key: 'dashboard', label: 'Home' },
             { key: 'students', label: 'Students' },
             { key: 'materials', label: 'Library' },
-            { key: 'assessment', label: 'Assessment' },
             { key: 'assignments', label: 'Assignments' },
             { key: 'reports', label: 'Reports' }
         ],
         principal: [
             { key: 'dashboard', label: 'Home' },
             { key: 'teachers', label: 'Teachers' },
-            { key: 'students', label: 'Students' },
-            { key: 'materials', label: 'Library' },
             { key: 'reports', label: 'Reports' }
         ],
         admin: [
@@ -955,8 +995,8 @@ function renderTopbar() {
     const activeView = state.activeView;
     const now = new Date();
     const dateText = now.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
+        weekday: 'long',
+        month: 'long',
         day: 'numeric',
         year: 'numeric'
     });
@@ -1023,18 +1063,21 @@ function renderTopbar() {
             pageSubtitle = '';
     }
 
-    topbarContent.className = 'topbar-content';
     topbarContent.innerHTML = `
         <div class="topbar-left">
             <div class="topbar-page-info">
-                <h1 class="topbar-page-title">${pageTitle}</h1>
-                ${pageSubtitle ? `<p class="topbar-page-subtitle">${pageSubtitle}</p>` : ''}
+                <h1 class="topbar-page-title" style="font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; color: #0f172a;">${pageTitle}</h1>
+                <p class="topbar-page-subtitle" style="font-size: 13px; color: #64748b; margin-top: 2px;">${dateText}</p>
             </div>
         </div>
 
-        <div class="topbar-center">
-            <span class="topbar-date">${dateText}</span>
-            <span class="topbar-time">${timeText}</span>
+        <div class="topbar-right" style="margin-left: auto;">
+            <button class="icon-btn" style="border: 1px solid #e2e8f0; background: #fff; width: 40px; height: 40px; border-radius: 50%;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            </button>
         </div>
     `;
 }
@@ -1128,87 +1171,62 @@ function renderTeacherDashboard() {
     const myStudents = Number(dashboard.my_students || 0);
     const classAvgWcpm = Number(dashboard.class_avg_wcpm || 0);
     const myAssessments = Number(dashboard.my_assessments || 0);
+    // Read the latest-assessment count from the teacher-scoped dashboard query.
     const studentsBelow = Number(dashboard.students_below || 0);
+    
+    // New stats for polished UI
+    const avgAccuracy = Number(dashboard.avg_accuracy || 0); 
+    const totalMaterials = state.materials ? state.materials.length : 0;
     
     // Check if we have performance data
     const hasPerformanceData = classPerf.length > 0;
     
     viewContainer.innerHTML = `
-        <div class="dashboard-teacher">
-            <!-- Stats Cards -->
-            <div class="grid four u-mb-16">
-                <div class="stat-card stat-card-students">
-                    <div class="stat-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
+        <div class="dashboard-teacher mobile-polished">
+
+            <!-- NEW POLISHED 2x2 STATS GRID -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-icon bg-blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
-                    <div class="stat-card-content">
-                        <h4>My Students</h4>
-                        <div class="stat-number">${myStudents}</div>
-                        <div class="stat-label">Active learners</div>
+                    <div class="stat-text">
+                        <span class="stat-title">My Students</span>
+                        <span class="stat-val">${myStudents}</span>
                     </div>
                 </div>
-                
-                <div class="stat-card stat-card-wcpm">
-                    <div class="stat-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                        </svg>
+                <div class="stat-box">
+                    <div class="stat-icon bg-purple">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
                     </div>
-                    <div class="stat-card-content">
-                        <h4>Avg WCPM</h4>
-                        <div class="stat-number">${classAvgWcpm.toFixed(1)}</div>
-                        <div class="stat-label">Class fluency pace</div>
+                    <div class="stat-text">
+                        <span class="stat-title">My Materials</span>
+                        <span class="stat-val">${totalMaterials}</span>
                     </div>
                 </div>
-                
-                <div class="stat-card stat-card-assessments">
-                    <div class="stat-card-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                            <polyline points="10 9 9 9 8 9"/>
-                        </svg>
+                <div class="stat-box">
+                    <div class="stat-icon bg-green">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
                     </div>
-                    <div class="stat-card-content">
-                        <h4>Assessments</h4>
-                        <div class="stat-number">${myAssessments}</div>
-                        <div class="stat-label">Completed sessions</div>
+                    <div class="stat-text">
+                        <span class="stat-title">Assessments</span>
+                        <span class="stat-val">${myAssessments}</span>
                     </div>
                 </div>
-                
-                <div class="stat-card stat-card-attention ${studentsBelow > 0 ? 'stat-card-warning' : 'stat-card-success'}">
-                    <div class="stat-card-icon">
-                        ${studentsBelow > 0 ? `
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                <line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                        ` : `
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
-                        `}
+                <div class="stat-box">
+                    <div class="stat-icon bg-orange">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                     </div>
-                    <div class="stat-card-content">
-                        <h4>Need Attention</h4>
-                        <div class="stat-number ${studentsBelow > 0 ? 'text-danger' : 'text-success'}">${studentsBelow}</div>
-                        <div class="stat-label">${studentsBelow > 0 ? 'Below target level' : 'All on track'}</div>
+                    <div class="stat-text">
+                        <span class="stat-title">Avg. Accuracy</span>
+                        <span class="stat-val">${avgAccuracy}<span class="stat-unit">%</span></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Two Column Layout: Search + Recent -->
+            <!-- TWO COLUMN LAYOUT: Search Panel & Recent Assessments -->
             <div class="grid two">
-                <!-- Left Panel: Start Assessment -->
+                <!-- PRESERVED Left Panel: Search Student -->
                 <div class="panel">
                     <p class="u-text-muted u-mt-0">Search by LRN or student name</p>
                     <div class="u-inline-form-row">
@@ -1228,42 +1246,48 @@ function renderTeacherDashboard() {
                         <div class="u-text-muted-sm u-mt-4">
                             Grade: <span id="found-student-grade">-</span> | Section: <span id="found-student-section">-</span>
                         </div>
-                        <div class="actions u-mt-10">
-                            <button id="start-assessment-btn" class="btn-primary btn-inline">Start Assessment</button>
-                        </div>
                     </div>
                 </div>
 
-                <!-- Right Panel: Recent Assessments -->
-                <div class="panel">
-                    <div class="panel-header">
-                        <h3>Recent Assessments</h3>
-                        ${recent.length > 0 ? `<button class="btn-secondary btn-sm view-all-btn" data-view="reports">View All</button>` : ''}
+                <!-- NEW POLISHED Right Panel: Recent Assessments -->
+                <div class="recent-assessments-panel">
+                    <div class="panel-header u-mb-0" style="padding-bottom: 8px;">
+                        <h3 class="panel-heading" style="margin:0;">Recent Assessments</h3>
+                        ${recent.length > 0 ? `<button class="btn-secondary btn-sm view-all-btn" data-view="reports" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
                     </div>
-                    ${recent.length ? `
-                        <ul class="list">
-                            ${recent.slice(0, 6).map(item => `
-                                <li class="assessment-list-item">
-                                    <div class="assessment-list-main">
-                                        <strong>${escapeAssessmentHtml(item.student_name || 'Student')}</strong>
-                                        <span class="assessment-date">${item.assessed_at ? new Date(item.assessed_at).toLocaleDateString() : ''}</span>
-                                    </div>
-                                    <div class="u-text-muted-xs u-mt-4 assessment-metrics">
-                                        <span class="metric-badge">${escapeAssessmentHtml(item.material_title || 'Material')}</span>
-                                        <span class="metric-badge metric-accuracy">Accuracy: ${Number(item.accuracy_percentage || 0).toFixed(1)}%</span>
-                                        <span class="metric-badge metric-wcpm">WCPM: ${Number(item.wcpm || 0).toFixed(1)}</span>
-                                    </div>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    ` : `
-                        <div class="empty-state u-text-center u-py-20">
-                            <p class="u-text-muted">No assessments yet.</p>
-                            <p class="u-text-muted-xs">Start assessing your students using the search panel.</p>
-                        </div>
-                    `}
+                    <div class="recent-list">
+                        ${recent.length ? recent.slice(0, 4).map(item => {
+                            // Extract initials from student name
+                            const initials = (item.student_name || 'S').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                            const acc = Number(item.accuracy_percentage || 0);
+                            const accColor = acc >= 80 ? 'text-green' : (acc >= 60 ? 'text-orange' : 'text-red');
+                            const dateStr = item.assessed_at ? new Date(item.assessed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                            
+                            return `
+                            <div class="recent-item">
+                                <div class="avatar">${initials}</div>
+                                <div class="item-info">
+                                    <div class="item-name">${escapeAssessmentHtml(item.student_name || 'Student')}</div>
+                                    <div class="item-mat">${escapeAssessmentHtml(item.material_title || 'Material')}</div>
+                                </div>
+                                <div class="item-metrics">
+                                    <div class="item-acc ${accColor}">${acc.toFixed(0)}%</div>
+                                    <div class="item-date">${dateStr}</div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('') : `<p class="u-text-muted u-text-center u-py-20">No assessments yet.</p>`}
+                    </div>
                 </div>
             </div>
+
+            <!-- PRESERVED LOWER PANELS (Warning, Chart, Student Table) -->
+            ${studentsBelow > 0 ? `
+            <div class="panel status-callout warning u-mt-16">
+                <strong>Need Attention (${studentsBelow} students)</strong>
+                <p class="u-mt-6 u-mb-0 u-text-md">Some students are below their target reading level.</p>
+            </div>
+            ` : ''}
 
             <!-- Class Performance Chart Section -->
             <div class="panel u-mt-16">
@@ -1311,9 +1335,35 @@ function renderTeacherDashboard() {
                                         <td class="u-ta-center">${student.assessment_count || 0}</td>
                                         <td class="u-ta-center">${Number(student.avg_wcpm || 0).toFixed(1)}</td>
                                         <td class="u-ta-center">
-                                            <span class="status-badge ${(student.reading_level || '').toLowerCase() === 'frustration' ? 'status-danger' : (student.reading_level || '').toLowerCase() === 'instructional' ? 'status-warning' : 'status-success'}">
-                                                ${escapeAssessmentHtml(student.reading_level || 'N/A')}
-                                            </span>
+                                        ${(() => {
+                                            const rawLvl = student.reading_level || 'Pending';
+                                            let lvl = rawLvl;
+                                            let badgeClass = 'status-default'; // Gray
+                                            const lowerLvl = rawLvl.toLowerCase();
+
+                                            if (lowerLvl.includes('reading at grade level') || lowerLvl === 'grade level') {
+                                                lvl = 'Reading At Grade Level';
+                                                badgeClass = 'status-success'; // Green
+                                            } 
+                                            else if (lowerLvl.includes('transitioning')) {
+                                                lvl = 'Transitioning Reader';
+                                                badgeClass = 'status-info'; // Blue
+                                            } 
+                                            else if (lowerLvl.includes('developing')) {
+                                                lvl = 'Developing Reader';
+                                                badgeClass = 'status-warning'; // Yellow
+                                            } 
+                                            else if (lowerLvl.includes('high emerging')) {
+                                                lvl = 'High Emerging Reader';
+                                                badgeClass = 'status-orange'; // Orange
+                                            } 
+                                            else if (lowerLvl.includes('low emerging') || lowerLvl.includes('emerging') || lowerLvl === 'frustration') {
+                                                lvl = 'Low Emerging Reader';
+                                                badgeClass = 'status-danger'; // Red
+                                            }
+
+                                            return `<span class="status-badge ${badgeClass}">${escapeAssessmentHtml(lvl)}</span>`;
+                                        })()}
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -1330,15 +1380,23 @@ function renderTeacherDashboard() {
         </div>
     `;
 
-    // Attach event listeners
+    // 1. PRESERVED EXISTING EVENT LISTENERS
     document.getElementById('search-student-btn')?.addEventListener('click', searchStudent);
     document.getElementById('start-assessment-btn')?.addEventListener('click', startAssessment);
     document.getElementById('view-all-students-btn')?.addEventListener('click', () => setActiveView('students'));
-    
-    // View All Assessments button
     document.querySelector('.view-all-btn')?.addEventListener('click', () => setActiveView('reports'));
+    // Allow pressing "Enter" in the search box
+    document.getElementById('student-id-input')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchStudent();
+    });
+    // 2. NEW HERO BUTTON EVENT LISTENER
+    document.getElementById('hero-start-assessment-btn')?.addEventListener('click', () => {
+        resetAssessmentState();
+        assessmentState.step = 1;
+        setActiveView('assessment');
+    });
 
-    // Initialize class performance chart
+    // 3. PRESERVED CHART INITIALIZATION
     if (hasPerformanceData && typeof Chart !== 'undefined') {
         setTimeout(() => {
             initClassPerformanceChart(classPerf);
@@ -1768,7 +1826,7 @@ async function renderAssignmentDetail(assignmentId) {
         viewContainer.innerHTML = `
             <div class="assignment-detail-shell">
                 <div class="u-row-between u-mb-16">
-                    <button class="btn-secondary" id="back-to-assignments">← Back to Assignments</button>
+                    <button class="btn-secondary" id="back-to-assignments">Back to Assignments</button>
                     <h2>${escapeAssessmentHtml(assignment.title)}</h2>
                 </div>
                 <div class="panel u-mb-16">
@@ -1844,11 +1902,17 @@ function initClassPerformanceChart(data) {
         delete state.chartInstances.classPerformance;
     }
 
-    // Prepare data - limit to 15 students for readability
-    const chartData = data.slice(0, 15);
-    const labels = chartData.map(item => item.student_name || `Student ${item.student_id}`);
-    const wcpmData = chartData.map(item => Number(item.wcpm || 0));
-    const accuracyData = chartData.map(item => Number(item.accuracy_percentage || 0));
+    // 1. Prepare data - map the time-series data from our backend
+    const labels = data.map(item => {
+        if (!item.date) return 'Unknown';
+        // Format date nicely (e.g., "Sep 9")
+        const d = new Date(item.date);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    
+    // 2. Read the new average keys from the PHP API
+    const wcpmData = data.map(item => Number(item.avg_wcpm || 0).toFixed(1));
+    const accuracyData = data.map(item => Number(item.avg_accuracy || 0).toFixed(1));
 
     state.chartInstances.classPerformance = new Chart(ctx, {
         type: 'bar',
@@ -1856,7 +1920,7 @@ function initClassPerformanceChart(data) {
             labels: labels,
             datasets: [
                 {
-                    label: 'WCPM',
+                    label: 'Avg. WCPM',
                     data: wcpmData,
                     backgroundColor: 'rgba(74, 144, 217, 0.7)',
                     borderColor: '#4A90D9',
@@ -1865,7 +1929,7 @@ function initClassPerformanceChart(data) {
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Accuracy (%)',
+                    label: 'Avg. Accuracy (%)',
                     data: accuracyData,
                     backgroundColor: 'rgba(52, 199, 89, 0.7)',
                     borderColor: '#34C759',
@@ -1926,35 +1990,72 @@ function initClassPerformanceChart(data) {
 
 async function searchStudent() {
     const input = document.getElementById('student-id-input');
-    const resultDiv = document.getElementById('student-search-result');
-    const nameSpan = document.getElementById('found-student-name');
-    const gradeSpan = document.getElementById('found-student-grade');
-    const sectionSpan = document.getElementById('found-student-section');
-    
-    const studentId = input.value.trim();
-    if (!studentId) {
-        alert('Please enter a Student ID');
+    const resultPanel = document.getElementById('student-search-result');
+    const nameEl = document.getElementById('found-student-name');
+    const gradeEl = document.getElementById('found-student-grade');
+    const sectionEl = document.getElementById('found-student-section');
+    const searchBtn = document.getElementById('search-student-btn');
+
+    if (!input || !resultPanel) return;
+
+    const term = input.value.trim();
+    if (!term) {
+        resultPanel.classList.add('hidden');
         return;
     }
-    
+
     try {
-        const data = await fetchJson(`php/api/shared/students.php?action=search&term=${encodeURIComponent(studentId)}`);
-        if (data.students && data.students.length > 0) {
-            const student = data.students[0];
-            nameSpan.textContent = `${student.first_name} ${student.last_name}`;
-            gradeSpan.textContent = student.grade_level || 'N/A';
-            sectionSpan.textContent = student.section || 'N/A';
-            resultDiv.style.display = 'block';
-            resultDiv.style.borderLeft = '4px solid #22c55e';
+        // 1. Show loading state on the button
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = 'Searching...';
+        searchBtn.disabled = true;
+
+        // 2. Call the PHP search endpoint we fixed earlier
+        const response = await fetch(`php/api/shared/students.php?action=search&term=${encodeURIComponent(term)}`);
+        const data = await response.json();
+
+        // 3. Display the result
+        if (data.success && data.students && data.students.length > 0) {
+            const student = data.students[0]; // Grab the top match
+            
+            nameEl.textContent = `${student.first_name} ${student.last_name}`;
+            gradeEl.textContent = student.grade_level || 'Unassigned';
+            sectionEl.textContent = student.section || 'General';
+            
+            resultPanel.classList.remove('hidden');
+            
+            // Make the result card clickable!
+            resultPanel.style.cursor = 'pointer';
+            resultPanel.onclick = () => {
+                state.selectedStudentId = student.student_id;
+                setActiveView('student-detail'); 
+            };
         } else {
-            nameSpan.textContent = 'Student not found';
-            gradeSpan.textContent = '-';
-            sectionSpan.textContent = '-';
-            resultDiv.style.display = 'block';
-            resultDiv.style.borderLeft = '4px solid #dc2626';
+            // Handle no results
+            nameEl.textContent = 'No student found';
+            gradeEl.textContent = '-';
+            sectionEl.textContent = '-';
+            
+            resultPanel.classList.remove('hidden');
+            resultPanel.style.cursor = 'default';
+            resultPanel.onclick = null;
         }
     } catch (error) {
-        alert('Error searching for student: ' + error.message);
+        console.error('Search error:', error);
+        nameEl.textContent = 'Error searching. Try again.';
+        resultPanel.classList.remove('hidden');
+    } finally {
+        // 4. Restore the button
+        searchBtn.innerHTML = `
+            <span class="icon-search" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </span>
+            Search
+        `;
+        searchBtn.disabled = false;
     }
 }
 
@@ -1986,6 +2087,7 @@ async function loadPrincipalDashboard() {
 }
 
 function renderPrincipalDashboard() {
+    // 1. DATA PREPARATION (Unchanged)
     const dashboard = state.principalDashboard || {
         total_students: 0,
         total_materials: 0,
@@ -2008,9 +2110,7 @@ function renderPrincipalDashboard() {
     const weeklyCount = weekly.reduce((sum, item) => sum + Number(item.count || 0), 0);
     
     const formatDisplayDate = (value) => {
-        if (!value) {
-            return 'N/A';
-        }
+        if (!value) return 'N/A';
         const parsed = new Date(value);
         return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
@@ -2020,120 +2120,169 @@ function renderPrincipalDashboard() {
     const assessmentsTrendText = `${safeNumber(dashboard.assessments_this_month, 0)} this month`;
     const accuracyTrendText = `${safeNumber(dashboard.accuracy_trend, 1)}% from last mo.`;
 
-    // REMOVE this line: viewContainer.className = 'view-container principal-dashboard';
-    // REMOVE the outer <div class="principal-dashboard"> wrapper
-    
+    // 2. GENERATE HTML BLOCKS OUTSIDE OF INNERHTML (Fixes the red IDE errors)
+    const riskStudentsHtml = riskStudents.length ? riskStudents.slice(0, 5).map(student => {
+        const fName = student.first_name || '';
+        const lName = student.last_name || '';
+        const initials = ((fName.charAt(0) || 'S') + (lName.charAt(0) || '')).toUpperCase();
+        return `
+        <div class="recent-item">
+            <div class="avatar" style="background: #fef2f2; color: #ef4444;">${initials}</div>
+            <div class="item-info">
+                <div class="item-name">${fName} ${lName}</div>
+                <div class="item-mat">Grade ${student.grade_level || 'N/A'}</div>
+            </div>
+            <div class="item-metrics">
+                <span style="background: #fef2f2; color: #ef4444; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;">${student.reading_level || student.grade_level || 'Frustration'}</span>
+            </div>
+        </div>
+        `;
+    }).join('') : '<p class="u-text-muted u-text-center u-py-20">No students flagged for intervention.</p>';
+
+    const recentAssessmentsHtml = recent.length ? recent.slice(0, 5).map(item => {
+        const fName = item.first_name || '';
+        const lName = item.last_name || '';
+        const studentName = item.student_name || (fName + ' ' + lName).trim() || 'Student';
+        const initials = studentName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        const acc = Number(item.accuracy_percentage || 0);
+        const accColor = acc >= 80 ? 'text-green' : (acc >= 60 ? 'text-orange' : 'text-red');
+        
+        return `
+        <div class="recent-item">
+            <div class="avatar">${initials}</div>
+            <div class="item-info">
+                <div class="item-name">${studentName}</div>
+                <div class="item-mat">Fluency: ${safeNumber(item.fluency_score, 1)} WCPM</div>
+            </div>
+            <div class="item-metrics">
+                <div class="item-acc ${accColor}">${acc.toFixed(0)}%</div>
+                <div class="item-date">${formatDisplayDate(item.assessed_at || item.date)}</div>
+            </div>
+        </div>
+        `;
+    }).join('') : '<p class="u-text-muted u-text-center u-py-20">No assessments yet.</p>';
+
+
+    // 3. APPLY UI (Cleanly interpolated)
     viewContainer.innerHTML = `
-        <div class="principal-kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-title">Total Students</div>
-                <div class="kpi-value">${safeNumber(dashboard.total_students, 0)}</div>
-                <div class="kpi-footer">
-                    <span class="kpi-label">Active learners</span>
-                    <span class="kpi-trend trend-up">${studentsTrendText}</span>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">Reading Materials</div>
-                <div class="kpi-value">${safeNumber(dashboard.total_materials, 0)}</div>
-                <div class="kpi-footer">
-                    <span class="kpi-label">Active library items</span>
-                    <span class="kpi-trend trend-up">${materialsTrendText}</span>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">Assessments Done</div>
-                <div class="kpi-value">${safeNumber(dashboard.total_assessments, 0)}</div>
-                <div class="kpi-footer">
-                    <span class="kpi-label">Last 30 days</span>
-                    <span class="kpi-trend trend-up">${assessmentsTrendText}</span>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">Avg Accuracy</div>
-                <div class="kpi-value">${safeNumber(dashboard.avg_accuracy, 0)}%</div>
-                <div class="kpi-footer">
-                    <span class="kpi-label">Class average</span>
-                    <span class="kpi-trend ${safeNumber(dashboard.accuracy_trend, 1) >= 0 ? 'trend-up' : 'trend-down'}">${safeNumber(dashboard.accuracy_trend, 1) >= 0 ? '\u2191' : '\u2193'} ${accuracyTrendText}</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="principal-charts-row">
-            <div class="principal-chart-panel">
-                <div class="panel-header">
-                    <h3>Performance by Grade Level</h3>
-                    <span class="chart-subtitle">Accuracy · Fluency · Reading rate</span>
-                </div>
-                <div class="chart-container chart-h-250">
-                    <canvas id="gradePerformanceChart"></canvas>
-                </div>
+        <div class="principal-dashboard mobile-polished">
+            
+            <!-- Hero Card -->
+            <div class="hero-assess-card" style="background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%); box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);">
+                <span class="hero-tag" style="color: #c7d2fe;">School Overview</span>
+                <h2 class="hero-title">Principal Dashboard</h2>
+                <p class="hero-desc">Monitor school-wide reading progress, track assessment activity, and identify students needing intervention.</p>
+                <button id="hero-view-reports-btn" class="hero-btn" style="color: #4f46e5;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    View Full Reports
+                </button>
             </div>
 
-            <div class="principal-chart-panel">
-                <div class="panel-header">
-                    <h3>Weekly Activity</h3>
-                    <span class="chart-subtitle">Assessments conducted per day</span>
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-box" style="align-items: flex-start;">
+                    <div class="stat-icon bg-blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                    </div>
+                    <div class="stat-text">
+                        <span class="stat-title">Total Students</span>
+                        <span class="stat-val">${safeNumber(dashboard.total_students, 0)}</span>
+                        <span style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.2;">${studentsTrendText}</span>
+                    </div>
                 </div>
-                <div class="chart-container chart-h-250">
-                    <canvas id="weeklyActivityChart"></canvas>
+                <div class="stat-box" style="align-items: flex-start;">
+                    <div class="stat-icon bg-purple">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+                    </div>
+                    <div class="stat-text">
+                        <span class="stat-title">Reading Materials</span>
+                        <span class="stat-val">${safeNumber(dashboard.total_materials, 0)}</span>
+                        <span style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.2;">${materialsTrendText}</span>
+                    </div>
+                </div>
+                <div class="stat-box" style="align-items: flex-start;">
+                    <div class="stat-icon bg-green">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    </div>
+                    <div class="stat-text">
+                        <span class="stat-title">Assessments Done</span>
+                        <span class="stat-val">${safeNumber(dashboard.total_assessments, 0)}</span>
+                        <span style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.2;">${assessmentsTrendText}</span>
+                    </div>
+                </div>
+                <div class="stat-box" style="align-items: flex-start;">
+                    <div class="stat-icon bg-orange">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                    </div>
+                    <div class="stat-text">
+                        <span class="stat-title">Avg. Accuracy</span>
+                        <span class="stat-val">${safeNumber(dashboard.avg_accuracy, 0)}<span class="stat-unit">%</span></span>
+                        <span style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.2;">
+                            <span style="color: ${safeNumber(dashboard.accuracy_trend, 1) >= 0 ? '#10b981' : '#ef4444'}; font-weight: 700;">${safeNumber(dashboard.accuracy_trend, 1) >= 0 ? '↑' : '↓'}</span> ${accuracyTrendText}
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="principal-table-panel">
-            <div class="panel-header">
-                <h3>Recent Assessments</h3>
-                <button class="view-all-btn" type="button">View All →</button>
-            </div>
-            <table class="principal-table">
-                <thead>
-                    <tr>
-                        <th>Student</th>
-                        <th>Date</th>
-                        <th>Accuracy</th>
-                        <th>Fluency</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${recent.length ? recent.slice(0, 4).map(item => `
-                        <tr>
-                            <td><strong>${item.student_name || `${item.first_name || ''} ${item.last_name || ''}`}</strong></td>
-                            <td>${formatDisplayDate(item.assessed_at || item.date)}</td>
-                            <td><span class="status-badge ${safeNumber(item.accuracy_percentage, 0) >= 80 ? 'status-success' : safeNumber(item.accuracy_percentage, 0) >= 65 ? 'status-warning' : 'status-danger'}">${safeNumber(item.accuracy_percentage, 0)}%</span></td>
-                            <td>${safeNumber(item.fluency_score, 1)}</td>
-                        </tr>
-                    `).join('') : `
-                        <tr>
-                            <td colspan="4" class="empty-state">No assessments yet</td>
-                        </tr>
-                    `}
-                </tbody>
-            </table>
-        </div>
+            <!-- Two Column Layout: Lists -->
+            <div class="grid two">
+                <div class="recent-assessments-panel" style="border-top: 4px solid #ef4444;">
+                    <div class="panel-header u-mb-0" style="padding-bottom: 8px;">
+                        <h3 class="panel-heading" style="margin:0; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            At-Risk Students
+                        </h3>
+                    </div>
+                    <div class="recent-list">
+                        ${riskStudentsHtml}
+                    </div>
+                </div>
 
-        <div class="principal-risk-panel">
-            <div class="panel-header">
-                <h3>Students at Risk</h3>
-                <span class="chart-subtitle">Flagged for intervention</span>
+                <div class="recent-assessments-panel">
+                    <div class="panel-header u-mb-0" style="padding-bottom: 8px;">
+                        <h3 class="panel-heading" style="margin:0;">Recent Assessments</h3>
+                    </div>
+                    <div class="recent-list">
+                        ${recentAssessmentsHtml}
+                    </div>
+                </div>
             </div>
-            <div class="risk-list">
-                ${riskStudents.length ? 
-                    riskStudents.map(student => `
-                        <div class="risk-item">
-                            <span class="risk-name">${student.first_name || ''} ${student.last_name || ''}</span>
-                            <span class="risk-level">${student.reading_level || student.grade_level || 'Frustration'}</span>
-                        </div>
-                    `).join('') : 
-                    '<div class="risk-empty">No students flagged for intervention</div>'
-                }
+
+            <!-- Charts Canvas -->
+            <div class="principal-charts-row grid two u-mt-16">
+                <div class="principal-chart-panel panel" style="padding: 24px;">
+                    <div class="panel-header" style="flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 24px;">
+                        <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;">Performance by Grade Level</h3>
+                        <span class="chart-subtitle" style="font-size: 13px; color: #64748b;">Accuracy · Fluency · Reading rate</span>
+                    </div>
+                    <div class="chart-container chart-h-250">
+                        <canvas id="gradePerformanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="principal-chart-panel panel" style="padding: 24px;">
+                    <div class="panel-header" style="flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 24px;">
+                        <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;">Weekly Activity</h3>
+                        <span class="chart-subtitle" style="font-size: 13px; color: #64748b;">Assessments conducted per day</span>
+                    </div>
+                    <div class="chart-container chart-h-250">
+                        <canvas id="weeklyActivityChart"></canvas>
+                    </div>
+                </div>
             </div>
+            
         </div>
     `;
 
-    // Initialize charts
+    // 4. EVENT LISTENERS
+    document.getElementById('hero-view-reports-btn')?.addEventListener('click', () => {
+        if (typeof setActiveView === 'function') setActiveView('reports');
+    });
+
     setTimeout(() => {
-        initPrincipalCharts(dashboard);
+        if (typeof initPrincipalCharts === 'function') {
+            initPrincipalCharts(dashboard);
+        }
     }, 200);
 }
 
@@ -2180,9 +2329,9 @@ function initPrincipalCharts(data) {
             data: {
                 labels: gradeLabels,
                 datasets: [
-                    { label: 'Accuracy', data: accuracyData, backgroundColor: '#4A90D9', borderColor: '#4A90D9', borderWidth: 1 },
-                    { label: 'Fluency', data: fluencyData, backgroundColor: '#34C759', borderColor: '#34C759', borderWidth: 1 },
-                    { label: 'Reading Rate', data: rateData, backgroundColor: '#FF9500', borderColor: '#FF9500', borderWidth: 1 }
+                    { label: 'Accuracy', data: accuracyData, backgroundColor: '#1e40af', borderColor: '#1e40af', borderWidth: 1 },
+                    { label: 'Fluency', data: fluencyData, backgroundColor: '#60a5fa', borderColor: '#60a5fa', borderWidth: 1 },
+                    { label: 'Reading Rate', data: rateData, backgroundColor: '#f59e0b', borderColor: '#f59e0b', borderWidth: 1 }
                 ]
             },
             options: {
@@ -2223,10 +2372,14 @@ function initPrincipalCharts(data) {
                 datasets: [{
                     label: 'Assessments',
                     data: values,
-                    borderColor: '#4A90D9',
-                    backgroundColor: 'rgba(74, 144, 217, 0.1)',
-                    fill: true,
-                    tension: 0.3
+                    borderColor: '#1e40af',
+                    backgroundColor: '#1e40af',
+                    pointBackgroundColor: '#1e40af',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    fill: false,
+                    tension: 0.4
                 }]
             },
             options: {
@@ -2366,7 +2519,7 @@ function renderMaterials() {
     viewContainer.innerHTML = `
         <div class="materials-shell">
             
-            <!-- HEADER MATCHING THE MOCKUP -->
+            <!-- HEADER -->
             <div class="page-header u-mb-24">
                 <div>
                     <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Reading Materials</h2>
@@ -2376,69 +2529,69 @@ function renderMaterials() {
 
             <!-- SEARCH & FILTERS ROW -->
             <div class="u-row-between u-mb-24" style="gap: 16px; flex-wrap: wrap;">
-                <div style="position: relative; flex: 1; max-width: 500px;">
-                    <span style="position: absolute; left: 12px; top: 10px; color: #94a3b8;">🔍</span>
-                    <input type="text" id="search-material" placeholder="Search materials..." class="input-inline-fill" style="background: #fff; padding-left: 36px; width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; font-size: 14px;">
+                <div style="position: relative; flex: 1; min-width: 280px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; top: 11px;">
+                        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="search-material" placeholder="Search materials..." class="input-inline-fill" style="background: #fff; padding-left: 40px; width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                 </div>
-                <div style="display: flex; gap: 12px;">
-                    <select id="filter-language" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 16px; height: 40px; background: #fff; color: #475569; font-size: 14px; cursor: pointer;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <select id="filter-language" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 16px; height: 40px; background: #fff; color: #475569; font-size: 14px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                         <option value="">All Languages</option>
                         <option value="English">English</option>
                         <option value="Filipino">Filipino</option>
                     </select>
-                    <button id="upload-material-btn" class="btn-primary" style="background: #1e40af; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px;">
+                    <button id="upload-material-btn" class="btn-primary" style="background: #1e40af; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 8px; margin: 0; width: auto;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         Upload Material
                     </button>
-                    <button id="refresh-materials-btn" class="btn-secondary" style="height: 40px; padding: 0 12px;">↻</button>
+                    <button id="refresh-materials-btn" class="btn-secondary" style="height: 40px; padding: 0 12px; border-radius: 8px; margin: 0; width: auto;" title="Refresh">↻</button>
                 </div>
             </div>
 
-            <!-- SLEEK CARD GRID -->
-            <div class="grid three u-gap-20">
+            <!-- TWO-TONE CARD GRID -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;">
                 ${materials && materials.length ? 
                     materials.map(material => {
                         const ocrState = getOcrState(material);
                         
                         // Dynamic Pill Styling
                         const lang = material.language || 'English';
-                        const langStyle = lang === 'Filipino' 
-                            ? 'color: #9333ea; background: #faf5ff; border: 1px solid #e9d5ff;'
-                            : 'color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe;';
+                        const langStyle = lang === 'Filipino'
+                            ? 'color: #9333ea; background: #ffffff; border: 1px solid #d8b4fe;'
+                            : 'color: #2563eb; background: #ffffff; border: 1px solid #bfdbfe;';
                             
-                        let ocrStyle = 'color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0;';
-                        let ocrIcon = '';
+                        let ocrStyle = 'color: #64748b; background: #ffffff; border: 1px solid #e2e8f0;';
                         if (ocrState === 'OCR Done') {
-                            ocrStyle = 'color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0;';
-                            ocrIcon = '✓ ';
+                            ocrStyle = 'color: #10b981; background: #ffffff; border: 1px solid #86efac;';
                         } else if (ocrState === 'Processing') {
-                            ocrStyle = 'color: #d97706; background: #fffbeb; border: 1px solid #fde68a;';
-                            ocrIcon = '⏳ ';
+                            ocrStyle = 'color: #f59e0b; background: #ffffff; border: 1px solid #fde68a;';
                         }
-                        
-                        const uploadDate = material.upload_date ? new Date(material.upload_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'Recently added';
-                        const uploader = material.uploaded_by_name || 'Teacher';
+                        const typeStyle = 'color: #64748b; background: #ffffff; border: 1px solid #e2e8f0;';
+                        const materialType = material.type || 'Passage';
 
                         return `
-                        <div class="material-card" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; height: 100%;" onmouseover="this.style.boxShadow='0 10px 25px rgba(0,0,0,0.08)'; this.style.borderColor='#cbd5e1';" onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)'; this.style.borderColor='#e2e8f0';" onclick="viewMaterial('${material.material_id}')">
-                            <div>
-                                <div style="display: flex; gap: 16px; margin-bottom: 20px;">
-                                    <div style="background: #eff6ff; color: #1e40af; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
-                                        📖
-                                    </div>
-                                    <div>
-                                        <h4 style="margin: 0 0 4px 0; color: #0f172a; font-size: 16px; font-weight: 600; line-height: 1.3;">${escapeAssessmentHtml(material.title || 'Untitled Material')}</h4>
-                                        <p style="margin: 0; color: #64748b; font-size: 13px;">${escapeAssessmentHtml(material.grade_level || 'General')} • ${escapeAssessmentHtml(String(material.total_words || 0))} words</p>
-                                    </div>
+                        <div data-preserve-inline-colors="true" class="material-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer; transition: all 0.2s;" onclick="viewMaterial('${material.material_id}')" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.borderColor='#cbd5e1';" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'; this.style.borderColor='#e2e8f0';">
+                            <div style="background: #f8fafc; padding: 20px; display: flex; gap: 16px; align-items: center; border-bottom: 1px solid #f1f5f9;">
+                                <div style="background: #ffffff; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); color: #1e40af; border: 1px solid #e2e8f0; flex-shrink: 0;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path><polyline points="14 2 14 8 18 8"></polyline></svg>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                                    <span style="padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; ${langStyle}">${escapeAssessmentHtml(lang)}</span>
-                                    <span style="padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; ${ocrStyle}">${ocrIcon}${escapeAssessmentHtml(ocrState)}</span>
+                                <div>
+                                    <h4 style="margin: 0 0 4px 0; color: #0f172a; font-size: 15px; font-weight: 600; line-height: 1.3;">${escapeAssessmentHtml(material.title || 'Untitled Material')}</h4>
+                                    <p style="margin: 0; color: #64748b; font-size: 12px;">${escapeAssessmentHtml(material.grade_level || 'General')} • ${escapeAssessmentHtml(String(material.total_words || 0))} words</p>
                                 </div>
                             </div>
-                            <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-                                <span style="color: #94a3b8; font-size: 12px;">${escapeAssessmentHtml(uploader)} • ${uploadDate}</span>
-                                <span style="color: #3b82f6; font-size: 13px; font-weight: 600;">Details →</span>
+                            <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px; flex: 1;">
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <span style="padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; ${langStyle}">${escapeAssessmentHtml(lang)}</span>
+                                    <span style="padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; ${typeStyle}">${escapeAssessmentHtml(materialType)}</span>
+                                    <span style="padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; ${ocrStyle}">${escapeAssessmentHtml(ocrState)}</span>
+                                </div>
+                                <div style="flex: 1;"></div>
+                                <button type="button" style="width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; color: #0f172a; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; pointer-events: none;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    Preview
+                                </button>
                             </div>
                         </div>
                         `;
@@ -2755,7 +2908,7 @@ async function viewMaterial(materialId) {
 
                     ${material.file_path ? `
                         <div class="material-image-preview">
-                            <img src="/uploads/materials/${encodeURIComponent(material.file_path)}"
+                            <img src="../uploads/materials/${encodeURIComponent(material.file_path)}"
                                 alt="Material image"
                                 class="material-full-image"
                                 onerror="this.style.display='none';">
@@ -3384,7 +3537,7 @@ function renderStep3Record() {
                 </div>
 
                 <div class="u-actions-row is-between u-mt-20">
-                    <button id="back-step-3" class="btn-secondary">← Back</button>
+                    <button id="back-step-3" class="btn-secondary">Back</button>
                     <button id="submit-assessment-btn" class="btn-primary" ${assessmentState.audioBlob ? '' : 'disabled'}>Process Audio & View Results →</button>
                 </div>
             </div>
@@ -4228,42 +4381,61 @@ function renderTeachers() {
     viewContainer.innerHTML = `
         <div class="teachers-shell">
 
-            <div class="teachers-toolbar">
-                <div class="teachers-search-wrap">
-                    <input type="text" id="search-teacher" placeholder="Search by name or email" class="filter-search">
-                </div>
-                <div class="teachers-toolbar-actions">
-                    <button id="add-teacher-btn" class="btn-primary">➕ Add Teacher</button>
-                    <button id="refresh-teachers-btn" class="btn-secondary">Refresh</button>
+            <div class="page-header u-mb-24">
+                <div>
+                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Teachers List</h2>
+                    <p class="subtitle" style="margin-top: 4px; color: #64748b;">Manage teaching staff and view their advisory classes.</p>
                 </div>
             </div>
 
-            <div class="teachers-table">
+            <div class="u-row-between u-mb-24" style="gap: 16px; flex-wrap: wrap;">
+                <div class="teachers-search-wrap" style="display: flex; gap: 12px; flex: 1; max-width: 600px;">
+                    <div style="position: relative; flex: 1;">
+                        <span style="position: absolute; left: 12px; top: 10px; color: #94a3b8;">🔍</span>
+                        <input type="text" id="search-teacher" placeholder="Search by name or email" class="input-inline-fill" style="background: #fff; padding-left: 36px; width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; font-size: 14px;">
+                    </div>
+                    <select id="filter-teacher-grade" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 16px; height: 40px; background: #fff; color: #475569; font-size: 14px; cursor: pointer;">
+                        <option value="">All Grades</option>
+                        <option value="Grade 1">Grade 1</option>
+                        <option value="Grade 2">Grade 2</option>
+                        <option value="Grade 3">Grade 3</option>
+                        <option value="Grade 4">Grade 4</option>
+                        <option value="Grade 5">Grade 5</option>
+                        <option value="Grade 6">Grade 6</option>
+                    </select>
+                </div>
+                <div class="teachers-toolbar-actions">
+                    <button id="add-teacher-btn" class="btn-primary" style="background: #1e40af; display: flex; align-items: center; gap: 8px; height: 40px;">➕ Add Teacher</button>
+                    <button id="refresh-teachers-btn" class="btn-secondary" style="height: 40px;">Refresh</button>
+                </div>
+            </div>
+
+            <div class="panel" style="padding: 0; overflow: hidden;">
                 <table class="table-clean">
                     <thead>
-                        <tr class="table-head-accent">
-                            <th class="u-cell-12 u-ta-left u-fw-600">Name</th>
-                            <th class="u-cell-12 u-ta-left u-fw-600">Email</th>
-                            <th class="u-cell-12 u-ta-left u-fw-600">Department</th>
-                            <th class="u-cell-12 u-ta-center u-fw-600">Students</th>
-                            <th class="u-cell-12 u-ta-center u-fw-600">Status</th>
-                            <th class="u-cell-12 u-ta-center u-fw-600">Actions</th>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid #f1f5f9;">
+                            <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">NAME</th>
+                            <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">EMAIL</th>
+                            <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">DIVISION</th>
+                            <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">STUDENTS</th>
+                            <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">STATUS</th>
+                            <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${teachers.length ? teachers.map(teacher => `
-                            <tr class="table-row">
-                                <td class="u-cell-12"><strong>${teacher.first_name} ${teacher.last_name}</strong></td>
-                                <td class="u-cell-12">${teacher.email || 'N/A'}</td>
-                                <td class="u-cell-12">${teacher.department || 'N/A'}</td>
-                                <td class="u-cell-12 u-ta-center">${teacher.student_count || 0}</td>
-                                <td class="u-cell-12 u-ta-center">
+                            <tr class="table-row" data-grade="${escapeAssessmentHtml(teacher.grade_level || '')}" style="background: #fff; transition: background 0.2s;">
+                                <td style="padding: 16px 20px;"><strong>${escapeAssessmentHtml(teacher.first_name)} ${escapeAssessmentHtml(teacher.last_name)}</strong></td>
+                                <td style="padding: 16px 20px; color: #64748b;">${escapeAssessmentHtml(teacher.email || 'N/A')}</td>
+                                <td style="padding: 16px 20px; color: #475569;">${escapeAssessmentHtml(teacher.department || 'N/A')}</td>
+                                <td style="padding: 16px 20px; text-align: center; font-weight: 600;">${teacher.student_count || 0}</td>
+                                <td style="padding: 16px 20px; text-align: center;">
                                     <span class="teacher-status-badge ${teacher.status === 'Active' ? 'is-active' : 'is-inactive'}">
                                         ${teacher.status || 'Inactive'}
                                     </span>
                                 </td>
-                                <td class="u-cell-12 u-ta-center">
-                                    <button class="action-btn action-btn-primary view-teacher" data-id="${teacher.teacher_id}" title="View details">View</button>
+                                <td style="padding: 16px 20px; text-align: center;">
+                                    <button class="action-btn action-btn-primary view-teacher" data-id="${teacher.teacher_id}" title="View details" style="color: #1e40af; border-color: #bfdbfe; background: #eff6ff;">View Classes</button>
                                     <button class="action-btn action-btn-secondary edit-teacher" data-id="${teacher.teacher_id}" title="Edit">Edit</button>
                                 </td>
                             </tr>
@@ -4275,69 +4447,106 @@ function renderTeachers() {
                     </tbody>
                 </table>
             </div>
-                            <!-- Add Teacher Modal -->
-                <div id="add-teacher-modal" class="modal hidden">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>Add New Teacher</h3>
-                            <button class="close-modal">×</button>
-                        </div>
-                        <form id="add-teacher-form">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>First Name *</label>
-                                    <input type="text" name="first_name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Last Name *</label>
-                                    <input type="text" name="last_name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Grade Level *</label>
-                                    <select name="grade_level" required>
-                                        <option value="">Select Grade</option>
-                                        <option value="Grade 1">Grade 1</option>
-                                        <option value="Grade 2">Grade 2</option>
-                                        <option value="Grade 3">Grade 3</option>
-                                        <option value="Grade 4">Grade 4</option>
-                                        <option value="Grade 5">Grade 5</option>
-                                        <option value="Grade 6">Grade 6</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Section *</label>
-                                    <input type="text" name="section" placeholder="e.g. Section A" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Department (optional)</label>
-                                    <input type="text" name="department" placeholder="e.g. Elementary">
-                                </div>
-                            </div>
-                            <div class="modal-actions">
-                                <button type="submit" class="btn-primary">Create Teacher</button>
-                                <button type="button" class="btn-secondary close-modal">Cancel</button>
-                            </div>
-                        </form>
-                        <div id="add-teacher-result" class="u-mt-12"></div>
+
+            <!-- Add Teacher Modal -->
+            <div id="add-teacher-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add New Teacher</h3>
+                        <button class="close-modal">×</button>
                     </div>
+                    <form id="add-teacher-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>First Name *</label>
+                                <input type="text" name="first_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name *</label>
+                                <input type="text" name="last_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Grade Level *</label>
+                                <select name="grade_level" required>
+                                    <option value="">Select Grade</option>
+                                    <option value="Grade 1">Grade 1</option>
+                                    <option value="Grade 2">Grade 2</option>
+                                    <option value="Grade 3">Grade 3</option>
+                                    <option value="Grade 4">Grade 4</option>
+                                    <option value="Grade 5">Grade 5</option>
+                                    <option value="Grade 6">Grade 6</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Section *</label>
+                                <input type="text" name="section" placeholder="e.g. Section A" required>
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="submit" class="btn-primary">Create Teacher</button>
+                            <button type="button" class="btn-secondary close-modal">Cancel</button>
+                        </div>
+                    </form>
+                    <div id="add-teacher-result" class="u-mt-12"></div>
                 </div>
+            </div>
         </div>
     `;
 
-    // Attach event listeners
-        // Add Teacher button
+    // 1. Search & Filter Logic
+    const applyTeacherFilters = () => {
+        const term = document.getElementById('search-teacher')?.value.toLowerCase() || '';
+        const grade = document.getElementById('filter-teacher-grade')?.value || '';
+        
+        document.querySelectorAll('.teachers-shell tbody tr').forEach(row => {
+            if (row.children.length === 1) return; // Skip empty state row
+            
+            const text = row.textContent.toLowerCase();
+            const rowGrade = row.dataset.grade || '';
+            
+            const matchesSearch = text.includes(term);
+            const matchesGrade = grade === '' || rowGrade.includes(grade);
+            
+            row.style.display = (matchesSearch && matchesGrade) ? '' : 'none';
+        });
+    };
+
+    document.getElementById('search-teacher')?.addEventListener('input', applyTeacherFilters);
+    document.getElementById('filter-teacher-grade')?.addEventListener('change', applyTeacherFilters);
+
+    // 2. Button Listeners
     document.getElementById('add-teacher-btn')?.addEventListener('click', () => {
         showModal('add-teacher-modal');
-        document.getElementById('add-teacher-result').innerHTML = ''; // Clear previous messages
+        document.getElementById('add-teacher-result').innerHTML = '';
         document.getElementById('add-teacher-form').reset();
     });
 
-    // Close modal
-    document.querySelectorAll('#add-teacher-modal .close-modal').forEach(btn => {
-        btn.addEventListener('click', () => closeModal('add-teacher-modal'));
+    document.getElementById('refresh-teachers-btn')?.addEventListener('click', loadTeachers);
+
+    // 3. View/Edit teacher actions
+    document.querySelectorAll('.view-teacher').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.selectedTeacherId = btn.dataset.id;
+            state.selectedTeacherClass = null; // Reset class selection
+            setActiveView('teacher-detail');
+        });
     });
 
-    // Form submit
+    document.querySelectorAll('.edit-teacher').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.selectedTeacherId = btn.dataset.id;
+            setActiveView('teacher-edit');
+        });
+    });
+
+    // 4. Modal and Form Handlers
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const modal = btn.closest('.modal');
+            if (modal?.id) await requestCloseModal(modal.id);
+        });
+    });
+
     document.getElementById('add-teacher-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
@@ -4345,8 +4554,7 @@ function renderTeachers() {
             first_name: form.first_name.value.trim(),
             last_name: form.last_name.value.trim(),
             grade_level: form.grade_level.value,
-            section: form.section.value.trim(),
-            department: form.department.value.trim() || 'Elementary'
+            section: form.section.value.trim()
         };
 
         const resultDiv = document.getElementById('add-teacher-result');
@@ -4360,8 +4568,7 @@ function renderTeachers() {
 
         try {
             const response = await fetchJson('php/api/principal/teachers.php?action=create', {
-                method: 'POST',
-                body: JSON.stringify(data)
+                method: 'POST', body: JSON.stringify(data)
             });
 
             if (response.success) {
@@ -4369,9 +4576,7 @@ function renderTeachers() {
                     Username: <strong>${response.teacher.username}</strong><br>
                     Email: <strong>${response.teacher.email}</strong><br>
                     Default password: <strong>stacruzCen3lem</strong></p>`;
-                // Refresh the teacher list
                 await loadTeachers();
-                // Optionally close the modal after a delay
                 setTimeout(() => closeModal('add-teacher-modal'), 3000);
             } else {
                 resultDiv.innerHTML = `<p class="u-text-danger">${response.message || 'Failed to create teacher.'}</p>`;
@@ -4379,42 +4584,6 @@ function renderTeachers() {
         } catch (error) {
             resultDiv.innerHTML = `<p class="u-text-danger">Error: ${error.message}</p>`;
         }
-    });
-
-    document.getElementById('refresh-teachers-btn')?.addEventListener('click', () => {
-        loadTeachers();
-    });
-
-    document.getElementById('search-teacher')?.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        document.querySelectorAll('.teachers-table tbody tr').forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(term) ? '' : 'none';
-        });
-    });
-
-    // View/Edit teacher actions
-    document.querySelectorAll('.view-teacher').forEach(btn => {
-    btn.addEventListener('click', () => {
-        state.selectedTeacherId = btn.dataset.id;
-        setActiveView('teacher-detail');
-        });
-    });
-
-    document.querySelectorAll('.edit-teacher').forEach(btn => {
-    btn.addEventListener('click', () => {
-        state.selectedTeacherId = btn.dataset.id;
-        setActiveView('teacher-edit');
-        });
-    });
-
-    document.querySelectorAll('.close-modal').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const modal = btn.closest('.modal');
-            if (modal?.id) {
-                await requestCloseModal(modal.id);
-            }
-        });
     });
 }
 
@@ -4424,80 +4593,201 @@ async function renderTeacherDetail(teacherId) {
         return;
     }
 
+    // Only show spinner if not already rendering the view (prevents flickering)
+    if (!document.querySelector('.teacher-detail-shell')) {
+        viewContainer.innerHTML = '<div class="spinner u-text-center u-mt-20">⏳ Loading teacher data...</div>';
+    }
+
     try {
-        const teacherData = await fetchJson(`php/api/principal/teachers.php?action=get&id=${encodeURIComponent(teacherId)}`);
+        const [teacherData, studentsData] = await Promise.all([
+            fetchJson(`php/api/principal/teachers.php?action=get&id=${encodeURIComponent(teacherId)}`),
+            fetchJson(`php/api/principal/teachers.php?action=students&id=${encodeURIComponent(teacherId)}`)
+        ]);
+        
         if (!teacherData.success || !teacherData.teacher) {
             viewContainer.innerHTML = '<p class="u-text-danger">Teacher not found.</p>';
             return;
         }
+        
         const teacher = teacherData.teacher;
+        const students = studentsData.success && studentsData.students ? studentsData.students : [];
 
-        const studentsData = await fetchJson(`php/api/principal/teachers.php?action=students&id=${encodeURIComponent(teacherId)}`);
-        const students = studentsData.success ? studentsData.students : [];
+        // Group students by Class and Section
+        const classesMap = {};
+        students.forEach(s => {
+            const grade = s.grade_level || 'Unassigned';
+            const section = s.section || 'General';
+            const classKey = `${grade} - ${section}`;
+            
+            if (!classesMap[classKey]) {
+                classesMap[classKey] = { grade, section, students: [] };
+            }
+            classesMap[classKey].students.push(s);
+        });
 
-        viewContainer.innerHTML = `
-            <div class="teacher-detail-shell">
-                <div class="u-row-between u-mb-16">
-                    <button class="btn-secondary" id="back-to-teachers">← Back to Teachers</button>
-                    <h2 class="u-m-0">${escapeAssessmentHtml(teacher.first_name)} ${escapeAssessmentHtml(teacher.last_name)}</h2>
-                    <span class="u-text-muted">${escapeAssessmentHtml(teacher.email || '')}</span>
-                </div>
+        const classesList = Object.values(classesMap).sort((a, b) => a.grade.localeCompare(b.grade));
 
-                <div class="panel u-mt-16">
-                    <div class="panel-header">
-                        <h3>Students (${students.length})</h3>
+        // ----------------------------------------------------
+        // VIEW A: Teacher Profile + Class Cards
+        // ----------------------------------------------------
+        if (!state.selectedTeacherClass) {
+            viewContainer.innerHTML = `
+                <div class="teacher-detail-shell">
+                    <!-- Header -->
+                    <div class="u-row-between u-mb-24">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <button class="btn-secondary" id="back-to-teachers" style="padding: 8px 12px;">Back to Directory</button>
+                            <div>
+                                <h2 class="u-m-0" style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">${escapeAssessmentHtml(teacher.first_name)} ${escapeAssessmentHtml(teacher.last_name)}</h2>
+                                <span class="u-text-muted">${escapeAssessmentHtml(teacher.email || 'No email')} • ${escapeAssessmentHtml(teacher.department || 'General Dept')}</span>
+                            </div>
+                        </div>
                     </div>
-                    ${students.length ? `
+
+                    <h3 style="color: #0f172a; margin-bottom: 12px;">Advisory Classes</h3>
+                    
+                    <div class="grid three">
+                        ${classesList.map(cls => `
+                            <div class="stat-card" style="cursor: pointer; padding: 24px;" onclick="state.selectedTeacherClass = '${cls.grade} - ${cls.section}'; renderTeacherDetail('${teacherId}');">
+                                <div class="stat-card-icon" style="background: #eff6ff; color: #1e40af; width: 54px; height: 54px;">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
+                                <div class="stat-card-content">
+                                    <h4 style="color: #0f172a; font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">${escapeAssessmentHtml(cls.grade)}</h4>
+                                    <div class="stat-label" style="font-size: 0.95rem; color: #64748b;">Section: ${escapeAssessmentHtml(cls.section)}</div>
+                                    <div class="stat-label u-mt-12"><strong style="color: #1e40af; font-size: 1rem;">${cls.students.length}</strong> Enrolled Students</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${classesList.length === 0 ? `
+                            <div class="empty-state u-col-span-full panel">
+                                <p>No students assigned to this teacher yet.</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('back-to-teachers')?.addEventListener('click', () => {
+                state.selectedTeacherId = null;
+                setActiveView('teachers');
+            });
+        }
+        // ----------------------------------------------------
+        // VIEW B: Student Spreadsheet for Selected Class
+        // ----------------------------------------------------
+        else {
+            const currentClass = classesMap[state.selectedTeacherClass];
+            if (!currentClass) {
+                state.selectedTeacherClass = null; 
+                renderTeacherDetail(teacherId);
+                return;
+            }
+
+            viewContainer.innerHTML = `
+                <div class="teacher-detail-shell">
+                    <div class="page-header u-mb-16">
+                        <div class="u-row-between" style="width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <button class="btn-secondary" onclick="state.selectedTeacherClass = null; renderTeacherDetail('${teacherId}');" style="padding: 8px 12px;">Back to Classes</button>
+                                <div>
+                                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">${escapeAssessmentHtml(currentClass.grade)} - ${escapeAssessmentHtml(currentClass.section)}</h2>
+                                    <p class="subtitle" style="margin-top: 4px;">Teacher: ${escapeAssessmentHtml(teacher.first_name)} ${escapeAssessmentHtml(teacher.last_name)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="search-bar u-mb-16">
+                        <div style="position: relative; max-width: 400px; width: 100%;">
+                            <span style="position: absolute; left: 12px; top: 10px; color: #94a3b8;">🔍</span>
+                            <input type="text" id="roster-search-input" placeholder="Search students in class..." class="input-inline-fill" style="background: #fff; padding-left: 36px;">
+                        </div>
+                    </div>
+
+                    <div class="panel" style="padding: 0; overflow: hidden; border-radius: 12px;">
                         <div class="u-scroll-x">
-                            <table class="table-clean">
+                            <table class="table-clean" style="margin: 0; border-collapse: collapse;">
                                 <thead>
-                                    <tr class="table-head-accent">
-                                        <th class="u-ta-left">LRN</th>
-                                        <th class="u-ta-left">Name</th>
-                                        <th class="u-ta-center">Grade</th>
-                                        <th class="u-ta-center">Section</th>
-                                        <th class="u-ta-center">Assessments</th>
-                                        <th class="u-ta-center">Avg WCPM</th>
-                                        <th class="u-ta-center">Action</th>
+                                    <tr style="background: #fff; border-bottom: 2px solid #f1f5f9;">
+                                        <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">ID</th>
+                                        <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">NAME</th>
+                                        <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">READING LEVEL</th>
+                                        <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">ASSESSMENTS</th>
+                                        <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">AVG ACCURACY</th>
+                                        <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">AVG WCPM</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${students.map(s => `
-                                        <tr>
-                                            <td><strong>${escapeAssessmentHtml(s.lrn || '-')}</strong></td>
-                                            <td>${escapeAssessmentHtml(`${s.first_name || ''} ${s.last_name || ''}`.trim())}</td>
-                                            <td class="u-ta-center">${escapeAssessmentHtml(s.grade_level || '-')}</td>
-                                            <td class="u-ta-center">${escapeAssessmentHtml(s.section || '-')}</td>
-                                            <td class="u-ta-center">${s.assessment_count || 0}</td>
-                                            <td class="u-ta-center">${Number(s.avg_wcpm || 0).toFixed(1)}</td>
-                                            <td class="u-ta-center">
-                                                <button class="btn-primary btn-sm view-student-report" data-id="${s.student_id}">View Report</button>
+                                    ${currentClass.students.map(student => {
+                                        const firstI = student.first_name ? student.first_name.charAt(0).toUpperCase() : '';
+                                        const lastI = student.last_name ? student.last_name.charAt(0).toUpperCase() : '';
+                                        
+                                        // --- NEW: Client Spec Reading Level Logic ---
+                                        const rawLvl = student.reading_level || 'Pending';
+                                        let lvl = rawLvl;
+                                        let badgeClass = 'status-default'; // Gray
+                                        const lowerLvl = rawLvl.toLowerCase();
+
+                                        if (lowerLvl.includes('reading at grade level') || lowerLvl === 'grade level') {
+                                            lvl = 'Reading At Grade Level';
+                                            badgeClass = 'status-success'; // Green
+                                        } 
+                                        else if (lowerLvl.includes('transitioning')) {
+                                            lvl = 'Transitioning Reader';
+                                            badgeClass = 'status-info'; // Blue
+                                        } 
+                                        else if (lowerLvl.includes('developing')) {
+                                            lvl = 'Developing Reader';
+                                            badgeClass = 'status-warning'; // Yellow
+                                        } 
+                                        else if (lowerLvl.includes('high emerging')) {
+                                            lvl = 'High Emerging Reader';
+                                            badgeClass = 'status-orange'; // Orange
+                                        } 
+                                        else if (lowerLvl.includes('low emerging') || lowerLvl.includes('emerging')) {
+                                            lvl = 'Low Emerging Reader';
+                                            badgeClass = 'status-danger'; // Red
+                                        }
+
+                                        const rawAcc = student.accuracy_percentage || student.avg_accuracy || 0;
+                                        const accColor = rawAcc >= 80 ? '#059669' : (rawAcc >= 65 ? '#d97706' : '#dc2626');
+
+                                        return `
+                                        <tr class="table-row student-row" style="background: #fff; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
+                                            <td style="padding: 16px 20px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 13px;">${escapeAssessmentHtml(student.lrn || '-')}</td>
+                                            <td style="padding: 16px 20px;">
+                                                <div style="display: flex; align-items: center; gap: 12px;">
+                                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #eff6ff; color: #1e40af; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${escapeAssessmentHtml(firstI)}${escapeAssessmentHtml(lastI)}</div>
+                                                    <strong style="color: #0f172a; font-weight: 600;">${escapeAssessmentHtml(student.first_name)} ${escapeAssessmentHtml(student.last_name)}</strong>
+                                                </div>
                                             </td>
+                                            <td style="padding: 16px 20px; text-align: center;">
+                                                <!-- NEW: Using the CSS classes instead of inline styles! -->
+                                                <span class="status-badge ${badgeClass}">${escapeAssessmentHtml(lvl)}</span>
+                                            </td>
+                                            <td style="padding: 16px 20px; text-align: center; color: #475569; font-weight: 600;">${escapeAssessmentHtml(String(student.assessment_count || 0))}</td>
+                                            <td style="padding: 16px 20px; text-align: center; color: ${rawAcc > 0 ? accColor : '#94a3b8'}; font-weight: 700;">${rawAcc > 0 ? Math.round(rawAcc) + '%' : '-'}</td>
+                                            <td style="padding: 16px 20px; text-align: center; color: #0f172a; font-family: 'JetBrains Mono', monospace; font-weight: 600;">${Number(student.avg_wcpm || 0).toFixed(1)}</td>
                                         </tr>
-                                    `).join('')}
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>
-                    ` : `
-                        <div class="empty-state">
-                            <p>No students assigned to this teacher.</p>
-                        </div>
-                    `}
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
 
-        document.getElementById('back-to-teachers')?.addEventListener('click', () => {
-            state.selectedTeacherId = null;
-            setActiveView('teachers');
-        });
-
-        document.querySelectorAll('.view-student-report').forEach(btn => {
-            btn.addEventListener('click', () => {
-                state.selectedStudentId = btn.dataset.id;
-                setActiveView('student-detail');
+            // Search logic inside the specific class
+            document.getElementById('roster-search-input')?.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('.student-row').forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(term) ? '' : 'none';
+                });
             });
-        });
+        }
 
     } catch (error) {
         viewContainer.innerHTML = `<p class="u-text-danger">Error loading teacher: ${escapeAssessmentHtml(error.message)}</p>`;
@@ -4697,7 +4987,7 @@ async function renderTeacherEdit(teacherId) {
         viewContainer.innerHTML = `
             <div class="teacher-edit-shell">
                 <div class="u-row-between u-mb-16">
-                    <button class="btn-secondary" id="back-to-teachers-edit">← Back to Teachers</button>
+                    <button class="btn-secondary" id="back-to-teachers-edit">Back to Teachers</button>
                     <h2 class="u-m-0">Edit Teacher</h2>
                 </div>
 
@@ -4908,16 +5198,24 @@ function renderReports() {
                     <button class="close-modal">x</button>
                 </div>
                 <form id="export-class-form">
-                    <div class="form-group">
-                        <label for="export-class-select">Select Section / Class</label>
-                        <select id="export-class-select" name="class_id">
-                            <option value="">All Classes</option>
-                        </select>
+                    <!-- Scope Toggle -->
+                    <div class="form-group" style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <label style="margin-bottom: 8px; font-weight: 600;">Report Scope</label>
+                        <div style="display: flex; gap: 16px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="export_scope" value="class" checked> Specific Class
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="export_scope" value="grade"> Entire Grade
+                            </label>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="export-grade-select">Or Select Grade Level</label>
+                    <!-- Grade Dropdown (Hidden by default) -->
+                    <div class="form-group hidden" id="group-grade-select" style="display: none;">
+                        <label for="export-grade-select">Select Grade Level</label>
                         <select id="export-grade-select" name="grade_level">
                             <option value="">All Grades</option>
+                            <option value="Grade 1">Grade 1</option>
                             <option value="Grade 2">Grade 2</option>
                             <option value="Grade 3">Grade 3</option>
                             <option value="Grade 4">Grade 4</option>
@@ -4925,14 +5223,16 @@ function renderReports() {
                             <option value="Grade 6">Grade 6</option>
                         </select>
                     </div>
+                    <!-- Language Filter (Always visible) -->
                     <div class="form-group">
-                        <label for="export-language-select">Language</label>
+                        <label for="export-language-select">Target Language</label>
                         <select id="export-language-select" name="language">
                             <option value="">All Languages</option>
                             <option value="English">English</option>
                             <option value="Filipino">Filipino</option>
                         </select>
                     </div>
+
                     <div class="modal-actions">
                         <button type="submit" class="btn-primary">Generate & Download CSV</button>
                         <button type="button" class="btn-secondary close-modal">Cancel</button>
@@ -4957,6 +5257,24 @@ function renderReports() {
     // Close modal
     document.querySelectorAll('#export-class-modal .close-modal').forEach(btn => {
         btn.addEventListener('click', () => closeModal('export-class-modal'));
+    });
+
+    // Handle scope toggle (Class vs Grade)
+    document.querySelectorAll('input[name="export_scope"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const classGroup = document.getElementById('group-class-select');
+            const gradeGroup = document.getElementById('group-grade-select');
+            
+            if (e.target.value === 'class') {
+                classGroup.style.display = 'block';
+                gradeGroup.style.display = 'none';
+                document.getElementById('export-grade-select').value = ""; // Reset hidden field
+            } else {
+                classGroup.style.display = 'none';
+                gradeGroup.style.display = 'block';
+                document.getElementById('export-class-select').value = ""; // Reset hidden field
+            }
+        });
     });
 
     // Form submit
@@ -4991,7 +5309,7 @@ function renderDefaultReports() {
 }
 
 // ============================================================
-// STUDENT DETAIL (PHP History + Python Assignments)
+// STUDENT DETAIL (Python Assignments ONLY)
 // ============================================================
 
 async function renderStudentDetail(studentId) {
@@ -5000,7 +5318,7 @@ async function renderStudentDetail(studentId) {
         return;
     }
 
-    viewContainer.innerHTML = '<div class="spinner u-text-center u-mt-20">⏳ Loading student profile...</div>';
+    viewContainer.innerHTML = '<div class="spinner u-text-center u-mt-20">Loading student profile...</div>';
 
     try {
         // 1. Fetch Student Info (PHP)
@@ -5011,11 +5329,7 @@ async function renderStudentDetail(studentId) {
         }
         const student = studentData.student;
 
-        // 2. Fetch Raw Assessment History (PHP)
-        const historyData = await fetchJson(`php/api/shared/assessment.php?action=history&student_id=${encodeURIComponent(studentId)}`);
-        const history = historyData.success ? historyData.history : [];
-
-        // 3. Fetch Assignments & Quizzes (Python API)
+        // 2. Fetch Assignments & Quizzes (Python API)
         let assignments = [];
         try {
             const assignData = await fetchAssignmentApi(`/student/assignments?student_id=${studentId}`);
@@ -5024,17 +5338,24 @@ async function renderStudentDetail(studentId) {
             console.warn("Could not load Python assignments:", e);
         }
 
-        // Compute aggregate stats from history
-        const totalAssessments = history.length;
-        const avgWcpm = totalAssessments ? history.reduce((sum, a) => sum + Number(a.wcpm || 0), 0) / totalAssessments : 0;
-        const avgAccuracy = totalAssessments ? history.reduce((sum, a) => sum + Number(a.accuracy_percentage || 0), 0) / totalAssessments : 0;
-        const latestLevel = history.length ? history[0].reading_level || 'N/A' : 'N/A';
+        // 3. Compute aggregate stats purely from completed Python Assignments
+        let allMaterials = [];
+        assignments.forEach(a => {
+            if (a.materials && Array.isArray(a.materials)) {
+                allMaterials = allMaterials.concat(a.materials);
+            }
+        });
+        
+        const completedReadings = allMaterials.filter(m => m.reading_result);
+        const totalAssessments = completedReadings.length;
+        const avgWcpm = totalAssessments ? completedReadings.reduce((sum, m) => sum + Number(m.reading_result.wcpm || 0), 0) / totalAssessments : 0;
+        const avgAccuracy = totalAssessments ? completedReadings.reduce((sum, m) => sum + Number(m.reading_result.accuracy_percentage || 0), 0) / totalAssessments : 0;
 
         // Render the UI
         viewContainer.innerHTML = `
             <div class="student-detail-shell">
                 <div class="u-row-between u-mb-16">
-                    <button class="btn-secondary" id="back-to-roster" style="padding: 8px 16px;">← Back</button>
+                    <button class="btn-secondary" id="back-to-roster" style="padding: 8px 16px;">Back</button>
                     <div style="text-align: right;">
                         <h2 class="u-m-0" style="color: #0f172a; font-family: 'Inter', sans-serif;">${escapeAssessmentHtml(student.first_name)} ${escapeAssessmentHtml(student.last_name)}</h2>
                         <span class="u-text-muted">LRN: ${escapeAssessmentHtml(student.lrn || '-')}</span>
@@ -5050,10 +5371,10 @@ async function renderStudentDetail(studentId) {
                     </div>
                 </div>
 
-                <!-- Aggregate Stat Cards -->
-                <div class="grid four u-mb-16">
+                <!-- Aggregate Stat Cards (Powered by Python API) -->
+                <div class="grid three u-mb-16">
                     <div class="stat-card" style="padding: 16px;">
-                        <h4 style="font-size: 13px;">Total Assessments</h4>
+                        <h4 style="font-size: 13px;">Completed Assignments</h4>
                         <div class="stat-number" style="font-size: 24px;">${totalAssessments}</div>
                     </div>
                     <div class="stat-card" style="padding: 16px; border-top-color: #3b82f6;">
@@ -5064,18 +5385,13 @@ async function renderStudentDetail(studentId) {
                         <h4 style="font-size: 13px;">Avg Accuracy</h4>
                         <div class="stat-number" style="font-size: 24px; color: #059669;">${avgAccuracy.toFixed(1)}%</div>
                     </div>
-                    <div class="stat-card" style="padding: 16px; border-top-color: #8b5cf6;">
-                        <h4 style="font-size: 13px;">Latest Level</h4>
-                        <div class="stat-number" style="font-size: 20px; color: #6d28d9;">${escapeAssessmentHtml(latestLevel)}</div>
-                    </div>
                 </div>
 
-                <!-- NEW: Python API Assignments & Quizzes -->
+                <!-- Python API Assignments & Quizzes -->
                 <div class="panel u-mb-16">
                     <div class="panel-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <h3 style="margin: 0;">Assignments & Quizzes</h3>
-                            <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">PYTHON ROUTE</span>
                         </div>
                     </div>
                     ${assignments.length ? `
@@ -5092,24 +5408,37 @@ async function renderStudentDetail(studentId) {
                                 </thead>
                                 <tbody>
                                     ${assignments.map(a => {
+                                        // Look inside the materials array for results
+                                        const materialWithReading = a.materials?.find(m => m.reading_result);
+                                        const materialWithQuiz = a.materials?.find(m => m.quiz_attempt && m.quiz_attempt.status === 'completed');
+
                                         // Process Reading Result
                                         let readHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
-                                        if (a.reading_result) {
-                                            readHtml = `<strong style="color: #059669;">${Math.round(a.reading_result.accuracy_percentage)}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${Math.round(a.reading_result.wcpm)} WCPM</span>`;
+                                        if (materialWithReading) {
+                                            const rr = materialWithReading.reading_result;
+                                            readHtml = `<strong style="color: #059669;">${Math.round(rr.accuracy_percentage)}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${Math.round(rr.wcpm)} WCPM</span>`;
                                         }
 
-                                        // Process Quiz Result
+                                        // Process Quiz Result (Notice we use quiz_attempt now)
                                         let quizHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
-                                        if (a.quiz_result && a.quiz_result.status === 'completed') {
-                                            const perc = Math.round((a.quiz_result.score / a.quiz_result.total_questions) * 100);
+                                        if (materialWithQuiz) {
+                                            const qa = materialWithQuiz.quiz_attempt;
+                                            const perc = Math.round((qa.score / qa.total_questions) * 100);
                                             const color = perc >= 80 ? '#059669' : (perc >= 60 ? '#d97706' : '#dc2626');
-                                            quizHtml = `<strong style="color: ${color}; font-size: 15px;">${a.quiz_result.score}/${a.quiz_result.total_questions}</strong><br><span style="font-size: 12px; color: #475569;">${perc}%</span>`;
+                                            quizHtml = `<strong style="color: ${color}; font-size: 15px;">${qa.score}/${qa.total_questions}</strong><br><span style="font-size: 12px; color: #475569;">${perc}%</span>`;
                                         }
 
-                                        // Process Badges
+                                        // Smart Status Badges
                                         let statusBadge = '<span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Assigned</span>';
-                                        if (a.status === 'completed') statusBadge = '<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Completed</span>';
-                                        else if (a.status === 'in_progress') statusBadge = '<span style="background: #fef9c3; color: #854d0e; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">In Progress</span>';
+                                        
+                                        // If backend says completed, or if they finished both parts
+                                        if (a.status === 'completed' || (materialWithReading && materialWithQuiz)) { 
+                                            statusBadge = '<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Completed</span>';
+                                        } 
+                                        // If backend says in_progress, or if they finished at least one part
+                                        else if (a.status === 'in_progress' || materialWithReading || materialWithQuiz) {
+                                            statusBadge = '<span style="background: #fef9c3; color: #854d0e; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">In Progress</span>';
+                                        }
 
                                         return `
                                         <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -5131,56 +5460,12 @@ async function renderStudentDetail(studentId) {
                         </div>
                     `}
                 </div>
-
-                <!-- PHP Assessment History -->
-                <div class="panel">
-                    <div class="panel-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <h3 style="margin: 0;">Raw Assessment History</h3>
-                            <span style="background: #f3f4f6; color: #4b5563; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">PHP ROUTE</span>
-                        </div>
-                        <button class="btn-export" id="export-student-csv" style="padding: 6px 12px; font-size: 13px;">Export CSV</button>
-                    </div>
-                    ${history.length ? `
-                        <div class="u-scroll-x">
-                            <table class="table-clean u-mt-12">
-                                <thead>
-                                    <tr style="background: #f8fafc;">
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">DATE</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">MATERIAL</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">WCPM</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">ACCURACY</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">READING LEVEL</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">COMPREHENSION</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${history.map(a => `
-                                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                                            <td style="padding: 12px; color: #64748b;">${a.assessed_at ? new Date(a.assessed_at).toLocaleDateString() : '-'}</td>
-                                            <td style="padding: 12px;"><strong>${escapeAssessmentHtml(a.material_title || '-')}</strong></td>
-                                            <td style="padding: 12px; font-family: 'JetBrains Mono', monospace; color: #1e40af; font-weight: bold;">${Number(a.wcpm || 0).toFixed(1)}</td>
-                                            <td style="padding: 12px; font-family: 'JetBrains Mono', monospace; color: #059669; font-weight: bold;">${Number(a.accuracy_percentage || 0).toFixed(1)}%</td>
-                                            <td style="padding: 12px;"><span class="status-badge ${(a.reading_level || '').toLowerCase() === 'frustration' ? 'status-danger' : (a.reading_level || '').toLowerCase() === 'instructional' ? 'status-warning' : 'status-success'}">${escapeAssessmentHtml(a.reading_level || '-')}</span></td>
-                                            <td style="padding: 12px; font-weight: 600;">${a.comprehension_score !== null ? a.comprehension_score + '/7' : '<span style="color:#94a3b8; font-weight:normal;">Pending</span>'}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    ` : `
-                        <div class="empty-state">
-                            <p style="margin: 0; font-size: 15px;">No raw assessments recorded.</p>
-                        </div>
-                    `}
-                </div>
             </div>
         `;
 
         // Smart Back Routing
         document.getElementById('back-to-roster')?.addEventListener('click', () => {
             state.selectedStudentId = null;
-            // If Principal was viewing a specific teacher's list, return them to the teacher detail page
             if (state.selectedTeacherId) {
                 setActiveView('teacher-detail');
             } else {
@@ -5188,15 +5473,10 @@ async function renderStudentDetail(studentId) {
             }
         });
 
-        // Export CSV Event Listener
-        document.getElementById('export-student-csv')?.addEventListener('click', () => {
-            exportAssessmentResults(null, { studentId: studentId });
-        });
-
     } catch (error) {
         viewContainer.innerHTML = `<div class="panel"><p class="u-text-danger">Error loading student data: ${escapeAssessmentHtml(error.message)}</p></div>`;
     }
-}
+}   
 
 function renderPrincipalReports() {
     viewContainer.innerHTML = `
@@ -5254,7 +5534,7 @@ async function loadAndDisplayReport(reportType) {
     const contentDiv = document.getElementById('report-content');
     if (!contentDiv) return;
 
-    contentDiv.innerHTML = '<div class="panel"><p class="u-text-muted u-text-center">â³ Loading report...</p></div>';
+    contentDiv.innerHTML = '<div class="panel"><p class="u-text-muted u-text-center">Loading report...</p></div>';
 
     try {
         const data = await fetchJson(`php/api/shared/report-analytics.php?action=${encodeURIComponent(reportType)}`);
@@ -5520,24 +5800,50 @@ function renderStudents() {
                     <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Classes</h2>
                     <p class="subtitle" style="margin-top: 4px;">Select a class to view your students' reading progress</p>
                 </div>
-                <div class="page-header-right">
-                    ${!isAdminOrPrincipal ? `<button id="add-student-btn" class="btn-primary">+ Add Student</button>` : ''}
-                    ${!isAdminOrPrincipal ? `<button id="import-students-btn" class="btn-secondary">Import</button>` : ''}
-                    <button id="refresh-students-btn" class="btn-secondary">Refresh</button>
+                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    ${!isAdminOrPrincipal ? `<button id="add-student-btn" class="btn-primary" style="width: auto; margin: 0;">+ Add Student</button>` : ''}
+                    <button id="import-students-btn" class="btn-secondary" style="width: auto; margin: 0;">Import</button>
+                    <button id="refresh-students-btn" class="btn-secondary" style="width: auto; margin: 0;">Refresh</button>
                 </div>
             </div>
 
-            <div class="grid three u-mt-20">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;" class="u-mt-20">
                 ${classesList.map(cls => `
-                    <div class="stat-card" style="cursor: pointer; padding: 24px;" onclick="state.selectedClass = '${cls.grade} - ${cls.section}'; renderStudents();">
-                        <div class="stat-card-icon" style="background: var(--primary); color: white; width: 54px; height: 54px;">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <div data-preserve-inline-colors="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <div style="width: 42px; height: 42px; border-radius: 10px; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a; font-family: 'Inter', sans-serif;">${escapeAssessmentHtml(cls.section)}</h4>
+                                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Class • ${escapeAssessmentHtml(cls.grade)}</div>
+                                </div>
+                            </div>
+                            <button type="button" aria-label="More options for ${escapeAssessmentHtml(cls.section)}" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </button>
                         </div>
-                        <div class="stat-card-content">
-                            <h4 style="color: #0f172a; font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">${cls.grade}</h4>
-                            <div class="stat-label" style="font-size: 0.95rem; color: #64748b;">Section: ${cls.section}</div>
-                            <div class="stat-label u-mt-12"><strong style="color: var(--primary); font-size: 1rem;">${cls.students.length}</strong> Enrolled Students</div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
+                                <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Grade Level</div>
+                                <div style="font-size: 14px; font-weight: 600; color: #0f172a;">${escapeAssessmentHtml(cls.grade)}</div>
+                            </div>
+                            <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
+                                <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Students</div>
+                                <div style="font-size: 18px; font-weight: 600; color: #2563eb;">${cls.students.length}</div>
+                            </div>
                         </div>
+
+                        <button type="button" onclick="state.selectedClass = '${cls.grade} - ${cls.section}'; renderStudents();" style="width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            View Students
+                        </button>
                     </div>
                 `).join('')}
                 ${classesList.length === 0 ? '<p class="u-text-muted">No classes or students found. Add a student to create a class.</p>' : ''}
@@ -5555,34 +5861,108 @@ function renderStudents() {
             return;
         }
 
+        // 1. Initialize states
+        state.studentFilter = state.studentFilter || 'all';
+        state.studentSortOrder = state.studentSortOrder || 'asc'; // 'asc' for A-Z, 'desc' for Z-A
+
+        // 2. Sort students alphabetically by last name (Ascending or Descending)
+        currentClass.students.sort((a, b) => {
+            const nameA = a.last_name || '';
+            const nameB = b.last_name || '';
+            const comparison = nameA.localeCompare(nameB);
+            return state.studentSortOrder === 'desc' ? -comparison : comparison;
+        });
+
+        // 3. Apply explicit Reading Level filters
+        let filteredStudents = currentClass.students;
+        if (state.studentFilter !== 'all') {
+            filteredStudents = filteredStudents.filter(student => {
+                const rawLvl = (student.reading_level || 'Pending').toLowerCase();
+
+                if (state.studentFilter === 'level:grade') return rawLvl.includes('reading at grade level');
+                if (state.studentFilter === 'level:transitioning') return rawLvl.includes('transitioning');
+                if (state.studentFilter === 'level:developing') return rawLvl.includes('developing');
+                if (state.studentFilter === 'level:high_emerging') return rawLvl.includes('high emerging');
+                if (state.studentFilter === 'level:low_emerging') return rawLvl.includes('low emerging');
+                if (state.studentFilter === 'status:pending') {
+                    return rawLvl === 'pending';
+                }
+                return true;
+            });
+        }
+
         viewContainer.innerHTML = `
             <div class="page-header u-mb-16">
                 <div class="u-row-between" style="width: 100%;">
                     <div style="display: flex; align-items: center; gap: 16px;">
-                        <button class="btn-secondary" style="padding: 8px 12px;" onclick="state.selectedClass = null; renderStudents();">← Back</button>
+                        <button class="btn-secondary" style="padding: 8px 12px; height: 40px; border-radius: 8px;" onclick="state.selectedClass = null; renderStudents();">Back</button>
                         <div>
                             <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Students</h2>
                             <p class="subtitle" style="margin-top: 4px;">${currentClass.grade} - ${currentClass.section}</p>
                         </div>
                     </div>
-                    <div class="page-header-right">
-                        <button class="btn-primary" style="background: #1e40af; border-radius: 8px;" onclick="setActiveView('assessment')">🎤 Start Assessment</button>
-                    </div>
                 </div>
             </div>
 
-            <div class="search-bar u-mb-16 u-row-between">
-                <div style="position: relative; max-width: 400px; width: 100%;">
-                    <span style="position: absolute; left: 12px; top: 10px; color: #94a3b8;">🔍</span>
-                    <input type="text" id="roster-search-input" placeholder="Search students..." class="input-inline-fill" style="background: #fff; padding-left: 36px;">
+            <div class="u-row-between u-mb-24" style="gap: 16px; flex-wrap: wrap;">
+                <div style="position: relative; flex: 1; min-width: 280px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; top: 11px;">
+                        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="roster-search-input" placeholder="Search students..." class="input-inline-fill" style="background: #fff; padding-left: 40px; width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg> Filter</button>
-                    <button class="btn-primary" style="background: #1e40af;" onclick="showModal('add-student-modal')">+ Add Student</button>
+                    <!-- EXPORT BUTTON -->
+                    <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onclick="window.open('php/api/teacher/export-class-report.php?grade_level=' + encodeURIComponent('${currentClass.grade}'), '_blank')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Export
+                    </button>
+
+                    <!-- SORT TOGGLE (A-Z / Z-A) -->
+                    <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onclick="state.studentSortOrder = state.studentSortOrder === 'asc' ? 'desc' : 'asc'; renderStudents();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            ${state.studentSortOrder === 'asc'
+                                ? '<path d="M3 6h18M3 12h12M3 18h6"/>'
+                                : '<path d="M3 18h18M3 12h12M3 6h6"/>'}
+                        </svg>
+                        Sort ${state.studentSortOrder === 'asc' ? '(A-Z)' : '(Z-A)'}
+                    </button>
+
+                    <!-- FILTER DROPDOWN -->
+                    <div style="position: relative;">
+                        <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02); ${state.studentFilter !== 'all' ? 'border-color: var(--primary); color: var(--primary);' : ''}" onclick="document.getElementById('roster-filter-menu').classList.toggle('hidden')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            Filter ${state.studentFilter !== 'all' ? '(1)' : ''}
+                        </button>
+
+                        <!-- Filter Menu Options -->
+                        <div id="roster-filter-menu" class="hidden" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 250px; z-index: 100; overflow: hidden; text-align: left;">
+                            <div style="padding: 10px 12px; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; background: #f8fafc;">READING LEVELS</div>
+
+                            <div class="selector-item ${state.studentFilter === 'all' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'all'; renderStudents();">All Students</div>
+
+                            <div class="selector-item ${state.studentFilter === 'level:grade' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:grade'; renderStudents();">Reading at Grade Level</div>
+
+                            <div class="selector-item ${state.studentFilter === 'level:transitioning' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:transitioning'; renderStudents();">Transitioning Reader</div>
+
+                            <div class="selector-item ${state.studentFilter === 'level:developing' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:developing'; renderStudents();">Developing Reader</div>
+
+                            <div class="selector-item ${state.studentFilter === 'level:high_emerging' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:high_emerging'; renderStudents();">High Emerging Reader</div>
+
+                            <div class="selector-item ${state.studentFilter === 'level:low_emerging' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:low_emerging'; renderStudents();">Low Emerging Reader</div>
+
+                            <div class="selector-item ${state.studentFilter === 'status:pending' ? 'selected' : ''}" style="border:none; border-radius:0; padding: 10px 16px;" onclick="state.studentFilter = 'status:pending'; renderStudents();">Pending (No Data)</div>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="background: #1e40af; height: 40px; border-radius: 8px; margin: 0;" onclick="showModal('add-student-modal')">+ Add Student</button>
                 </div>
             </div>
 
-            <div class="panel" style="padding: 0; overflow: hidden; border-radius: 12px;">
+            <div data-preserve-inline-colors="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                 <div class="u-scroll-x">
                     <table class="table-clean" style="margin: 0; border-collapse: collapse;">
                         <thead>
@@ -5598,40 +5978,78 @@ function renderStudents() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${currentClass.students.map(student => {
+                            ${filteredStudents.length === 0 ? `
+                                <tr>
+                                    <td colspan="8" style="padding: 40px; text-align: center; color: #64748b;">
+                                        No students match this filter. <a href="#" onclick="state.studentFilter = 'all'; renderStudents(); return false;" style="color: var(--primary);">Clear filter</a>
+                                    </td>
+                                </tr>
+                            ` : filteredStudents.map(student => {
                                 // 1. Generate Avatar Initials
                                 const firstI = student.first_name ? student.first_name.charAt(0).toUpperCase() : '';
                                 const lastI = student.last_name ? student.last_name.charAt(0).toUpperCase() : '';
                                 
-                                // 2. Determine Reading Level Badge Colors
-                                const lvl = student.reading_level || 'Instructional';
-                                let lvlStyle = 'background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;'; // Default Blue
-                                if (lvl.toLowerCase().includes('independent')) lvlStyle = 'background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;';
-                                if (lvl.toLowerCase().includes('frustration') || lvl.toLowerCase().includes('emerging')) lvlStyle = 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;';
+                                // 2. Determine Reading Level Badges & Avatar Colors (Mockup Spec)
+                                const rawLvl = student.reading_level || 'Pending';
+                                let lvl = rawLvl;
+                                let badgeStyle = 'border: 1px solid #e2e8f0; color: #64748b; background: #ffffff;';
+                                let avatarBg = '#f1f5f9';
+                                let avatarCol = '#475569';
+
+                                const lowerLvl = rawLvl.toLowerCase();
+
+                                if (lowerLvl.includes('reading at grade level') || lowerLvl === 'grade level') {
+                                    lvl = 'Reading At Grade Level';
+                                    badgeStyle = 'border: 1px solid #86efac; color: #10b981; background: #ffffff;';
+                                    avatarBg = '#ecfdf5'; avatarCol = '#059669';
+                                } 
+                                else if (lowerLvl.includes('transitioning')) {
+                                    lvl = 'Transitioning';
+                                    badgeStyle = 'border: 1px solid #bfdbfe; color: #3b82f6; background: #ffffff;';
+                                    avatarBg = '#eff6ff'; avatarCol = '#1d4ed8';
+                                } 
+                                else if (lowerLvl.includes('developing')) {
+                                    lvl = 'Developing Reader';
+                                    badgeStyle = 'border: 1px solid #fde047; color: #ca8a04; background: #ffffff;';
+                                    avatarBg = '#fef9c3'; avatarCol = '#a16207';
+                                } 
+                                else if (lowerLvl.includes('high emerging')) {
+                                    lvl = 'High Emerging';
+                                    badgeStyle = 'border: 1px solid #fcd34d; color: #d97706; background: #ffffff;';
+                                    avatarBg = '#fffbeb'; avatarCol = '#b45309';
+                                } 
+                                else if (lowerLvl.includes('low emerging') || lowerLvl.includes('emerging')) {
+                                    lvl = 'Low Emerging Reader';
+                                    badgeStyle = 'border: 1px solid #fca5a5; color: #ef4444; background: #ffffff;';
+                                    avatarBg = '#fef2f2'; avatarCol = '#b91c1c';
+                                }
 
                                 // 3. Format Accuracy
                                 const rawAcc = student.accuracy_percentage || student.avg_accuracy || 0;
                                 const acc = Math.round(rawAcc);
-                                const accColor = acc >= 80 ? '#059669' : (acc >= 65 ? '#d97706' : '#dc2626');
+                                const accColor = acc >= 80 ? '#10b981' : (acc >= 65 ? '#f59e0b' : '#ef4444');
 
-                                // 4. Determine Progress Trend
+                                // 4. Determine Progress Trend (Mockup SVGs included)
                                 let progHtml = '<span style="color: #94a3b8; font-size: 13px;">Stable</span>';
-                                if (acc >= 80) progHtml = '<span style="color: #059669; font-size: 13px;">↗ Improving</span>';
-                                else if (acc < 65 && rawAcc > 0) progHtml = '<span style="color: #dc2626; font-size: 13px;">⚠ Declining</span>';
+                                if (acc >= 80) {
+                                    progHtml = '<span style="color: #10b981; font-size: 13px; display: flex; align-items: center; gap: 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Improving</span>';
+                                } else if (acc < 65 && rawAcc > 0) {
+                                    progHtml = '<span style="color: #ef4444; font-size: 13px; display: flex; align-items: center; gap: 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Declining</span>';
+                                }
 
                                 return `
-                                <tr class="table-row" style="background: #fff; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
+                                <tr class="table-row" style="background: #fff; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
                                     <td style="padding: 16px 20px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 13px;">${student.lrn || `STU-${student.student_id.toString().padStart(3, '0')}`}</td>
                                     <td style="padding: 16px 20px;">
                                         <div style="display: flex; align-items: center; gap: 12px;">
-                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #eff6ff; color: #1e40af; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${firstI}${lastI}</div>
+                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${avatarBg}; color:${avatarCol}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${firstI}${lastI}</div>
                                             <strong style="color: #0f172a; font-weight: 600;">${student.first_name} ${student.last_name}</strong>
                                         </div>
                                     </td>
                                     <td style="padding: 16px 20px; color: #475569;">${student.grade_level}</td>
                                     <td style="padding: 16px 20px; color: #94a3b8;">${student.section || '-'}</td>
                                     <td style="padding: 16px 20px; text-align: center;">
-                                        <span style="padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; ${lvlStyle}">${lvl}</span>
+                                        <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; ${badgeStyle}">${lvl}</span>
                                     </td>
                                     <td style="padding: 16px 20px; color: #64748b;">${student.last_assessed ? new Date(student.last_assessed).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : '-'}</td>
                                     <td style="padding: 16px 20px; text-align: center; color: ${rawAcc > 0 ? accColor : '#94a3b8'}; font-weight: 700;">${rawAcc > 0 ? acc + '%' : '-'}</td>
@@ -5648,6 +6066,15 @@ function renderStudents() {
 
     // Finally, re-attach all your existing event listeners for the Modals!
     attachStudentEventListeners();
+
+    // Close filter menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('roster-filter-menu');
+        const btn = e.target.closest('button');
+        if (menu && !menu.contains(e.target) && (!btn || !btn.textContent.includes('Filter'))) {
+            menu.classList.add('hidden');
+        }
+    }, { once: true });
 }
 
 // ============================================================
@@ -5656,7 +6083,7 @@ function renderStudents() {
 
 function getStudentModalsHTML() {
     return `
-        <!-- Add Student Modal (Kept exactly as it was) -->
+        <!-- Add Student Modal -->
         <div id="add-student-modal" class="modal hidden">
             <div class="modal-content">
                 <div class="modal-header">
@@ -5676,21 +6103,6 @@ function getStudentModalsHTML() {
                         <div class="form-group">
                             <label>Last Name *</label>
                             <input type="text" name="last_name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Grade Level</label>
-                            <select name="grade_level" required>
-                                <option value="Grade 1">Grade 1</option>
-                                <option value="Grade 2" selected>Grade 2</option>
-                                <option value="Grade 3">Grade 3</option>
-                                <option value="Grade 4">Grade 4</option>
-                                <option value="Grade 5">Grade 5</option>
-                                <option value="Grade 6">Grade 6</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Section</label>
-                            <input type="text" name="section" placeholder="e.g. Section A">
                         </div>
                     </div>
                     <div class="modal-actions">
@@ -5765,6 +6177,59 @@ function attachStudentEventListeners() {
                 await loadStudents();
             } else alert(result.message);
         } catch (error) { alert(error.message); }
+    });
+
+    // Handle the Import Form Submission
+    document.getElementById('import-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const resultDiv = document.getElementById('import-result');
+        
+        resultDiv.innerHTML = '<p class="u-text-muted">⏳ Reading file...</p>';
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        try {
+            // Step 1: Send file to the preview endpoint
+            const previewRes = await fetch('php/modules/student_import.php?action=preview', {
+                method: 'POST',
+                body: formData
+            });
+            const previewData = await previewRes.json();
+
+            if (!previewData.success) {
+                throw new Error(previewData.message || 'Failed to read file.');
+            }
+
+            if (previewData.preview.errors.length > 0) {
+                resultDiv.innerHTML = `<p class="u-text-danger">Found ${previewData.preview.errors.length} errors in your file. Please fix missing names and try again.</p>`;
+                submitBtn.disabled = false;
+                return;
+            }
+
+            resultDiv.innerHTML = '<p class="u-text-muted">✅ File looks good! Importing students...</p>';
+
+            // Step 2: Send the validated rows to the import endpoint
+            const importRes = await fetch('php/modules/student_import.php?action=import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rows: previewData.rows })
+            });
+            const importData = await importRes.json();
+
+            if (importData.success) {
+                showToast(`Successfully imported ${importData.summary.imported} students!`, 'success');
+                closeModal('import-modal');
+                await loadStudents();
+            } else {
+                throw new Error(importData.message || 'Import failed during processing.');
+            }
+        } catch (error) {
+            resultDiv.innerHTML = `<p class="u-text-danger">Error: ${error.message}</p>`;
+        } finally {
+            submitBtn.disabled = false;
+        }
     });
 }
 
@@ -6021,8 +6486,6 @@ async function handleLogout() {
     }
 }
 
-logoutBtn.addEventListener('click', handleLogout);
-
 // ============================================================
 // 10. SESSION & AUTHENTICATION (Continued: Initialization)
 // ============================================================
@@ -6059,4 +6522,28 @@ window.addEventListener('DOMContentLoaded', () => {
     initSidebarToggle();
     applySidebarState();
     checkSession();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Select the necessary DOM elements based on index.php
+    const appShell = document.getElementById('app-shell');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    // Toggle the class that controls mobile visibility
+    const toggleMobileSidebar = () => {
+        appShell.classList.toggle('sidebar-mobile-open');
+    };
+
+    // Listen for clicks on the hamburger button
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleMobileSidebar);
+    }
+
+    // Close the sidebar when tapping the darkened overlay background
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+            appShell.classList.remove('sidebar-mobile-open');
+        });
+    }
 });

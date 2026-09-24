@@ -233,11 +233,17 @@ function updateStudentInfo(student) {
 ============================================================ */
 
 function extractAssignments(data) {
+    // 1. Log the raw data to see what the database is actually sending
+    console.log("Raw API Data received by frontend:", data); 
+
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (Array.isArray(data.assignments)) return data.assignments;
     if (data.data && Array.isArray(data.data)) return data.data;
     if (data.data && Array.isArray(data.data.assignments)) return data.data.assignments;
+    
+    // 2. Log if it fails all checks so you know exactly why it is empty
+    console.warn("Data format not recognized! Returning empty array."); 
     return [];
 }
 
@@ -1326,17 +1332,28 @@ async function viewActivityDetails(activityId) {
                </div>` 
             : '';
 
-        modalBody.innerHTML = `
+            modalBody.innerHTML = `
             <div style="padding: 16px;">
                 <h3 style="margin-top: 0;">Reading Fluency</h3>
+                
+                <!-- Expanded Grid for 4 Metrics -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
                     <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
                         <span style="font-size: 12px; color: var(--muted);">WCPM</span>
-                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.wcpm}</div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.wcpm || 0}</div>
                     </div>
                     <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
                         <span style="font-size: 12px; color: var(--muted);">Accuracy</span>
-                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${Math.round(data.accuracy_percentage)}%</div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.accuracy_percentage ? Math.round(data.accuracy_percentage) : 0}%</div>
+                    </div>
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">Time Taken</span>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.reading_time_seconds || 0}s</div>
+                    </div>
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">Reading Level</span>
+                        <!-- Slightly smaller font size to accommodate longer text like 'Transitioning Reader' -->
+                        <div style="font-size: 18px; font-weight: bold; color: var(--primary); margin-top: 4px;">${data.final_reading_level || data.reading_level || 'Pending'}</div>
                     </div>
                 </div>
 
@@ -1345,11 +1362,11 @@ async function viewActivityDetails(activityId) {
                     <span style="color: #d97706;">🔄 Substitutions: <strong>${data.substitutions || 0}</strong></span>
                     <span style="color: #dc2626;">➖ Omissions: <strong>${data.omissions || 0}</strong></span>
                     <span style="color: #2563eb;">➕ Insertions: <strong>${data.insertions || 0}</strong></span>
+                    <span style="color: #9333ea;">🔁 Repetitions: <strong>${data.repetitions || 0}</strong></span>
                 </div>
 
                 <h4 style="margin-bottom: 8px;">What You Read:</h4>
                 
-                <!-- NEW: The friendly image is injected right here, just above the text! -->
                 ${friendlyImageHtml}
 
                 <div style="background: #f8fafc; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-style: italic; color: #475569; margin-bottom: 32px;">
@@ -1358,17 +1375,17 @@ async function viewActivityDetails(activityId) {
                 
                 <h3 style="margin-top: 0; border-top: 1px solid var(--border); padding-top: 24px;">Quiz Results</h3>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    ${quiz.map(q => `
+                    ${quiz && quiz.length > 0 ? quiz.map(q => `
                         <div style="display: flex; align-items: flex-start; gap: 8px;">
                             <span style="font-size: 18px;">${q.is_correct ? '✅' : '❌'}</span>
                             <div>
-                                <div style="font-weight: 500; font-size: 14px;">${q.question_number}. ${escapeHtml(q.question_text)}</div>
+                                <div style="font-weight: 500; font-size: 14px;">${q.question_number}.${escapeHtml(q.question_text)}</div>
                                 <div style="font-size: 13px; color: ${q.is_correct ? 'var(--success)' : 'var(--danger)'};">
                                     Your answer: ${escapeHtml(q.student_answer || 'Skipped / Unanswered')}
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                    `).join('') : '<div style="color: var(--muted); font-size: 14px;">No quiz attached to this reading material.</div>'}
                 </div>
             </div>
         `;

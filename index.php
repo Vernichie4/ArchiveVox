@@ -34,7 +34,6 @@ header('Content-Type: text/html; charset=utf-8');
                 <button type="submit" class="btn-primary">Sign In</button>
                 <a href="#" class="forgot-password">Forgot password?</a>
             </form>
-            <p class="hint">Demo: teacher1 / stacruzCen3lem</p>
         </div>
     </div>
 
@@ -58,17 +57,20 @@ header('Content-Type: text/html; charset=utf-8');
             <!-- Sidebar Header -->
             <div class="sidebar-header">
                 <div class="sidebar-brand-row">
-                    <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle Navigation" aria-expanded="true">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </button>
+                    <div class="brand-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            <polyline points="14 2 14 8 18 8"></polyline>
+                        </svg>
+                    </div>
                     <div class="sidebar-brand-copy">
                         <div class="logo-small">ArchiveVox</div>
-                        <div class="sidebar-subtitle">Reading Assessment Tool</div>
                     </div>
+                    <button id="sidebar-toggle" class="sidebar-toggle sidebar-toggle-mobile" aria-label="Toggle Navigation" aria-expanded="true">
+                        <span></span><span></span><span></span>
+                    </button>
                 </div>
-                <span id="role-badge" class="role-badge">Teacher</span>
             </div>
 
             <!-- Sidebar Navigation -->
@@ -78,7 +80,13 @@ header('Content-Type: text/html; charset=utf-8');
 
             <!-- Sidebar Footer -->
             <div class="sidebar-footer">
-                <span id="user-badge">Guest</span>
+                <div class="user-profile-wrap">
+                    <div class="user-avatar" id="user-avatar">ME</div>
+                    <div class="user-info">
+                        <span id="user-badge">Guest</span>
+                        <span id="role-badge" class="role-badge-text">Teacher</span>
+                    </div>
+                </div>
                 <button id="settings-btn" class="icon-btn" aria-label="Settings">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Zm8.8-3.2a7.8 7.8 0 0 0-.1-1.2l2-1.6-2-3.5-2.5 1a8.9 8.9 0 0 0-2-1.2l-.4-2.7h-4l-.4 2.7a8.9 8.9 0 0 0-2 1.2l-2.5-1-2 3.5 2 1.6a7.8 7.8 0 0 0-.1 1.2c0 .4 0 .8.1 1.2l-2 1.6 2 3.5 2.5-1c.6.5 1.3.9 2 1.2l.4 2.7h4l.4-2.7c.7-.3 1.4-.7 2-1.2l2.5 1 2-3.5-2-1.6c.1-.4.1-.8.1-1.2Z"/>

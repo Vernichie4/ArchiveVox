@@ -117,34 +117,26 @@ function registerStudent(array $data): array {
         }
     }
 
-    // ----- Get or create category (grade level) -----
-    $gradeLevel = $data['grade_level'] ?? 'Grade 2';
-    $categoryId = $data['category_id'] ?? null;
-    if (!$categoryId && !empty($gradeLevel)) {
-        $stmt = $pdo->prepare('SELECT category_id FROM student_category WHERE grade_level = :grade_level LIMIT 1');
-        $stmt->execute([':grade_level' => $gradeLevel]);
-        $category = $stmt->fetch();
-        if ($category) {
-            $categoryId = $category['category_id'];
-        } else {
-            $stmt = $pdo->prepare('INSERT INTO student_category (grade_level, school_year) VALUES (:grade_level, :school_year)');
-            $stmt->execute([
-                ':grade_level' => $gradeLevel,
-                ':school_year' => date('Y') . '-' . (date('Y') + 1)
-            ]);
-            $categoryId = (int) $pdo->lastInsertId();
-        }
+    // ----- ENFORCE MASTER CLASS -----
+    // Extract the strict IDs injected by the API endpoint
+    $teacherId = $data['teacher_id'] ?? null;
+    $classId = $data['class_id'] ?? null;
+
+    if (!$teacherId || !$classId) {
+        return ['success' => false, 'message' => 'System Error: Teacher or Class ID is missing.'];
     }
 
-    // ----- Get or create class (grade level + section) -----
-    $section = trim($data['section'] ?? '');
-    $classId = null;
-    if (!empty($section)) {
-        $teacherId = (int)($data['teacher_id'] ?? 0);
-        if ($teacherId > 0) {
-            $classId = getOrCreateClass($teacherId, $gradeLevel, $section);
-        }
-    }
+    // Automatically inherit the correct category_id (Grade Level) from the Master Class
+    $stmt = $pdo->prepare('
+        SELECT sc.category_id 
+        FROM class c
+        JOIN student_category sc ON c.grade_level = sc.grade_level
+        WHERE c.class_id = :class_id
+        LIMIT 1
+    ');
+    $stmt->execute([':class_id' => $classId]);
+    $category = $stmt->fetch();
+    $categoryId = $category ? $category['category_id'] : null;
 
     // ----- Insert student -----
     try {
@@ -161,7 +153,7 @@ function registerStudent(array $data): array {
         ');
 
         $stmt->execute([
-            ':teacher_id'   => $data['teacher_id'],
+            ':teacher_id'   => $teacherId,
             ':category_id'  => $categoryId,
             ':class_id'     => $classId,
             ':lrn'          => $data['lrn'] ?? null,

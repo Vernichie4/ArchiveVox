@@ -31,10 +31,9 @@ try {
             sendJson(['success' => false, 'message' => 'Access denied'], 403);
         }
 
-        // Get statistics by grade level
         $stmt = $pdo->prepare('
             SELECT 
-                s.grade_level,
+                c.grade_level,
                 COUNT(DISTINCT s.student_id) as student_count,
                 COUNT(DISTINCT ar.assessment_id) as assessment_count,
                 AVG(ar.wcpm) as avg_wcpm,
@@ -43,12 +42,14 @@ try {
                 MAX(ar.wcpm) as max_wcpm,
                 AVG(ar.fluency_score) as avg_fluency
             FROM student s
+            LEFT JOIN class c ON s.class_id = c.class_id
             LEFT JOIN reading_activity ra ON s.student_id = ra.student_id
             LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
             WHERE s.is_active = 1
-            GROUP BY s.grade_level
-            ORDER BY s.grade_level
+            GROUP BY c.grade_level
+            ORDER BY c.grade_level
         ');
+
         $stmt->execute();
         $gradeStats = $stmt->fetchAll();
 
@@ -58,11 +59,12 @@ try {
                 s.lrn,
                 s.first_name,
                 s.last_name,
-                s.grade_level,
+                c.grade_level,
                 AVG(ar.wcpm) as avg_wcpm,
                 AVG(ar.accuracy_percentage) as avg_accuracy,
                 COUNT(ar.assessment_id) as assessment_count
             FROM student s
+            LEFT JOIN class c ON s.class_id = c.class_id
             JOIN reading_activity ra ON s.student_id = ra.student_id
             JOIN assessment_result ar ON ra.activity_id = ar.activity_id
             WHERE s.is_active = 1
@@ -77,23 +79,26 @@ try {
         // Get students needing intervention (WCPM < 40)
         $stmt = $pdo->prepare('
             SELECT 
-                s.lrn,
+                s.student_id,
                 s.first_name,
                 s.last_name,
-                s.grade_level,
-                AVG(ar.wcpm) as avg_wcpm,
-                AVG(ar.accuracy_percentage) as avg_accuracy,
-                COUNT(ar.assessment_id) as assessment_count,
-                ar.reading_level
+                c.section,
+                sc.grade_level,
+                AVG(ar.wcpm) as average_wcpm,
+                AVG(ar.accuracy_percentage) as average_accuracy,
+                COUNT(ar.assessment_id) as assessments_taken
             FROM student s
+            JOIN student_category sc ON s.category_id = sc.category_id
+            JOIN class c ON s.class_id = c.class_id
             JOIN reading_activity ra ON s.student_id = ra.student_id
             JOIN assessment_result ar ON ra.activity_id = ar.activity_id
             WHERE s.is_active = 1
             GROUP BY s.student_id
-            HAVING AVG(ar.wcpm) < 40 AND COUNT(ar.assessment_id) >= 1
-            ORDER BY avg_wcpm ASC
-            LIMIT 10
+            HAVING (AVG(ar.wcpm) < 60.0 OR AVG(ar.accuracy_percentage) < 80.0) 
+            AND COUNT(ar.assessment_id) >= 1
+            ORDER BY average_wcpm ASC
         ');
+
         $stmt->execute();
         $intervention = $stmt->fetchAll();
 
@@ -169,55 +174,72 @@ try {
     elseif ($action === 'class-performance') {
         $teacherId = $_GET['teacher_id'] ?? 0;
 
-        // If teacher, get their own ID
-        if ($user['role'] === 'teacher' && !$teacherId) {
+        // 1. SECURITY FIX: Enforce strict authorization for teachers
+        // Ignore any GET parameter they pass and force their own teacher_id.
+        if ($user['role'] === 'teacher') {
             $stmt = $pdo->prepare('SELECT teacher_id FROM teacher WHERE user_id = :user_id');
             $stmt->execute([':user_id' => $user['user_id']]);
-            $teacher = $stmt->fetch();
-            $teacherId = $teacher['teacher_id'] ?? 0;
+            $teacherId = (int) $stmt->fetchColumn() ?: 0;
         }
 
-        // For principal/admin, allow viewing all or filter by teacher
+        // 2. PRINCIPAL/ADMIN VIEW: Allow viewing all students across the school if no specific teacher is selected
         if (in_array($user['role'], ['principal', 'admin']) && !$teacherId) {
-            // Get all students across the school
             $stmt = $pdo->prepare('
                 SELECT 
+                    s.student_id,
                     s.lrn,
                     s.first_name,
                     s.last_name,
-                    s.grade_level,
-                    s.section,
+                    c.grade_level,
+                    c.section,
                     t.first_name as teacher_first,
                     t.last_name as teacher_last,
                     COUNT(DISTINCT ar.assessment_id) as assessment_count,
-                    AVG(ar.wcpm) as avg_wcpm,
-                    AVG(ar.accuracy_percentage) as avg_accuracy,
-                    MAX(ar.reading_level) as reading_level
+                    ROUND(AVG(ar.wcpm), 1) as avg_wcpm,
+                    ROUND(AVG(ar.accuracy_percentage), 1) as avg_accuracy,
+                    (
+                        SELECT ar2.reading_level 
+                        FROM assessment_result ar2 
+                        JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id 
+                        WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL
+                        ORDER BY ar2.assessed_at DESC LIMIT 1
+                    ) as latest_reading_level
                 FROM student s
+                LEFT JOIN class c ON s.class_id = c.class_id
                 LEFT JOIN teacher t ON s.teacher_id = t.teacher_id
                 LEFT JOIN reading_activity ra ON s.student_id = ra.student_id
                 LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
                 WHERE s.is_active = 1
-                GROUP BY s.student_id
+                GROUP BY s.student_id, t.first_name, t.last_name
                 ORDER BY s.last_name, s.first_name
                 LIMIT 50
             ');
             $stmt->execute();
             $students = $stmt->fetchAll();
+            
+        // 3. TEACHER/CLASS VIEW: For Principal drill-downs or Teacher's own dashboard
         } elseif ($teacherId) {
             $stmt = $pdo->prepare('
                 SELECT 
+                    s.student_id, 
                     s.lrn,
                     s.first_name,
                     s.last_name,
-                    s.grade_level,
-                    s.section,
+                    c.grade_level,
+                    c.section,
                     COUNT(DISTINCT ar.assessment_id) as assessment_count,
-                    AVG(ar.wcpm) as avg_wcpm,
-                    AVG(ar.accuracy_percentage) as avg_accuracy,
-                    MAX(ar.reading_level) as reading_level,
-                    MAX(ar.assessed_at) as last_assessment_date
+                    ROUND(AVG(ar.wcpm), 1) as avg_wcpm,
+                    ROUND(AVG(ar.accuracy_percentage), 1) as avg_accuracy,
+                    MAX(ar.assessed_at) as last_assessment_date,
+                    (
+                        SELECT ar2.reading_level 
+                        FROM assessment_result ar2 
+                        JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id 
+                        WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL
+                        ORDER BY ar2.assessed_at DESC LIMIT 1
+                    ) as latest_reading_level
                 FROM student s
+                LEFT JOIN class c ON s.class_id = c.class_id
                 LEFT JOIN reading_activity ra ON s.student_id = ra.student_id
                 LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
                 WHERE s.teacher_id = :teacher_id AND s.is_active = 1
@@ -226,8 +248,10 @@ try {
             ');
             $stmt->execute([':teacher_id' => $teacherId]);
             $students = $stmt->fetchAll();
+            
         } else {
-            sendJson(['success' => false, 'message' => 'Teacher ID required'], 400);
+            sendJson(['success' => false, 'message' => 'Teacher ID required or not found.'], 400);
+            exit;
         }
 
         sendJson([

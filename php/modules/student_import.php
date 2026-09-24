@@ -11,17 +11,21 @@ require_once __DIR__ . '/../auth/session.php';
 
 // Debug function
 function debugLog($message, $data = null) {
-    $logFile = __DIR__ . '/../../logs/module_debug.log';
-    $logDir = dirname($logFile);
+    // Use a path relative to the module root to guarantee accessibility
+    $logDir = __DIR__ . '/../logs';
     if (!is_dir($logDir)) {
-        mkdir($logDir, 0777, true);
+        @mkdir($logDir, 0755, true); 
     }
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[$timestamp] $message";
-    if ($data !== null) {
-        $logMessage .= "\n" . print_r($data, true);
+    
+    if (is_dir($logDir) && is_writable($logDir)) {
+        $logFile = $logDir . '/module_debug.log';
+        $timestamp = date('Y-m-d H:i:s');
+        $logMessage = "[$timestamp] $message";
+        if ($data !== null) {
+            $logMessage .= "\n" . print_r($data, true);
+        }
+        file_put_contents($logFile, $logMessage . "\n\n", FILE_APPEND);
     }
-    file_put_contents($logFile, $logMessage . "\n\n", FILE_APPEND);
 }
 
 function parseImportFileWithExtension(string $filePath, string $extension): array {
@@ -507,52 +511,29 @@ function importStudents(array $rows, int $teacherId): array {
         $lastName = trim((string) ($row['last_name'] ?? ''));
         $middleName = trim((string) ($row['middle_name'] ?? ''));
 
-        $gradeLevel = trim(
-            (string) ($row['grade_level'] ?? 'Grade 2')
-        );
+        $rawGrade = trim((string) ($row['grade_level'] ?? ''));
+        
+        if (is_numeric($rawGrade)) {
+            $gradeLevel = 'Grade ' . $rawGrade; // Turns "3" into "Grade 3"
+        } elseif (stripos($rawGrade, 'Grade') === false && !empty($rawGrade)) {
+            $gradeLevel = 'Grade ' . $rawGrade; 
+        } else {
+            $gradeLevel = $rawGrade ?: 'Grade 2'; // Fallback
+        }
 
-        debugLog('NORMALIZED ROW TEST', [
-            'lrn' => $lrn,
-            'first_name' => $firstName,
-            'middle_name' => $middleName,
-            'last_name' => $lastName,
-            'grade_level' => $gradeLevel,
-            'section' => $section,
-            'gender' => $gender,
-            'birthdate' => $birthdate
-        ]);
+        // 2. EXTRACT AND FORMAT SECTION
+        $rawSection = trim((string) ($row['section'] ?? ''));
+        $section = !empty($rawSection) ? ucwords(strtolower($rawSection)) : ''; // Turns "MAGNOLIA" into "Magnolia"
 
-        $section = trim(
-            (string) ($row['section'] ?? '')
-        );
-
-        $gender = trim(
-            (string) ($row['gender'] ?? '')
-        );
-
-        $birthdate = trim(
-            (string) ($row['birthdate'] ?? '')
-        );
-
-        debugLog('IMPORT SECTION TEST', [
-            'lrn' => $lrn,
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-            'grade_level' => $gradeLevel,
-            'section' => $section
-        ]);
+        $gender = trim((string) ($row['gender'] ?? ''));
+        $birthdate = trim((string) ($row['birthdate'] ?? ''));
 
         // --------------------------------------------------------
         // Required fields
         // --------------------------------------------------------
-
         if ($firstName === '' || $lastName === '') {
             $skippedRecords++;
-
-            $errors[] =
-                'Row missing required fields: '
-                . $firstName . ' ' . $lastName;
-
+            $errors[] = 'Row missing required fields: ' . $firstName . ' ' . $lastName;
             continue;
         }
 
@@ -561,17 +542,8 @@ function importStudents(array $rows, int $teacherId): array {
         // --------------------------------------------------------
 
         if (!empty($lrn)) {
-
-            $stmt = $pdo->prepare(
-                'SELECT student_id
-                 FROM student
-                 WHERE lrn = :lrn'
-            );
-
-            $stmt->execute([
-                ':lrn' => $lrn
-            ]);
-
+            $stmt = $pdo->prepare('SELECT student_id FROM student WHERE lrn = :lrn');
+            $stmt->execute([':lrn' => $lrn]);
             if ($stmt->fetch()) {
                 $skippedRecords++;
                 continue;
@@ -604,23 +576,12 @@ function importStudents(array $rows, int $teacherId): array {
         }
 
         // Get or create class for Grade Level + Section
+        $categoryId = getOrCreateCategory($gradeLevel);
+
         $classId = null;
-
         if (!empty($section)) {
-            $classId = getOrCreateClass(
-                $teacherId,
-                $gradeLevel,
-                $section
-            );
+            $classId = getOrCreateClass($teacherId, $gradeLevel, $section);
         }
-
-        debugLog('CLASS ASSIGNMENT TEST', [
-            'lrn' => $lrn,
-            'student' => $firstName . ' ' . $lastName,
-            'grade_level' => $gradeLevel,
-            'section_from_excel' => $section,
-            'class_id_returned' => $classId
-        ]);
 
         // --------------------------------------------------------
         // Normalize gender
@@ -692,12 +653,34 @@ function importStudents(array $rows, int $teacherId): array {
         }
 
         // --------------------------------------------------------
-        // Insert student
+        // Insert user and student
         // --------------------------------------------------------
 
         try {
+            // 1. CREATE THE USER ACCOUNT FIRST
+            // We use the LRN as the username. If there is no LRN, we generate one from their name.
+            $baseUsername = !empty($lrn) ? $lrn : strtolower(preg_replace('/[^a-z0-9]/i', '', $firstName . $lastName)) . rand(100, 999);
+            
+            // 1. CREATE THE USER ACCOUNT FIRST
+            $baseUsername = !empty($lrn) ? $lrn : strtolower(preg_replace('/[^a-z0-9]/i', '', $firstName . $lastName)) . rand(100, 999);
+
+            // Set the password to the LRN (or fallback to 'archivevox123' if no LRN exists)
+            $passwordString = !empty($lrn) ? $lrn : 'archivevox123';
+            $defaultPassword = password_hash($passwordString, PASSWORD_DEFAULT);
+
+            $userStmt = $pdo->prepare("
+                INSERT INTO user (username, password, role, status) 
+                VALUES (?, ?, 'student', 'Active')
+            ");
+            $userStmt->execute([$baseUsername, $defaultPassword]);
+            
+            // Grab the newly created user_id
+            $userId = $pdo->lastInsertId();
+
+            // 2. CREATE THE STUDENT PROFILE
             $stmt = $pdo->prepare('
                 INSERT INTO student (
+                    user_id,
                     teacher_id,
                     category_id,
                     class_id,
@@ -709,10 +692,11 @@ function importStudents(array $rows, int $teacherId): array {
                     birthdate,
                     is_active
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ');
 
             $stmt->execute([
+                $userId,
                 $teacherId,
                 $categoryId,
                 $classId,

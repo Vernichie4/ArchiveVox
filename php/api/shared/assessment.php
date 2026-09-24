@@ -179,80 +179,95 @@ function handleGet(string $action, PDO $pdo): void {
             return;
         }
 
-        $stmt = $pdo->prepare(
-            "SELECT ar.*, rm.title AS material_title, ra.activity_date
-             FROM assessment_result ar
-             JOIN reading_activity ra ON ar.activity_id = ra.activity_id
-             JOIN reading_material rm ON ra.material_id = rm.material_id
-             WHERE ra.student_id = :student_id
-             ORDER BY ar.assessed_at DESC
-             LIMIT 10"
-        );
-        $stmt->execute([':student_id' => $studentId]);
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT ar.*, rm.title AS material_title, ra.activity_date
+                FROM assessment_result ar
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                JOIN reading_material rm ON ra.material_id = rm.material_id
+                WHERE ra.student_id = :student_id
+                ORDER BY ra.activity_date DESC"
+            );
+            
+            $stmt->execute([':student_id' => $studentId]);
+            $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo json_encode(['success' => true, 'history' => $stmt->fetchAll()]);
-        return;
+            echo json_encode([
+                'success' => true, 
+                'history' => $history
+            ]);
+            return;
+            
+        } catch (PDOException $e) {
+            error_log('Error fetching assessment history: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Database error occurred while retrieving history.'
+            ]);
+            return;
+        }
     }
 
-    $assessmentId = (int)($_GET['id'] ?? 0);
-    if ($assessmentId <= 0) {
-        echo json_encode(['success' => false, 'message' => 'Assessment ID required']);
-        return;
-    }
-
-    $stmt = $pdo->prepare(
-        'SELECT ar.*, s.first_name, s.last_name, rm.title AS material_title
-         FROM assessment_result ar
-         JOIN reading_activity ra ON ar.activity_id = ra.activity_id
-         JOIN student s ON ra.student_id = s.student_id
-         JOIN reading_material rm ON ra.material_id = rm.material_id
-         WHERE ar.assessment_id = :id'
-    );
-    $stmt->execute([':id' => $assessmentId]);
-
-    echo json_encode(['success' => true, 'assessment' => $stmt->fetch()]);
-}
-
-function handlePost(string $action, PDO $pdo): void {
-    if ($action === 'record') {
-        handleRecordAssessment($pdo);
-        return;
-    }
-
-    if ($action === 'update_comprehension') {
-        handleUpdateComprehension($pdo);
-        return;
-    }
-
-    $data = json_decode(file_get_contents('php://input'), true);
-    if (!is_array($data)) {
-        throw new Exception('Invalid JSON data');
-    }
-
-    if ($action === 'start') {
-        $studentId = (int)($data['student_id'] ?? 0);
-        $materialId = (int)($data['material_id'] ?? 0);
-
-        if ($studentId <= 0 || $materialId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'student_id and material_id are required']);
+        $assessmentId = (int)($_GET['id'] ?? 0);
+        if ($assessmentId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Assessment ID required']);
             return;
         }
 
-        $result = createReadingActivity([
-            'student_id' => $studentId,
-            'material_id' => $materialId,
-            'duration_seconds' => (int)($data['duration_seconds'] ?? 0),
-            'audio_filename' => $data['audio_filename'] ?? null,
-            'activity_status' => $data['activity_status'] ?? 'Completed'
-        ]);
+        $stmt = $pdo->prepare(
+            'SELECT ar.*, s.first_name, s.last_name, rm.title AS material_title
+            FROM assessment_result ar
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+            JOIN student s ON ra.student_id = s.student_id
+            JOIN reading_material rm ON ra.material_id = rm.material_id
+            WHERE ar.assessment_id = :id'
+        );
+        $stmt->execute([':id' => $assessmentId]);
 
-        echo json_encode($result);
-        return;
+        echo json_encode(['success' => true, 'assessment' => $stmt->fetch()]);
     }
 
-    $result = saveAssessment($data);
-    echo json_encode($result);
-}
+    function handlePost(string $action, PDO $pdo): void {
+        if ($action === 'record') {
+            handleRecordAssessment($pdo);
+            return;
+        }
+
+        if ($action === 'update_comprehension') {
+            handleUpdateComprehension($pdo);
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            throw new Exception('Invalid JSON data');
+        }
+
+        if ($action === 'start') {
+            $studentId = (int)($data['student_id'] ?? 0);
+            $materialId = (int)($data['material_id'] ?? 0);
+
+            if ($studentId <= 0 || $materialId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'student_id and material_id are required']);
+                return;
+            }
+
+            $result = createReadingActivity([
+                'student_id' => $studentId,
+                'material_id' => $materialId,
+                'duration_seconds' => (int)($data['duration_seconds'] ?? 0),
+                'audio_filename' => $data['audio_filename'] ?? null,
+                'activity_status' => $data['activity_status'] ?? 'Completed'
+            ]);
+
+            echo json_encode($result);
+            return;
+        }
+
+        $result = saveAssessment($data);
+        echo json_encode($result);
+    }
 
 function handlePut(PDO $pdo): void {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -260,7 +275,8 @@ function handlePut(PDO $pdo): void {
         throw new Exception('Invalid JSON data');
     }
 
-    $assessmentId = (int)($_GET['id'] ?? 0);
+    // Look for ID in query parameters first, fall back to the JSON payload body
+    $assessmentId = (int)($_GET['id'] ?? ($data['id'] ?? 0));
     if ($assessmentId <= 0) {
         echo json_encode(['success' => false, 'message' => 'Assessment ID required']);
         return;
@@ -332,6 +348,15 @@ function handleRecordAssessment(PDO $pdo): void {
         $materialId = (int)($_POST['material_id'] ?? 0);
         $originalText = trim($_POST['original_text'] ?? '');
         $durationSeconds = max(1, (int)($_POST['duration_seconds'] ?? 120));
+        $file = $_FILES['audio'];
+        $studentId = (int)($_POST['student_id'] ?? 0);
+        $materialId = (int)($_POST['material_id'] ?? 0);
+        
+        // NEW: Capture the assignment_material_id sent from student.js
+        $assignmentMaterialId = isset($_POST['assignment_material_id']) ? (int)$_POST['assignment_material_id'] : null;
+        
+        $originalText = trim($_POST['original_text'] ?? '');
+        $durationSeconds = max(1, (int)($_POST['duration_seconds'] ?? 120));
 
         if ($studentId <= 0 || $materialId <= 0) {
             echo json_encode(['success' => false, 'message' => 'Student and material are required']);
@@ -371,12 +396,13 @@ function handleRecordAssessment(PDO $pdo): void {
         $pdo->beginTransaction();
 
         $stmt = $pdo->prepare(
-            "INSERT INTO reading_activity (student_id, material_id, started_at, audio_filename, audio_path, duration_seconds, activity_status)
-             VALUES (:student_id, :material_id, NOW(), :audio_filename, :audio_path, :duration_seconds, 'Processing')"
+            "INSERT INTO reading_activity (student_id, material_id, assignment_material_id, started_at, audio_filename, audio_path, duration_seconds, activity_status)
+             VALUES (:student_id, :material_id, :assignment_material_id, NOW(), :audio_filename, :audio_path, :duration_seconds, 'Processing')"
         );
         $stmt->execute([
             ':student_id' => $studentId,
             ':material_id' => $materialId,
+            ':assignment_material_id' => $assignmentMaterialId, // Pass the new ID here
             ':audio_filename' => $filename,
             ':audio_path' => 'uploads/audio/' . $filename,
             ':duration_seconds' => $durationSeconds
@@ -391,6 +417,12 @@ function handleRecordAssessment(PDO $pdo): void {
         }
 
         $transcribedText = trim((string)($transcription['text'] ?? ''));
+        
+        // NEW GUARD: Abort if transcription is empty (prevents 0.0 ghost rows)
+        if (empty($transcribedText)) {
+            throw new Exception('Audio transcription resulted in empty text. Please ensure the microphone recorded clearly.');
+        }
+
         $scores = calculateORF($transcribedText, $originalText, $durationSeconds);
 
         // Enhance with CRLA scoring
@@ -422,9 +454,9 @@ function handleRecordAssessment(PDO $pdo): void {
             ':insertions' => $scores['insertions'],
             ':repetitions' => $scores['repetitions'],
             ':transcript' => $transcribedText,
-            ':reading_level' => $scores['reading_level'],
+            ':reading_level' => $scores['reading_level'], // Phil-IRI for UI badges
             ':comprehension_score' => null,
-            ':final_reading_level' => null,
+            ':final_reading_level' => $scores['crla_level'], // Phase 4 CRLA Standard
             ':observation_level' => $crlaProfile['observation_level'],
             ':transcription_language' => $language
         ]);
@@ -696,9 +728,25 @@ function calculateORF(string $transcribed, string $original, int $timeSeconds = 
     $safeSeconds = max(1, $timeSeconds);
     $wcpm = round(($wordsCorrect / $safeSeconds) * 60, 2);
     
-    // Determine reading level using CRLA criteria
-    $part2Score = 0; // Will be updated when comprehension is added
-    $readingLevel = determineCRLAReadingLevel($accuracy, $part2Score, $safeSeconds);
+    // --- NEW: Client Spec 5-Tier Reading Level ---
+    $clientLevel = 'Pending';
+    if ($accuracy > 0 || $wordsCorrect > 0) {
+        if ($accuracy >= 95) {
+            $clientLevel = 'Reading At Grade Level';
+        } elseif ($accuracy >= 90) {
+            $clientLevel = 'Transitioning Reader';
+        } elseif ($accuracy >= 80) {
+            $clientLevel = 'Developing Reader';
+        } elseif ($accuracy >= 60) {
+            $clientLevel = 'High Emerging Reader';
+        } else {
+            $clientLevel = 'Low Emerging Reader';
+        }
+    }
+    
+    // Phase 4 CRLA Level (If you are still calculating this elsewhere)
+    $part2Score = 0; 
+    $crlaLevel = determineCRLAReadingLevel($accuracy, $part2Score, $safeSeconds);
     
     return [
         'total_words' => $totalWords,
@@ -711,11 +759,13 @@ function calculateORF(string $transcribed, string $original, int $timeSeconds = 
         'insertions' => $insertions,
         'repetitions' => $repetitions,
         'near_misses' => $nearMisses,
-        'reading_level' => $readingLevel,
+        // Override reading_level to use the exact client string!
+        'reading_level' => $clientLevel, 
+        'crla_level' => $crlaLevel,       
         'miscue_breakdown' => [
             'total_miscues' => $substitutions + $omissions + $insertions,
             'accuracy_rate' => $accuracy . '%',
-            'quality' => $accuracy >= 95 ? 'Excellent' : ($accuracy >= 90 ? 'Good' : 'Needs Improvement')
+            'quality' => $accuracy >= 90 ? 'Excellent' : ($accuracy >= 80 ? 'Good' : 'Needs Improvement')
         ]
     ];
 }
@@ -802,48 +852,50 @@ function expandContractions(string $word): string {
 }
 
 function alignWords(array $transcribed, array $original): array {
-    $alignment = [];
-    $i = 0;
-    $j = 0;
+    $n = count($transcribed);
+    $m = count($original);
     
-    while ($i < count($transcribed) || $j < count($original)) {
-        if ($i < count($transcribed) && $j < count($original)) {
-            // Check if words match or are similar
-            if (strtolower($transcribed[$i]) === strtolower($original[$j])) {
-                $alignment[] = ['transcribed' => $transcribed[$i], 'original' => $original[$j]];
-                $i++;
-                $j++;
-                continue;
-            }
+    // Create a 2D array for Dynamic Programming (Wagner-Fischer)
+    $dp = array_fill(0, $n + 1, array_fill(0, $m + 1, 0));
+
+    // Initialize base cases
+    for ($i = 0; $i <= $n; $i++) $dp[$i][0] = $i;
+    for ($j = 0; $j <= $m; $j++) $dp[0][$j] = $j;
+
+    // Fill DP table to find the minimum edit distance
+    for ($i = 1; $i <= $n; $i++) {
+        for ($j = 1; $j <= $m; $j++) {
+            $cost = (strtolower($transcribed[$i - 1]) === strtolower($original[$j - 1])) ? 0 : 1;
             
-            // Check if next transcribed word matches current original (possible insertion)
-            if ($i + 1 < count($transcribed) && 
-                strtolower($transcribed[$i + 1]) === strtolower($original[$j])) {
-                $alignment[] = ['transcribed' => $transcribed[$i], 'original' => null];
-                $i++;
-                continue;
-            }
-            
-            // Check if current transcribed matches next original (possible omission)
-            if ($j + 1 < count($original) && 
-                strtolower($transcribed[$i]) === strtolower($original[$j + 1])) {
-                $alignment[] = ['transcribed' => null, 'original' => $original[$j]];
-                $j++;
-                continue;
-            }
-            
-            // No match found, align as substitution
-            $alignment[] = ['transcribed' => $transcribed[$i], 'original' => $original[$j]];
-            $i++;
-            $j++;
-        } elseif ($i < count($transcribed)) {
+            $dp[$i][$j] = min(
+                $dp[$i - 1][$j] + 1,        // Insertion
+                $dp[$i][$j - 1] + 1,        // Omission
+                $dp[$i - 1][$j - 1] + $cost // Substitution or Match
+            );
+        }
+    }
+
+    // Backtrack to construct the perfect alignment path
+    $alignment = [];
+    $i = $n;
+    $j = $m;
+    
+    while ($i > 0 || $j > 0) {
+        $cost = ($i > 0 && $j > 0 && strtolower($transcribed[$i - 1]) === strtolower($original[$j - 1])) ? 0 : 1;
+        
+        if ($i > 0 && $j > 0 && $dp[$i][$j] == $dp[$i - 1][$j - 1] + $cost) {
+            // Match or Substitution
+            array_unshift($alignment, ['transcribed' => $transcribed[$i - 1], 'original' => $original[$j - 1]]);
+            $i--;
+            $j--;
+        } elseif ($i > 0 && $dp[$i][$j] == $dp[$i - 1][$j] + 1) {
             // Insertion
-            $alignment[] = ['transcribed' => $transcribed[$i], 'original' => null];
-            $i++;
+            array_unshift($alignment, ['transcribed' => $transcribed[$i - 1], 'original' => null]);
+            $i--;
         } else {
             // Omission
-            $alignment[] = ['transcribed' => null, 'original' => $original[$j]];
-            $j++;
+            array_unshift($alignment, ['transcribed' => null, 'original' => $original[$j - 1]]);
+            $j--;
         }
     }
     
@@ -852,6 +904,16 @@ function alignWords(array $transcribed, array $original): array {
 
 function normalizeWords(string $text): array {
     $text = trim($text);
+
+    // --- NEW: Convert numbers to words to prevent false mismatches ---
+    $numberMap = [
+        '0' => 'zero', '1' => 'one', '2' => 'two', '3' => 'three', 
+        '4' => 'four', '5' => 'five', '6' => 'six', '7' => 'seven', 
+        '8' => 'eight', '9' => 'nine', '10' => 'ten'
+    ];
+    $text = preg_replace_callback('/\b\d+\b/', function($matches) use ($numberMap) {
+        return $numberMap[$matches[0]] ?? $matches[0];
+    }, $text);
     
     // Handle common contractions before removing punctuation
     $contractions = [
@@ -1241,11 +1303,11 @@ function determineCRLAReadingLevel(float $accuracy, int $part2Score, int $readin
 
     if ($accuracy < 25) {
         return $part2Score >= 6 ? 'High Emerging Reader' : 'Low Emerging Reader';
-    } elseif ($accuracy > 25 && $accuracy <= 50) {
+    } elseif ($accuracy >= 25 && $accuracy < 50) {
         return $part2Score >= 6 ? 'Developing Reader' : 'Emerging Reader';
-    } elseif ($accuracy > 50 && $accuracy <= 75) {
+    } elseif ($accuracy >= 50 && $accuracy < 75) {
         return $part2Score >= 12 ? 'Transitioning Reader' : 'Developing Reader';
-    } elseif ($accuracy > 75) {
+    } elseif ($accuracy >= 75) {
         return $part2Score >= 19 ? 'Reading At Grade Level' : 'Transitioning Reader';
     }
 

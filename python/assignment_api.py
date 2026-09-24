@@ -32,7 +32,7 @@ def add_cors_headers(response):
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
-    "port": int(os.getenv("DB_PORT", "3306")),
+    "port": int(os.getenv("DB_PORT", "3307")),
     "user": os.getenv("DB_USER", "root"),
     "password": os.getenv("DB_PASSWORD", ""),
     "database": os.getenv("DB_NAME", "archivevox"),
@@ -2571,15 +2571,24 @@ def teacher_list_classes():
     connection = get_db()
     try:
         with connection.cursor() as cursor:
+            # Group by grade/section and fetch only the newest class_id
             cursor.execute("""
                 SELECT
-                    class_id,
-                    grade_level,
-                    section,
-                    school_year
-                FROM class
-                WHERE teacher_id = %s
-                ORDER BY grade_level, section
+                    c.class_id,
+                    c.grade_level,
+                    c.section,
+                    c.school_year
+                FROM class c
+                INNER JOIN (
+                    SELECT
+                        grade_level,
+                        section,
+                        MAX(class_id) AS max_id
+                    FROM class
+                    WHERE teacher_id = %s
+                    GROUP BY grade_level, section
+                ) latest ON c.class_id = latest.max_id
+                ORDER BY c.grade_level, c.section
             """, (teacher_id,))
             classes = cursor.fetchall()
             # format display name
@@ -2588,7 +2597,7 @@ def teacher_list_classes():
             return success({"classes": serialize(classes)})
     finally:
         connection.close()
-
+        
 # ============================================================
 # TEACHER — CREATE / UPDATE QUIZ
 # ============================================================

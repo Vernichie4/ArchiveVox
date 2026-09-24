@@ -14,7 +14,7 @@ $action = $_GET['action'] ?? '';
 try {
     switch ($method) {
         case 'GET':
-            if ($action === 'list') {
+if ($action === 'list') {
                 // Get students based on user role
                 $user = $_SESSION['user'] ?? null;
                 if (!$user) {
@@ -26,9 +26,20 @@ try {
                 
                 // Principals and admins see all students
                 if (in_array($user['role'], ['principal', 'admin'])) {
-                    $stmt = $pdo->prepare('SELECT * FROM student ORDER BY first_name, last_name');
+                    $stmt = $pdo->prepare('
+                        SELECT s.*,
+                            sc.grade_level,
+                            c.section,
+                            (SELECT AVG(ar.accuracy_percentage) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS avg_accuracy,
+                            (SELECT MAX(ar.assessed_at) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS last_assessed,
+                            (SELECT ar2.reading_level FROM assessment_result ar2 JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL ORDER BY ar2.assessed_at DESC LIMIT 1) AS reading_level
+                        FROM student s 
+                        LEFT JOIN student_category sc ON s.category_id = sc.category_id
+                        LEFT JOIN class c ON s.class_id = c.class_id
+                        ORDER BY s.first_name, s.last_name
+                    ');
                     $stmt->execute();
-                    $students = $stmt->fetchAll();
+                    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 } 
                 // Teachers see their own students
                 else if ($user['role'] === 'teacher') {
@@ -37,7 +48,21 @@ try {
                     $teacher = $stmt->fetch();
                     
                     if ($teacher) {
-                        $students = getStudentsByTeacher($teacher['teacher_id']);
+                        $stmt = $pdo->prepare('
+                            SELECT s.*,
+                                sc.grade_level,
+                                c.section,
+                                (SELECT AVG(ar.accuracy_percentage) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS avg_accuracy,
+                                (SELECT MAX(ar.assessed_at) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS last_assessed,
+                                (SELECT ar2.reading_level FROM assessment_result ar2 JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL ORDER BY ar2.assessed_at DESC LIMIT 1) AS reading_level
+                            FROM student s 
+                            LEFT JOIN student_category sc ON s.category_id = sc.category_id
+                            LEFT JOIN class c ON s.class_id = c.class_id
+                            WHERE s.teacher_id = :teacher_id
+                            ORDER BY s.first_name, s.last_name
+                        ');
+                        $stmt->execute([':teacher_id' => $teacher['teacher_id']]);
+                        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     }
                 }
                 
@@ -56,35 +81,40 @@ try {
                     break;
                 }
 
-                // Base query – all named placeholders
-                $sql = "SELECT * FROM student 
-                        WHERE (lrn LIKE :term1 OR CONCAT(first_name, ' ', last_name) LIKE :term2)";
+                $sql = "SELECT s.*, 
+                            sc.grade_level,
+                            c.section,
+                            (SELECT AVG(ar.accuracy_percentage) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS avg_accuracy,
+                            (SELECT MAX(ar.assessed_at) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS last_assessed,
+                            (SELECT ar2.reading_level FROM assessment_result ar2 JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL ORDER BY ar2.assessed_at DESC LIMIT 1) AS reading_level
+                        FROM student s 
+                        LEFT JOIN student_category sc ON s.category_id = sc.category_id
+                        LEFT JOIN class c ON s.class_id = c.class_id
+                        WHERE (s.lrn LIKE :term1 OR CONCAT(s.first_name, ' ', s.last_name) LIKE :term2)";
                 $params = [
                     ':term1' => "%$term%",
                     ':term2' => "%$term%"
                 ];
 
-                // Teachers: restrict to their own students
                 if ($user['role'] === 'teacher') {
                     $stmt = $pdo->prepare('SELECT teacher_id FROM teacher WHERE user_id = :user_id');
                     $stmt->execute([':user_id' => $user['user_id']]);
                     $teacher = $stmt->fetch(PDO::FETCH_ASSOC);
                     if ($teacher) {
-                        $sql .= " AND teacher_id = :teacher_id";
+                        $sql .= " AND s.teacher_id = :teacher_id";
                         $params[':teacher_id'] = $teacher['teacher_id'];
                     } else {
-                        // No teacher record – return empty
                         echo json_encode(['success' => true, 'students' => []]);
                         break;
                     }
                 }
-                // Principals/admins see all students (no extra filter)
 
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($params);
                 $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 echo json_encode(['success' => true, 'students' => $students]);
+                
             } elseif ($action === 'get') {
                 $studentId = $_GET['id'] ?? 0;
                 if ($studentId <= 0) {
@@ -124,7 +154,7 @@ try {
                 break;
             }
 
-            // 2. Validate required fields
+            // 2. Validate required fields (Grade and Section checks are intentionally gone)
             if (empty($data['lrn']) || !preg_match('/^[0-9]{6}$/', $data['lrn'])) {
                 echo json_encode(['success' => false, 'message' => 'LRN must be exactly 6 digits']);
                 break;
@@ -150,8 +180,20 @@ try {
                 break;
             }
 
-            // 4. Add teacher_id to data and register
+            $stmtClass = $pdo->prepare('SELECT class_id FROM class WHERE teacher_id = :teacher_id LIMIT 1');
+            $stmtClass->execute([':teacher_id' => $teacher['teacher_id']]);
+            $masterClass = $stmtClass->fetch(PDO::FETCH_ASSOC);
+
+            if (!$masterClass) {
+                echo json_encode(['success' => false, 'message' => 'System Error: This teacher does not have a class assigned in the database.']);
+                break;
+            }
+
+            // 4. Force the class_id and teacher_id, completely bypassing frontend inputs
+            $data['class_id'] = $masterClass['class_id'];
             $data['teacher_id'] = $teacher['teacher_id'];
+            
+            // 5. Register the student
             $result = registerStudent($data);
             echo json_encode($result);
             break;

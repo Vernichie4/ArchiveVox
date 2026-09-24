@@ -19,65 +19,69 @@ try {
 
     if ($method === 'GET') {
         
-        if ($action === 'student-progress') {
-            // Get a specific student's reading progress
-            $studentId = $_GET['id'] ?? 0;
-            
-            // Check if principal can access this student
-            if ($user['role'] !== 'principal' && $user['role'] !== 'admin') {
-                $stmt = $pdo->prepare('
-                    SELECT teacher_id FROM teacher WHERE user_id = :user_id
-                ');
-                $stmt->execute([':user_id' => $user['user_id']]);
-                $teacher = $stmt->fetch();
-                
-                $stmt = $pdo->prepare('
-                    SELECT COUNT(*) as count FROM teacher_student 
-                    WHERE teacher_id = :teacher_id AND student_id = :student_id
-                ');
-                $stmt->execute([':teacher_id' => $teacher['teacher_id'] ?? 0, ':student_id' => $studentId]);
-                
-                if (!$stmt->fetch()['count']) {
-                    sendJson(['success' => false, 'message' => 'Access denied'], 403);
-                }
-            }
-            
-            // Get student info
-            $stmt = $pdo->prepare('SELECT * FROM student WHERE student_id = :student_id');
-            $stmt->execute([':student_id' => $studentId]);
-            $student = $stmt->fetch();
-            
-            if (!$student) {
-                sendJson(['success' => false, 'message' => 'Student not found'], 404);
-            }
-            
-            // Get assessment history
+    if ($action === 'student-progress') {
+        // Get a specific student's reading progress
+        $studentId = $_GET['id'] ?? 0;
+    
+        // Check if user has permission to access this student
+        if ($user['role'] !== 'principal' && $user['role'] !== 'admin') {
+            // Fetch the internal teacher ID associated with this logged-in user account
+            $stmt = $pdo->prepare('SELECT teacher_id FROM teacher WHERE user_id = :user_id');
+            $stmt->execute([':user_id' => $user['user_id']]);
+            $teacher = $stmt->fetch();
+    
+            // Validate student ownership directly against the student assignments record
             $stmt = $pdo->prepare('
-                SELECT 
-                    ar.assessment_id,
-                    ar.assessment_date,
-                    rm.title,
-                    ar.wcpm,
-                    ar.accuracy_percentage,
-                    ar.errors_count,
-                    t.first_name as teacher_first_name,
-                    t.last_name as teacher_last_name
-                FROM assessment_result ar
-                JOIN reading_material rm ON ar.material_id = rm.material_id
-                LEFT JOIN teacher t ON ar.recorded_by = t.teacher_id
-                WHERE ar.student_id = :student_id
-                ORDER BY ar.assessment_date DESC
+                SELECT COUNT(*) as count 
+                FROM student 
+                WHERE teacher_id = :teacher_id AND student_id = :student_id
             ');
-            $stmt->execute([':student_id' => $studentId]);
-            $assessments = $stmt->fetchAll();
-            
-            sendJson([
-                'success' => true,
-                'student' => $student,
-                'assessments' => $assessments,
-                'statistics' => calculateStudentStats($assessments)
+            $stmt->execute([
+                ':teacher_id' => $teacher['teacher_id'] ?? 0, 
+                ':student_id' => $studentId
             ]);
+    
+            if (!$stmt->fetch()['count']) {
+                sendJson(['success' => false, 'message' => 'Access denied'], 403);
+            }
         }
+    
+        // Get student info
+        $stmt = $pdo->prepare('SELECT * FROM student WHERE student_id = :student_id');
+        $stmt->execute([':student_id' => $studentId]);
+        $student = $stmt->fetch();
+    
+        if (!$student) {
+            sendJson(['success' => false, 'message' => 'Student not found'], 404);
+        }
+    
+        // Get assessment history
+        $stmt = $pdo->prepare('
+            SELECT 
+                ar.assessment_id,
+                ar.assessment_date,
+                rm.title,
+                ar.wcpm,
+                ar.accuracy_percentage,
+                ar.errors_count,
+                t.first_name as teacher_first_name,
+                t.last_name as teacher_last_name
+            FROM assessment_result ar
+            JOIN reading_material rm ON ar.material_id = rm.material_id
+            LEFT JOIN teacher t ON ar.recorded_by = t.teacher_id
+            WHERE ar.student_id = :student_id
+            ORDER BY ar.assessment_date DESC
+        ');
+        $stmt->execute([':student_id' => $studentId]);
+        $assessments = $stmt->fetchAll();
+    
+        sendJson([
+            'success' => true,
+            'student' => $student,
+            'assessments' => $assessments,
+            'statistics' => calculateStudentStats($assessments)
+        ]);
+    }
         
         elseif ($action === 'class-performance') {
             // Get performance report for a specific teacher's class

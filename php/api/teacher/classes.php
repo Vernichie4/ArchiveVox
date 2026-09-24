@@ -24,21 +24,22 @@ if ($action === 'list') {
 
     if ($teacherId) {
         // For teacher: get classes they teach
-        $stmt = $pdo->prepare('
-            SELECT DISTINCT c.class_id, c.class_name 
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT c.class_id, CONCAT(c.grade_level, ' - ', c.section) AS class_name 
             FROM class c
             JOIN student s ON s.class_id = c.class_id
             WHERE s.teacher_id = :teacher_id
-            ORDER BY c.class_name
-        ');
+            ORDER BY c.grade_level, c.section
+        ");
         $stmt->execute([':teacher_id' => $teacherId]);
-    } else if (in_array($user['role'], ['principal', 'admin'])) {
+    } else if (in_array(strtolower($user['role']), ['principal', 'admin'])) {
         // For principal/admin: get all classes
-        $stmt = $pdo->query('SELECT class_id, class_name FROM class ORDER BY class_name');
+        $stmt = $pdo->query("
+            SELECT class_id, CONCAT(grade_level, ' - ', section) AS class_name 
+            FROM class 
+            ORDER BY grade_level, section
+        ");
     } else {
         sendJson(['success' => false, 'message' => 'Access denied'], 403);
     }
-
-    $classes = $stmt->fetchAll();
-    sendJson(['success' => true, 'classes' => $classes]);
 }

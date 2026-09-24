@@ -41,15 +41,21 @@ function getTeacherDashboard(int $teacherId): array {
         $assessments = $stmt->fetch();
         $myAssessments = $assessments ? (int)$assessments['total'] : 0;
         
-        // 4. Get students below target (WCPM < 40)
+        // 4. Get students below target (Needs Attention based on latest assessment only)
         $stmt = $pdo->prepare('
             SELECT COUNT(DISTINCT s.student_id) as total
             FROM student s
             JOIN reading_activity ra ON s.student_id = ra.student_id
             JOIN assessment_result ar ON ra.activity_id = ar.activity_id
-            WHERE s.teacher_id = :teacher_id
-            AND ar.wcpm < 40
-            AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            WHERE s.teacher_id = :teacher_id 
+            AND s.is_active = 1
+            AND (ar.reading_level LIKE "%Low Emerging%" OR ar.reading_level = "Frustration")
+            AND ar.assessed_at = (
+                SELECT MAX(ar2.assessed_at)
+                FROM reading_activity ra2
+                JOIN assessment_result ar2 ON ra2.activity_id = ar2.activity_id
+                WHERE ra2.student_id = s.student_id
+            )
         ');
         $stmt->execute([':teacher_id' => $teacherId]);
         $studentsBelow = $stmt->fetch();
@@ -296,7 +302,7 @@ function principalDashboard(): array {
             FROM student s
             JOIN reading_activity ra ON s.student_id = ra.student_id
             JOIN assessment_result ar ON ra.activity_id = ar.activity_id
-            WHERE ar.reading_level = "Frustration"
+            WHERE ar.reading_level = "High Emerging"
             AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             ORDER BY s.last_name ASC
             LIMIT 10

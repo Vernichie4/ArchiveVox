@@ -32,28 +32,34 @@ def main():
     
     audio_path = sys.argv[1]
     
+    # Read the language argument passed from PHP
+    target_language = None
+    if len(sys.argv) > 2 and sys.argv[2] != 'auto':
+        target_language = sys.argv[2]
+    
     if not os.path.exists(audio_path):
         print(json.dumps({"error": f"File not found: {audio_path}"}))
         return
     
     try:
-        # Load model - tiny is fast, but for Tagalog you might want base or small
-        # Use 'base' for better accuracy with Tagalog
-        model = whisper.load_model("small")
+        model = whisper.load_model("base")
         
-        # Transcribe with language hint for Tagalog
-        # This forces Whisper to use Tagalog (tl) language model
-        result = model.transcribe(
-            audio_path,
-            task="transcribe",
-            fp16=False  # Use FP32 for better compatibility
-        )
+        # Build transcription arguments dynamically
+        transcribe_args = {
+            "task": "transcribe",
+            "fp16": False
+        }
         
-        # Output as JSON
+        # Force Whisper to use the specific language model to prevent hallucinations
+        if target_language:
+            transcribe_args["language"] = target_language
+            
+        result = model.transcribe(audio_path, **transcribe_args)
+        
         print(json.dumps({
             "success": True,
             "text": result["text"],
-            "language": "tl",
+            "language": target_language if target_language else result.get("language", "unknown"),
             "detected_language": result.get("language", "unknown"),
             "segments": result.get("segments", [])
         }))

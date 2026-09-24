@@ -5,6 +5,7 @@ ini_set('display_errors', 1);
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../auth/config.php';
+require_once __DIR__ . '/../../auth/session.php';
 require_once __DIR__ . '/../_helpers.php';
 require_once __DIR__ . '/../../modules/reading_materials.php';
 require_once __DIR__ . '/../../backend/ocr.php';
@@ -16,12 +17,12 @@ $action = $_GET['action'] ?? '';
 try {
     switch ($method) {
         case 'GET':
-                if ($action === 'list') {
+            if ($action === 'list') {
                 error_log('=== READING MATERIALS LIST REQUEST ===');
                 $materials = viewReadingMaterials();
                 error_log('Materials found: ' . count($materials));
                 echo json_encode(['success' => true, 'materials' => $materials]);
-             } else {
+            } else {
                 $materialId = $_GET['id'] ?? 0;
                 if ($materialId > 0) {
                     $stmt = $pdo->prepare('SELECT * FROM reading_material WHERE material_id = :id');
@@ -34,51 +35,54 @@ try {
             }
             break;
 
-        case 'preview-ocr':
-            if (!empty($_FILES) && isset($_FILES['image'])) {
-                $file = $_FILES['image'];
-                $uploadDir = __DIR__ . '/../../../uploads/temp/';
-                
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-                
-                $filename = time() . '_preview_' . basename($file['name']);
-                $filePath = $uploadDir . $filename;
-                
-                if (move_uploaded_file($file['tmp_name'], $filePath)) {
-                    try {
-                        $language = $_POST['language'] ?? 'English';
-                        $ocrLanguage = ($language === 'Filipino') ? 'eng+fil' : 'eng';
-                        
-                        $ocrText = runOcr($filePath, $ocrLanguage);
-                        $wordCount = str_word_count($ocrText);
-                        
-                        unlink($filePath);
-                        
-                        echo json_encode([
-                            'success' => true,
-                            'ocr_text' => $ocrText,
-                            'word_count' => $wordCount,
-                            'ocr_message' => 'OCR extracted ' . $wordCount . ' words successfully!'
-                        ]);
-                    } catch (Exception $e) {
-                        unlink($filePath);
-                        echo json_encode([
-                            'success' => false,
-                            'ocr_text' => '',
-                            'message' => $e->getMessage()
-                        ]);
+        case 'POST':
+            // --- BRANCH 1: PREVIEW OCR (Does not save to database) ---
+            if ($action === 'preview-ocr') {
+                if (!empty($_FILES) && isset($_FILES['image'])) {
+                    $file = $_FILES['image'];
+                    $uploadDir = __DIR__ . '/../../../uploads/temp/';
+                    
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+                    
+                    $filename = time() . '_preview_' . basename($file['name']);
+                    $filePath = $uploadDir . $filename;
+                    
+                    if (move_uploaded_file($file['tmp_name'], $filePath)) {
+                        try {
+                            $language = $_POST['language'] ?? 'English';
+                            $ocrLanguage = ($language === 'Filipino') ? 'eng+fil' : 'eng';
+                            
+                            $ocrText = runOcr($filePath, $ocrLanguage);
+                            $wordCount = str_word_count($ocrText);
+                            
+                            unlink($filePath); // Delete temporary file
+                            
+                            echo json_encode([
+                                'success' => true,
+                                'ocr_text' => $ocrText,
+                                'word_count' => $wordCount,
+                                'ocr_message' => 'OCR extracted ' . $wordCount . ' words successfully!'
+                            ]);
+                        } catch (Throwable $e) {
+                            if (file_exists($filePath)) unlink($filePath);
+                            echo json_encode([
+                                'success' => false,
+                                'ocr_text' => '',
+                                'message' => 'Preview Error: ' . $e->getMessage()
+                            ]);
+                        }
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Failed to upload preview file']);
                     }
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'Failed to upload file']);
+                    echo json_encode(['success' => false, 'message' => 'No image file provided']);
                 }
-            } else {
-                echo json_encode(['success' => false, 'message' => 'No image file provided']);
+                break;
             }
-            break;
 
-        case 'POST':
+            // --- BRANCH 2: SAVING MATERIAL (Saves to database) ---
             if (!empty($_FILES) && isset($_FILES['image'])) {
                 $file = $_FILES['image'];
                 $uploadDir = __DIR__ . '/../../../uploads/materials/';
@@ -96,12 +100,24 @@ try {
                     
                     try {
                         $ocrText = runOcr($filePath, $ocrLanguage);
-                    } catch (Exception $e) {
+                    } catch (Throwable $e) {
                         $ocrText = null;
                     }
                     
+                    // Grab the active user's session data
+                    $currentUser = currentUser();
+                    $sessionTeacherId = $currentUser['teacher_id'] ?? null;
+
+                    // Use the POST ID if provided (e.g., if an admin is uploading for someone else), otherwise use the active session ID
+                    $finalTeacherId = !empty($_POST['teacher_id']) ? $_POST['teacher_id'] : $sessionTeacherId;
+
+                    if (!$finalTeacherId) {
+                        echo json_encode(['success' => false, 'message' => 'Upload failed: No valid Teacher ID found.']);
+                        exit;
+                    }
+
                     $data = [
-                        'teacher_id' => $_POST['teacher_id'] ?? 1,
+                        'teacher_id' => $finalTeacherId,
                         'title' => $_POST['title'] ?? 'Untitled',
                         'description' => $_POST['description'] ?? null,
                         'language' => $_POST['language'] ?? 'English',
@@ -135,6 +151,16 @@ try {
                 $data = json_decode(file_get_contents('php://input'), true);
                 if (!$data) {
                     echo json_encode(['success' => false, 'message' => 'Invalid JSON data']);
+                    break;
+                }
+                
+                // Protect the JSON payload block too
+                $currentUser = currentUser();
+                $sessionTeacherId = $currentUser['teacher_id'] ?? null;
+                $data['teacher_id'] = !empty($data['teacher_id']) ? $data['teacher_id'] : $sessionTeacherId;
+
+                if (!$data['teacher_id']) {
+                    echo json_encode(['success' => false, 'message' => 'Upload failed: No valid Teacher ID found.']);
                     break;
                 }
                 
@@ -175,7 +201,7 @@ try {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
 }

@@ -29,13 +29,6 @@ $classId = isset($_GET['class_id']) ? (int)$_GET['class_id'] : 0;
 $gradeLevel = isset($_GET['grade_level']) ? trim($_GET['grade_level']) : '';
 $language = isset($_GET['language']) ? trim($_GET['language']) : '';
 
-// Validate parameters
-if (!$classId && !$gradeLevel) {
-    http_response_code(400);
-    echo 'Please provide class_id or grade_level';
-    exit;
-}
-
 // If teacher, ensure they have access to the class/grade
 if ($role === 'teacher') {
     // Get teacher's own ID if not provided
@@ -66,8 +59,8 @@ if ($role === 'teacher') {
         $stmt = $pdo->prepare('
             SELECT COUNT(*) 
             FROM student s
-            JOIN student_category sc ON s.category_id = sc.category_id
-            WHERE s.teacher_id = :teacher_id AND sc.grade_level = :grade_level
+            JOIN class c ON s.class_id = c.class_id
+            WHERE s.teacher_id = :teacher_id AND c.grade_level = :grade_level
         ');
         $stmt->execute([':teacher_id' => $teacherId, ':grade_level' => $gradeLevel]);
         if ($stmt->fetchColumn() == 0) {
@@ -86,11 +79,10 @@ $studentQuery = "
         s.first_name,
         s.last_name,
         s.gender,
-        sc.grade_level,
-        c.class_name,
+        c.grade_level,
+        c.section,
         s.date_registered
     FROM student s
-    LEFT JOIN student_category sc ON s.category_id = sc.category_id
     LEFT JOIN class c ON s.class_id = c.class_id
     WHERE s.is_active = 1
 ";
@@ -105,7 +97,7 @@ if ($classId) {
     $params[':class_id'] = $classId;
 }
 if ($gradeLevel) {
-    $studentQuery .= " AND sc.grade_level = :grade_level";
+    $studentQuery .= " AND c.grade_level = :grade_level";
     $params[':grade_level'] = $gradeLevel;
 }
 
@@ -159,7 +151,7 @@ foreach ($students as $student) {
         'Name' => trim($student['first_name'] . ' ' . $student['last_name']),
         'Sex' => $student['gender'] ?? '',
         'Grade' => $student['grade_level'] ?? '',
-        'Section' => $student['class_name'] ?? '',
+        'Section' => $student['section'] ?? '',
         'Date of Assessment' => $assessment ? date('Y-m-d', strtotime($assessment['assessed_at'])) : '',
         'Task 1 (10)' => $assessment['part1_task1_score'] ?? '',
         'Task 2L Words (10)' => $assessment['part1_words_score'] ?? '',
@@ -175,7 +167,7 @@ foreach ($students as $student) {
         '% Correct Words' => $assessment['accuracy_percentage'] ?? 0,
         'Comprehension Score' => $assessment['comprehension_score'] ?? 0,
         'Observation Level' => $assessment['observation_level'] ?? '',
-        'Reading Profile' => $assessment['final_reading_level'] ?? '',
+        'Reading Profile' => $assessment['reading_level'] ?? '',
         'Remarks' => $assessment['teacher_feedback'] ?? '',
     ];
     $rows[] = $row;

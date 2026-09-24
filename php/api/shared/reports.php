@@ -1,198 +1,178 @@
 <?php
-// php/api/shared/reports.php
+require_once __DIR__ . '/../../auth/config.php';
+require_once __DIR__ . '/../_helpers.php';
 
-// Include your database connection
-require_once __DIR__ . '/../../connection.php';
+$action = $_GET['action'] ?? '';
+$user = getCurrentUser();
 
-session_start();
-header('Content-Type: application/json; charset=utf-8');
-
-// Check authentication
-if (!isset($_SESSION['user']) || !isset($_SESSION['user']['user_id']) || !isset($_SESSION['user']['role'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+if (!$user) {
+    sendJson(['success' => false, 'message' => 'Unauthorized']);
 }
-
-$action = isset($_GET['action']) ? $_GET['action'] : '';
-$userData = $_SESSION['user'];
-$userId = $userData['user_id'];
-$role = $userData['role'];
 
 try {
-    // Use PDO from connection.php
-    $pdo = createPdoConnection();
-} catch (PDOException $e) {
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Database connection failed: ' . $e->getMessage()
-    ]);
-    exit;
-}
+    $dashboard = [
+        'my_students' => 0,
+        'class_avg_wcpm' => 0,
+        'avg_accuracy' => 0,
+        'my_assessments' => 0,
+        'students_below' => 0,
+        'recent_assessments' => [],
+        'class_performance' => [],
+        'recent_students' => []
+    ];
 
-// Only allow teacher role
-if ($action === 'teacher' && $role === 'teacher') {
-    try {
-        // Get teacher_id from teacher table
+    if ($action === 'principal' || $action === 'admin') {
+        // Stats
+        $dashboard['my_students'] = (int) $pdo->query("SELECT COUNT(*) FROM student WHERE is_active = 1")->fetchColumn();
+        $dashboard['my_assessments'] = (int) $pdo->query("SELECT COUNT(*) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id")->fetchColumn();
+        $dashboard['class_avg_wcpm'] = (float) $pdo->query("SELECT AVG(wcpm) FROM assessment_result WHERE wcpm > 0")->fetchColumn();
+        $dashboard['students_below'] = (int) $pdo->query("SELECT COUNT(DISTINCT ra.student_id) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ar.reading_level IN ('Low Emerging Reader', 'High Emerging Reader', 'Developing Reader')")->fetchColumn();
+        $dashboard['avg_accuracy'] = (int) $pdo->query("SELECT ROUND(AVG(accuracy_percentage)) FROM assessment_result")->fetchColumn();
+        
+        // Recent Assessments
+        $stmt = $pdo->query("
+            SELECT 
+                CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                m.title AS material_title,
+                ar.accuracy_percentage,
+                ar.assessed_at
+            FROM assessment_result ar 
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+            JOIN student s ON ra.student_id = s.student_id 
+            LEFT JOIN reading_material m ON ra.material_id = m.material_id
+            ORDER BY ar.assessed_at DESC LIMIT 5
+        ");
+        $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Class Performance (Time Series for Chart)
+        $stmt = $pdo->query("
+            SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
+            FROM assessment_result ar 
+            GROUP BY DATE(ar.assessed_at) 
+            ORDER BY DATE(ar.assessed_at) ASC LIMIT 7
+        ");
+        $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Student Overview (Principal)
+        $stmt = $pdo->query("
+            SELECT 
+                s.lrn, 
+                s.first_name, 
+                s.last_name, 
+                c.grade_level,
+                COUNT(ar.assessment_id) as assessment_count,
+                AVG(ar.wcpm) as avg_wcpm,
+                AVG(ar.accuracy_percentage) as avg_accuracy,
+                MAX(ar.assessed_at) as last_assessed,
+                (SELECT ar2.reading_level 
+                 FROM assessment_result ar2 
+                 JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id 
+                 WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL
+                 ORDER BY ar2.assessed_at DESC LIMIT 1) as reading_level
+            FROM student s
+            LEFT JOIN class c ON s.class_id = c.class_id
+            LEFT JOIN reading_activity ra ON s.student_id = ra.student_id
+            LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
+            WHERE s.is_active = 1
+            GROUP BY s.student_id, s.lrn, s.first_name, s.last_name, c.grade_level
+            ORDER BY s.first_name ASC
+            LIMIT 10
+        ");
+        $dashboard['recent_students'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        sendJson(['success' => true, 'dashboard' => $dashboard]);
+    } 
+    elseif ($action === 'teacher') {
         $stmt = $pdo->prepare("SELECT teacher_id FROM teacher WHERE user_id = ?");
-        $stmt->execute([$userId]);
-        $teacher = $stmt->fetch();
-        
-        if (!$teacher) {
-            echo json_encode(['success' => false, 'message' => 'Teacher record not found']);
-            exit;
-        }
-        
-        $teacherId = $teacher['teacher_id'];
-        
-        // Get teacher's active students
-        $stmt = $pdo->prepare("SELECT student_id FROM student WHERE teacher_id = ? AND is_active = 1");
-        $stmt->execute([$teacherId]);
-        $studentIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        $studentCount = count($studentIds);
-        $assessmentCount = 0;
-        $avgWcpm = 0;
-        $studentsBelow = 0;
-        $recentAssessments = [];
-        $classPerformance = [];
-        $recentStudents = [];
-        
-        if (!empty($studentIds)) {
-            $ids = implode(',', array_map('intval', $studentIds));
-            
-            // Get assessment stats from reading_activity and assessment_result
-            $statsQuery = "SELECT 
-            COUNT(DISTINCT ra.activity_id) as total_assessments,
-            AVG(ar.wcpm) as avg_wcpm
-            FROM reading_activity ra
-            INNER JOIN assessment_result ar ON ra.activity_id = ar.activity_id
-            WHERE ra.student_id IN ($ids)
-            AND ra.activity_status = 'Completed'";
-            $statsResult = $pdo->query($statsQuery);
-            $stats = $statsResult->fetch();
-            $assessmentCount = $stats['total_assessments'] ?? 0;
-            $avgWcpm = $stats['avg_wcpm'] ?? 0;
-            
-            // Get students below target (WCPM < 60 OR accuracy < 80%)
-            $belowQuery = "SELECT COUNT(DISTINCT ra.student_id) as below_count
-                FROM reading_activity ra
-                LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
-                WHERE ra.student_id IN ($ids)
-                AND ra.activity_status = 'Completed'
-                AND (ar.wcpm < 60 OR ar.accuracy_percentage < 80)";
-            $belowResult = $pdo->query($belowQuery);
-            $belowRow = $belowResult->fetch();
-            $studentsBelow = $belowRow['below_count'] ?? 0;
-            
-            // Get recent assessments (last 10)
-            $recentQuery = "SELECT 
-                ra.*,
-                ar.wcpm,
-                ar.accuracy_percentage,
-                ar.reading_level,
-                ar.final_reading_level,
-                ar.comprehension_score,
-                ar.assessed_at,
-                s.first_name,
-                s.last_name,
-                s.lrn,
-                rm.title as material_title
-            FROM reading_activity ra
-            JOIN student s ON ra.student_id = s.student_id
-            LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
-            LEFT JOIN reading_material rm ON ra.material_id = rm.material_id
-            WHERE ra.student_id IN ($ids)
-            AND ra.activity_status = 'Completed'
-            ORDER BY ra.activity_date DESC
-            LIMIT 10";
-            $recentResult = $pdo->query($recentQuery);
-            while ($row = $recentResult->fetch()) {
-                $row['student_name'] = $row['first_name'] . ' ' . $row['last_name'];
-                $recentAssessments[] = $row;
-            }
-            
-            // Get class performance (latest assessment per student)
-            $perfQuery = "SELECT 
-                s.student_id,
-                s.first_name,
-                s.last_name,
-                s.lrn,
-                sc.grade_level,
-                MAX(ra.activity_date) as last_assessed,
-                ar.wcpm,
-                ar.accuracy_percentage,
-                ar.reading_level,
-                ar.final_reading_level
-            FROM student s
-            LEFT JOIN reading_activity ra ON s.student_id = ra.student_id AND ra.activity_status = 'Completed'
-            LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
-            LEFT JOIN student_category sc ON s.category_id = sc.category_id
-            WHERE s.student_id IN ($ids)
-            GROUP BY s.student_id
-            ORDER BY s.last_name, s.first_name";
-            $perfResult = $pdo->query($perfQuery);
-            while ($row = $perfResult->fetch()) {
-                $row['student_name'] = $row['first_name'] . ' ' . $row['last_name'];
-                $classPerformance[] = $row;
-            }
-            
-            // Get recent students for overview table
-            $studentQuery2 = "SELECT 
-                s.*,
-                sc.grade_level,
-                COUNT(ra.activity_id) as assessment_count,
-                AVG(ar.wcpm) as avg_wcpm
-            FROM student s
-            LEFT JOIN reading_activity ra ON s.student_id = ra.student_id AND ra.activity_status = 'Completed'
-            LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
-            LEFT JOIN student_category sc ON s.category_id = sc.category_id
-            WHERE s.student_id IN ($ids)
-            GROUP BY s.student_id
-            ORDER BY s.last_name, s.first_name
-            LIMIT 10";
-            $studentResult2 = $pdo->query($studentQuery2);
-            while ($row = $studentResult2->fetch()) {
-                // Get latest reading level separately
-                $levelStmt = $pdo->prepare("SELECT ar2.reading_level 
-                    FROM assessment_result ar2 
-                    JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id 
-                    WHERE ra2.student_id = ? 
-                    AND ra2.activity_status = 'Completed'
-                    ORDER BY ra2.activity_date DESC LIMIT 1");
-                $levelStmt->execute([$row['student_id']]);
-                $levelRow = $levelStmt->fetch();
-                $row['reading_level'] = $levelRow['reading_level'] ?? 'N/A';
-                $recentStudents[] = $row;
-            }
-        }
-        
-        // Return complete dashboard data
-        echo json_encode([
-            'success' => true,
-            'dashboard' => [
-                'my_students' => (int)$studentCount,
-                'class_avg_wcpm' => round((float)$avgWcpm, 1),
-                'my_assessments' => (int)$assessmentCount,
-                'students_below' => (int)$studentsBelow,
-                'recent_assessments' => $recentAssessments,
-                'class_performance' => $classPerformance,
-                'recent_students' => $recentStudents
-            ]
-        ]);
-        
-    } catch (PDOException $e) {
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Database error: ' . $e->getMessage()
-        ]);
-    }
-    exit;
-}
+        $stmt->execute([$user['user_id']]);
+        $teacherId = $stmt->fetchColumn();
 
-// If action is not recognized
-echo json_encode([
-    'success' => false, 
-    'message' => 'Invalid action or insufficient permissions'
-]);
-exit;
-?>
+        if ($teacherId) {
+            // Stats
+            $dashboard['my_students'] = (int) $pdo->query("SELECT COUNT(*) FROM student WHERE teacher_id = $teacherId AND is_active = 1")->fetchColumn();
+            $dashboard['my_assessments'] = (int) $pdo->query("SELECT COUNT(*) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id JOIN student s ON ra.student_id = s.student_id WHERE s.teacher_id = $teacherId")->fetchColumn();
+            $dashboard['class_avg_wcpm'] = (float) $pdo->query("SELECT AVG(ar.wcpm) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id JOIN student s ON ra.student_id = s.student_id WHERE s.teacher_id = $teacherId AND ar.wcpm > 0")->fetchColumn();
+            $stmt = $pdo->prepare('
+                SELECT COUNT(DISTINCT s.student_id) as total
+                FROM student s
+                JOIN reading_activity ra ON s.student_id = ra.student_id
+                JOIN assessment_result ar ON ra.activity_id = ar.activity_id
+                WHERE s.teacher_id = :teacher_id
+                AND s.is_active = 1
+                AND (ar.reading_level LIKE "%Low Emerging%" OR ar.reading_level = "Frustration")
+                AND ar.assessed_at = (
+                    SELECT MAX(ar2.assessed_at)
+                    FROM reading_activity ra2
+                    JOIN assessment_result ar2 ON ra2.activity_id = ar2.activity_id
+                    WHERE ra2.student_id = s.student_id
+                )
+            ');
+            $stmt->execute([':teacher_id' => $teacherId]);
+            $studentsBelow = $stmt->fetch();
+            $dashboard['students_below'] = $studentsBelow ? (int) $studentsBelow['total'] : 0;
+            $dashboard['avg_accuracy'] = (int) $pdo->query("SELECT ROUND(AVG(ar.accuracy_percentage)) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id JOIN student s ON ra.student_id = s.student_id WHERE s.teacher_id = $teacherId")->fetchColumn();
+
+            // Recent Assessments
+            $stmt = $pdo->query("
+                SELECT 
+                    CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                    m.title AS material_title,
+                    ar.accuracy_percentage,
+                    ar.assessed_at
+                FROM assessment_result ar 
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+                JOIN student s ON ra.student_id = s.student_id 
+                LEFT JOIN reading_material m ON ra.material_id = m.material_id
+                WHERE s.teacher_id = $teacherId 
+                ORDER BY ar.assessed_at DESC LIMIT 5
+            ");
+            $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Class Performance (Time Series for Chart)
+            $stmt = $pdo->query("
+                SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
+                FROM assessment_result ar 
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+                JOIN student s ON ra.student_id = s.student_id 
+                WHERE s.teacher_id = $teacherId 
+                GROUP BY DATE(ar.assessed_at) 
+                ORDER BY DATE(ar.assessed_at) ASC LIMIT 7
+            ");
+            $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Student Overview (Teacher)
+            $stmt = $pdo->query("
+                SELECT 
+                    s.lrn, 
+                    s.first_name, 
+                    s.last_name, 
+                    c.grade_level,
+                    COUNT(ar.assessment_id) as assessment_count,
+                    AVG(ar.wcpm) as avg_wcpm,
+                    AVG(ar.accuracy_percentage) as avg_accuracy,
+                    MAX(ar.assessed_at) as last_assessed,
+                    (SELECT ar2.reading_level 
+                     FROM assessment_result ar2 
+                     JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id 
+                     WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL
+                     ORDER BY ar2.assessed_at DESC LIMIT 1) as reading_level
+                FROM student s
+                LEFT JOIN class c ON s.class_id = c.class_id
+                LEFT JOIN reading_activity ra ON s.student_id = ra.student_id
+                LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
+                WHERE s.teacher_id = $teacherId AND s.is_active = 1
+                GROUP BY s.student_id, s.lrn, s.first_name, s.last_name, c.grade_level
+                ORDER BY s.first_name ASC
+                LIMIT 10
+            ");
+            $dashboard['recent_students'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        
+        sendJson(['success' => true, 'dashboard' => $dashboard]);
+    }
+    
+    sendJson(['success' => false, 'message' => 'Invalid action']);
+
+} catch (Exception $e) {
+    sendJson(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+}
