@@ -595,8 +595,26 @@ function importStudents(array $rows, int $teacherId): array {
 function getOrCreateCategory(string $gradeLevel): int {
     global $pdo;
     
-    $stmt = $pdo->prepare('SELECT category_id FROM student_category WHERE grade_level = :grade_level LIMIT 1');
-    $stmt->execute([':grade_level' => $gradeLevel]);
+    // 1. Prevent blank grades from flooding the database
+    $gradeLevel = trim($gradeLevel);
+    if (empty($gradeLevel)) {
+        $gradeLevel = 'Uncategorized'; // Or set to a default like 'Grade 1'
+    }
+    
+    $schoolYear = date('Y') . '-' . (date('Y') + 1);
+    
+    // 2. FIX: Check BOTH grade_level AND school_year
+    $stmt = $pdo->prepare('
+        SELECT category_id FROM student_category 
+        WHERE grade_level = :grade_level AND school_year = :school_year 
+        LIMIT 1
+    ');
+    
+    $stmt->execute([
+        ':grade_level' => $gradeLevel,
+        ':school_year' => $schoolYear
+    ]);
+    
     $category = $stmt->fetch();
     
     if ($category) {
@@ -604,7 +622,6 @@ function getOrCreateCategory(string $gradeLevel): int {
     }
     
     $stmt = $pdo->prepare('INSERT INTO student_category (grade_level, school_year) VALUES (:grade_level, :school_year)');
-    $schoolYear = date('Y') . '-' . (date('Y') + 1);
     $stmt->execute([
         ':grade_level' => $gradeLevel,
         ':school_year' => $schoolYear
@@ -616,20 +633,30 @@ function getOrCreateCategory(string $gradeLevel): int {
 function getOrCreateClass(int $teacherId, string $gradeLevel, string $section): ?int {
     global $pdo;
     
+    $section = trim($section);
     if (empty($section)) {
         return null;
     }
     
+    $schoolYear = date('Y') . '-' . (date('Y') + 1);
+    
+    // 3. FIX: Check school_year here as well so classes don't mix across years
     $stmt = $pdo->prepare('
         SELECT class_id FROM class 
-        WHERE teacher_id = :teacher_id AND grade_level = :grade_level AND section = :section
+        WHERE teacher_id = :teacher_id 
+          AND grade_level = :grade_level 
+          AND section = :section 
+          AND school_year = :school_year
         LIMIT 1
     ');
+    
     $stmt->execute([
         ':teacher_id' => $teacherId,
         ':grade_level' => $gradeLevel,
-        ':section' => $section
+        ':section' => $section,
+        ':school_year' => $schoolYear
     ]);
+    
     $class = $stmt->fetch();
     
     if ($class) {
@@ -640,7 +667,7 @@ function getOrCreateClass(int $teacherId, string $gradeLevel, string $section): 
         INSERT INTO class (teacher_id, grade_level, section, school_year) 
         VALUES (:teacher_id, :grade_level, :section, :school_year)
     ');
-    $schoolYear = date('Y') . '-' . (date('Y') + 1);
+    
     $stmt->execute([
         ':teacher_id' => $teacherId,
         ':grade_level' => $gradeLevel,

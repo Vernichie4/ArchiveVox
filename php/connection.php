@@ -2,11 +2,12 @@
 
 function getDbConfig(): array {
     return [
-        'host' => getenv('DB_HOST') ?: '127.0.0.1',
-        'port' => getenv('DB_PORT') ?: '3307',  // ✅ Changed from 3306 to 3307
-        'name' => getenv('DB_NAME') ?: 'archivevox',
-        'user' => getenv('DB_USER') ?: 'root',
-        'pass' => getenv('DB_PASS') ?: '',
+        // Checks Railway first, then custom DB env, then falls back to local XAMPP
+        'host' => getenv('MYSQLHOST') ?: getenv('DB_HOST') ?: '127.0.0.1',
+        'port' => getenv('MYSQLPORT') ?: getenv('DB_PORT') ?: '3307',  
+        'name' => getenv('MYSQLDATABASE') ?: getenv('DB_NAME') ?: 'archivevox',
+        'user' => getenv('MYSQLUSER') ?: getenv('DB_USER') ?: 'root',
+        'pass' => getenv('MYSQLPASSWORD') ?: getenv('DB_PASS') ?: '',
         'charset' => getenv('DB_CHARSET') ?: 'utf8mb4',
     ];
 }
