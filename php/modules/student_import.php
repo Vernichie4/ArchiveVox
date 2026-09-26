@@ -146,17 +146,20 @@ function parseXlsxFile(string $filePath): array {
     debugLog('Shared strings loaded: ' . count($sharedStrings));
 
     // ------------------------------------------------------------
-    // Read worksheet
+    // Read worksheet dynamically
     // ------------------------------------------------------------
-    $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
-
-    if ($sheetXml === false) {
-        $sheetXml = $zip->getFromName('xl/worksheets/sheet.xml');
+    $sheetXml = null;
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $filename = $zip->getNameIndex($i);
+        if (preg_match('#^xl/worksheets/sheet\d+\.xml$#i', $filename)) {
+            $sheetXml = $zip->getFromIndex($i);
+            break; 
+        }
     }
-
+    
     $zip->close();
 
-    if ($sheetXml === false) {
+    if ($sheetXml === null || $sheetXml === false) {
         throw new RuntimeException('Unable to find worksheet data in Excel file.');
     }
 
@@ -321,62 +324,40 @@ function normalizeImportRows(array $rows): array {
         'birthdate' => ['birthdate', 'birth date', 'dob', 'date of birth', 'birthday', 'birthdate']
     ];
     
-    foreach ($headerCells as $index => $cell) {
+foreach ($headerCells as $index => $cell) {
         $cellClean = strtolower(trim(str_replace(['_', '-', ' '], '', $cell)));
+        $matched = false;
+
+        // 1. Exact Match Check (Prioritized)
         foreach ($possibleHeaders as $field => $keywords) {
             foreach ($keywords as $keyword) {
                 $keywordClean = strtolower(trim(str_replace(['_', '-', ' '], '', $keyword)));
-                if ($cellClean === $keywordClean || strpos($cellClean, $keywordClean) !== false) {
-                    $isHeaderRow = true;
-                    $headerMap[$field] = $index;
-                    debugLog("Mapped '$field' to column $index ('$cell')");
-                    break 2;
-                }
-            }
-        }
-    }
-    
-    foreach ($headerCells as $index => $cell) {
-
-        $cellClean = strtolower(
-            trim(
-                str_replace(['_', '-', ' '], '', $cell)
-            )
-        );
-
-        // ------------------------------------------------------------
-        // FIRST: Exact header matching
-        // ------------------------------------------------------------
-        // This is important because broad substring matching can
-        // incorrectly identify "middle_name" as "id".
-        // ------------------------------------------------------------
-
-        foreach ($possibleHeaders as $field => $keywords) {
-
-            foreach ($keywords as $keyword) {
-
-                $keywordClean = strtolower(
-                    trim(
-                        str_replace(['_', '-', ' '], '', $keyword)
-                    )
-                );
-
                 if ($cellClean === $keywordClean) {
-
                     $isHeaderRow = true;
                     $headerMap[$field] = $index;
-
-                    debugLog(
-                        "Exact header mapping: '$field' => column $index ('$cell')"
-                    );
-
+                    debugLog("Exact header mapping: '$field' => column $index ('$cell')");
+                    $matched = true;
                     break 2;
                 }
             }
         }
+
+        // 2. Substring Match Check (Only runs if no exact match was found)
+        if (!$matched) {
+            foreach ($possibleHeaders as $field => $keywords) {
+                foreach ($keywords as $keyword) {
+                    $keywordClean = strtolower(trim(str_replace(['_', '-', ' '], '', $keyword)));
+                    if (strpos($cellClean, $keywordClean) !== false) {
+                        $isHeaderRow = true;
+                        $headerMap[$field] = $index;
+                        debugLog("Substring header mapping: '$field' => column $index ('$cell')");
+                        break 2;
+                    }
+                }
+            }
+        }
     }
-    
-    debugLog('isHeaderRow: ' . ($isHeaderRow ? 'YES' : 'NO'));
+
     debugLog('headerMap: ' . print_r($headerMap, true));
     
     $dataRows = $isHeaderRow ? array_slice($rows, 1) : $rows;
@@ -497,241 +478,116 @@ function importStudents(array $rows, int $teacherId): array {
     // Get default category_id
     $stmt = $pdo->prepare("SELECT category_id FROM student_category LIMIT 1");
     $stmt->execute();
-
     $defaultCategory = $stmt->fetch();
+    $defaultCategoryId = $defaultCategory ? $defaultCategory['category_id'] : 1;
 
-    $defaultCategoryId = $defaultCategory
-        ? $defaultCategory['category_id']
-        : 1;
+    try {
+        // Start transaction: If any insertion fails, the entire batch is rolled back
+        $pdo->beginTransaction();
 
-    foreach ($rows as $row) {
+        foreach ($rows as $row) {
+            $lrn = trim((string) ($row['lrn'] ?? ''));
+            $firstName = trim((string) ($row['first_name'] ?? ''));
+            $lastName = trim((string) ($row['last_name'] ?? ''));
+            $middleName = trim((string) ($row['middle_name'] ?? ''));
 
-        $lrn = trim((string) ($row['lrn'] ?? ''));
-        $firstName = trim((string) ($row['first_name'] ?? ''));
-        $lastName = trim((string) ($row['last_name'] ?? ''));
-        $middleName = trim((string) ($row['middle_name'] ?? ''));
+            $rawGrade = trim((string) ($row['grade_level'] ?? ''));
+            if (is_numeric($rawGrade)) {
+                $gradeLevel = 'Grade ' . $rawGrade;
+            } elseif (stripos($rawGrade, 'Grade') === false && !empty($rawGrade)) {
+                $gradeLevel = 'Grade ' . $rawGrade; 
+            } else {
+                $gradeLevel = $rawGrade ?: 'Grade 2';
+            }
 
-        $rawGrade = trim((string) ($row['grade_level'] ?? ''));
-        
-        if (is_numeric($rawGrade)) {
-            $gradeLevel = 'Grade ' . $rawGrade; // Turns "3" into "Grade 3"
-        } elseif (stripos($rawGrade, 'Grade') === false && !empty($rawGrade)) {
-            $gradeLevel = 'Grade ' . $rawGrade; 
-        } else {
-            $gradeLevel = $rawGrade ?: 'Grade 2'; // Fallback
-        }
+            $rawSection = trim((string) ($row['section'] ?? ''));
+            $section = !empty($rawSection) ? ucwords(strtolower($rawSection)) : '';
 
-        // 2. EXTRACT AND FORMAT SECTION
-        $rawSection = trim((string) ($row['section'] ?? ''));
-        $section = !empty($rawSection) ? ucwords(strtolower($rawSection)) : ''; // Turns "MAGNOLIA" into "Magnolia"
+            // Apply normalization functions cleanly
+            $genderNormalized = normalizeGender((string)($row['gender'] ?? ''));
+            $birthdateNormalized = normalizeDate((string)($row['birthdate'] ?? ''));
 
-        $gender = trim((string) ($row['gender'] ?? ''));
-        $birthdate = trim((string) ($row['birthdate'] ?? ''));
-
-        // --------------------------------------------------------
-        // Required fields
-        // --------------------------------------------------------
-        if ($firstName === '' || $lastName === '') {
-            $skippedRecords++;
-            $errors[] = 'Row missing required fields: ' . $firstName . ' ' . $lastName;
-            continue;
-        }
-
-        // --------------------------------------------------------
-        // Check if LRN already exists
-        // --------------------------------------------------------
-
-        if (!empty($lrn)) {
-            $stmt = $pdo->prepare('SELECT student_id FROM student WHERE lrn = :lrn');
-            $stmt->execute([':lrn' => $lrn]);
-            if ($stmt->fetch()) {
+            // Skip rows missing names
+            if ($firstName === '' || $lastName === '') {
                 $skippedRecords++;
+                $errors[] = "Row skipped: Missing First or Last Name.";
                 continue;
             }
-        }
 
-        // --------------------------------------------------------
-        // Get category_id for grade level
-        // --------------------------------------------------------
-
-        $categoryId = $defaultCategoryId;
-
-        if (!empty($gradeLevel)) {
-
-            $stmt = $pdo->prepare(
-                "SELECT category_id
-                 FROM student_category
-                 WHERE grade_level = ?"
-            );
-
-            $stmt->execute([
-                $gradeLevel
-            ]);
-
-            $category = $stmt->fetch();
-
-            if ($category) {
-                $categoryId = $category['category_id'];
-            }
-        }
-
-        // Get or create class for Grade Level + Section
-        $categoryId = getOrCreateCategory($gradeLevel);
-
-        $classId = null;
-        if (!empty($section)) {
-            $classId = getOrCreateClass($teacherId, $gradeLevel, $section);
-        }
-
-        // --------------------------------------------------------
-        // Normalize gender
-        // --------------------------------------------------------
-
-        $genderNormalized = null;
-
-        if (!empty($gender)) {
-
-            $g = strtolower(trim($gender));
-
-            if (in_array(
-                $g,
-                ['male', 'm', 'boy', '1']
-            )) {
-                $genderNormalized = 'Male';
-
-            } elseif (in_array(
-                $g,
-                ['female', 'f', 'girl', '2']
-            )) {
-                $genderNormalized = 'Female';
-            }
-        }
-
-        // --------------------------------------------------------
-        // Normalize birthdate
-        // --------------------------------------------------------
-
-        $birthdateNormalized = null;
-
-        if (!empty($birthdate)) {
-
-            // Remove time component if present
-            // Example:
-            // 2015-09-25 00:00:00
-            // becomes:
-            // 2015-09-25
-
-            $birthdate = preg_replace(
-                '/\s+00:00:00$/',
-                '',
-                $birthdate
-            );
-
-            $formats = [
-                'Y-m-d',
-                'm/d/Y',
-                'm-d-Y',
-                'd/m/Y',
-                'd-m-Y'
-            ];
-
-            foreach ($formats as $format) {
-
-                $date = DateTime::createFromFormat(
-                    $format,
-                    $birthdate
-                );
-
-                if ($date !== false) {
-
-                    $birthdateNormalized =
-                        $date->format('Y-m-d');
-
-                    break;
+            if (!empty($lrn)) {
+                $stmt = $pdo->prepare('SELECT student_id FROM student WHERE lrn = :lrn');
+                $stmt->execute([':lrn' => $lrn]);
+                if ($stmt->fetch()) {
+                    $skippedRecords++;
+                    continue; // Skip if LRN already exists
                 }
             }
-        }
 
-        // --------------------------------------------------------
-        // Insert user and student
-        // --------------------------------------------------------
+            $categoryId = $defaultCategoryId;
+            if (!empty($gradeLevel)) {
+                $stmt = $pdo->prepare("SELECT category_id FROM student_category WHERE grade_level = ?");
+                $stmt->execute([$gradeLevel]);
+                $category = $stmt->fetch();
+                if ($category) {
+                    $categoryId = $category['category_id'];
+                }
+            }
 
-        try {
-            // 1. CREATE THE USER ACCOUNT FIRST
-            // We use the LRN as the username. If there is no LRN, we generate one from their name.
+            $categoryId = getOrCreateCategory($gradeLevel);
+            $classId = null;
+            if (!empty($section)) {
+                $classId = getOrCreateClass($teacherId, $gradeLevel, $section);
+            }
+
             $baseUsername = !empty($lrn) ? $lrn : strtolower(preg_replace('/[^a-z0-9]/i', '', $firstName . $lastName)) . rand(100, 999);
-            
-            // 1. CREATE THE USER ACCOUNT FIRST
-            $baseUsername = !empty($lrn) ? $lrn : strtolower(preg_replace('/[^a-z0-9]/i', '', $firstName . $lastName)) . rand(100, 999);
-
-            // Set the password to the LRN (or fallback to 'archivevox123' if no LRN exists)
             $passwordString = !empty($lrn) ? $lrn : 'archivevox123';
             $defaultPassword = password_hash($passwordString, PASSWORD_DEFAULT);
 
-            $userStmt = $pdo->prepare("
-                INSERT INTO user (username, password, role, status) 
-                VALUES (?, ?, 'student', 'Active')
-            ");
+            $userStmt = $pdo->prepare("INSERT INTO user (username, password, role, status) VALUES (?, ?, 'student', 'Active')");
             $userStmt->execute([$baseUsername, $defaultPassword]);
-            
-            // Grab the newly created user_id
             $userId = $pdo->lastInsertId();
 
-            // 2. CREATE THE STUDENT PROFILE
             $stmt = $pdo->prepare('
                 INSERT INTO student (
-                    user_id,
-                    teacher_id,
-                    category_id,
-                    class_id,
-                    lrn,
-                    first_name,
-                    middle_name,
-                    last_name,
-                    gender,
-                    birthdate,
-                    is_active
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    user_id, teacher_id, category_id, class_id, lrn,
+                    first_name, middle_name, last_name, gender, birthdate, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ');
 
             $stmt->execute([
-                $userId,
-                $teacherId,
-                $categoryId,
-                $classId,
-                $lrn ?: null,
-                $firstName,
-                $middleName ?: null,
-                $lastName,
-                $genderNormalized,
-                $birthdateNormalized
+                $userId, $teacherId, $categoryId, $classId, $lrn ?: null,
+                $firstName, $middleName ?: null, $lastName, $genderNormalized, $birthdateNormalized
             ]);
 
             $successfulImports++;
-
-        } catch (PDOException $e) {
-            $skippedRecords++;
-
-            $errors[] =
-                'Database error for '
-                . $firstName . ' '
-                . $lastName
-                . ': '
-                . $e->getMessage();
         }
+
+        // Commit all inserts to the database if the loop finishes without fatal errors
+        $pdo->commit();
+
+    } catch (PDOException $e) {
+        // Rollback all database changes if an insert fails (prevents ghost users)
+        $pdo->rollBack();
+        return [
+            'success' => false,
+            'summary' => [
+                'total' => count($rows),
+                'imported' => 0,
+                'skipped' => count($rows),
+                'errors' => 1
+            ],
+            'errors' => ['Database transaction failed. All changes in this upload were safely undone. Error: ' . $e->getMessage()]
+        ];
     }
 
     return [
         'success' => true,
-
         'summary' => [
             'total' => count($rows),
             'imported' => $successfulImports,
             'skipped' => $skippedRecords,
             'errors' => count($errors)
         ],
-
         'errors' => $errors
     ];
 }
@@ -808,10 +664,14 @@ function normalizeGender(string $value): ?string {
 
 function normalizeDate(string $value): ?string {
     $value = trim($value);
-    if ($value === '') {
-        return null;
+    if ($value === '') return null;
+
+    // Handle numeric Excel serial dates
+    if (is_numeric($value)) {
+        $unixDate = ($value - 25569) * 86400;
+        return gmdate("Y-m-d", $unixDate);
     }
-    
+
     $formats = ['Y-m-d', 'm/d/Y', 'm-d-Y', 'd/m/Y', 'd-m-Y', 'Y/m/d'];
     foreach ($formats as $format) {
         $date = DateTimeImmutable::createFromFormat($format, $value);
@@ -837,9 +697,9 @@ function normalizeDate(string $value): ?string {
         $action = $_GET['action'] ?? '';
         $method = $_SERVER['REQUEST_METHOD'];
         
-        // Get teacher_id from session
+        // Get teacher_id from session or POST request (for Admin/Principal)
         $currentUser = currentUser();
-        $teacherId = $currentUser['teacher_id'] ?? null;
+        $teacherId = $_POST['teacher_id'] ?? $currentUser['teacher_id'] ?? null;
         
         // For test action, allow without login
         if ($action !== 'test' && !$teacherId) {

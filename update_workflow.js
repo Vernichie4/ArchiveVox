@@ -102,7 +102,7 @@ function renderStep4ReviewComprehension() {
             </div>
 
             <div class="button-group">
-                <button id="back-to-record-btn" class="btn btn-secondary">← Back to Recording</button>
+                <button id="back-to-record-btn" class="btn btn-secondary">Back to Recording</button>
                 <button id="confirm-comprehension-btn" class="btn btn-primary">✓ Confirm & Save Assessment</button>
             </div>
 

@@ -9093,3 +9093,3153 @@ Array
 
 [2026-09-22 21:04:01] Preview complete. Valid: 10, Errors: 0
 
+[2026-09-24 20:38:13] File uploaded: Random Students List.xlsx (5655 bytes)
+
+[2026-09-24 20:38:13] Parsing XLSX file: C:\xampp\tmp\php7509.tmp
+
+[2026-09-24 20:38:13] Shared strings loaded: 27
+
+[2026-09-24 20:38:13] Excel rows read: 6
+
+[2026-09-24 20:38:13] normalizeImportRows called with 6 rows
+
+[2026-09-24 20:38:13] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-24 20:38:13] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-24 20:38:13] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-24 20:38:13] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-24 20:38:13] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-24 20:38:13] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-24 20:38:13] Mapped 'section' to column 5 ('Section')
+
+[2026-09-24 20:38:13] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-24 20:38:13] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-24 20:38:13] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-24 20:38:13] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-24 20:38:13] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-24 20:38:13] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-24 20:38:13] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-24 20:38:13] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-24 20:38:13] isHeaderRow: YES
+
+[2026-09-24 20:38:13] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-24 20:38:13] Data rows to process: 5
+
+[2026-09-24 20:38:13] Row 1 normalized: Array
+(
+    [lrn] => 1.01000112233E11
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7.0
+    [section] => Mabini
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 2 normalized: Array
+(
+    [lrn] => 1.02000223344E11
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8.0
+    [section] => Rizal
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 3 normalized: Array
+(
+    [lrn] => 1.03000334455E11
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9.0
+    [section] => Bonifacio
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 4 normalized: Array
+(
+    [lrn] => 1.04000445566E11
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10.0
+    [section] => Aguinaldo
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 5 normalized: Array
+(
+    [lrn] => 1.05000556677E11
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11.0
+    [section] => Quezon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Normalization complete. Returning 5 rows
+
+[2026-09-24 20:38:13] Normalized rows: 5
+
+[2026-09-24 20:38:13] previewStudents called with 5 rows
+
+[2026-09-24 20:38:13] Previewing row 1: Array
+(
+    [lrn] => 1.01000112233E11
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7.0
+    [section] => Mabini
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 2 valid: Juan Dela Cruz
+
+[2026-09-24 20:38:13] Previewing row 2: Array
+(
+    [lrn] => 1.02000223344E11
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8.0
+    [section] => Rizal
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 3 valid: Maria Santos
+
+[2026-09-24 20:38:13] Previewing row 3: Array
+(
+    [lrn] => 1.03000334455E11
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9.0
+    [section] => Bonifacio
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 4 valid: Jose Reyes
+
+[2026-09-24 20:38:13] Previewing row 4: Array
+(
+    [lrn] => 1.04000445566E11
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10.0
+    [section] => Aguinaldo
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 5 valid: Ana Mendoza
+
+[2026-09-24 20:38:13] Previewing row 5: Array
+(
+    [lrn] => 1.05000556677E11
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11.0
+    [section] => Quezon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-24 20:38:13] Row 6 valid: Pedro Bautista
+
+[2026-09-24 20:38:13] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 13:53:39] File uploaded: Random Students List.xlsx (7958 bytes)
+
+[2026-09-26 13:53:39] Parsing XLSX file: C:\xampp\tmp\phpC9F5.tmp
+
+[2026-09-26 13:53:39] Shared strings loaded: 23
+
+[2026-09-26 13:53:39] Excel rows read: 6
+
+[2026-09-26 13:53:39] normalizeImportRows called with 6 rows
+
+[2026-09-26 13:53:39] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 13:53:39] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 13:53:39] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 13:53:39] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 13:53:39] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 13:53:39] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 13:53:39] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 13:53:39] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 13:53:39] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 13:53:39] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 13:53:39] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 13:53:39] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 13:53:39] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 13:53:39] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 13:53:39] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 13:53:39] isHeaderRow: YES
+
+[2026-09-26 13:53:39] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 13:53:39] Data rows to process: 5
+
+[2026-09-26 13:53:39] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Normalization complete. Returning 5 rows
+
+[2026-09-26 13:53:39] Normalized rows: 5
+
+[2026-09-26 13:53:39] previewStudents called with 5 rows
+
+[2026-09-26 13:53:39] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 13:53:39] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 3 valid: Maria Santos
+
+[2026-09-26 13:53:39] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 4 valid: Jose Reyes
+
+[2026-09-26 13:53:39] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 5 valid: Ana Mendoza
+
+[2026-09-26 13:53:39] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 13:53:39] Row 6 valid: Pedro Bautista
+
+[2026-09-26 13:53:39] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 14:21:29] File uploaded: Random Students List.xlsx (7958 bytes)
+
+[2026-09-26 14:21:29] Parsing XLSX file: C:\xampp\tmp\php43FF.tmp
+
+[2026-09-26 14:21:29] Shared strings loaded: 23
+
+[2026-09-26 14:21:29] Excel rows read: 6
+
+[2026-09-26 14:21:29] normalizeImportRows called with 6 rows
+
+[2026-09-26 14:21:29] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 14:21:29] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 14:21:29] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 14:21:29] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 14:21:29] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 14:21:29] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 14:21:29] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 14:21:29] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 14:21:29] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 14:21:29] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 14:21:29] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 14:21:29] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 14:21:29] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 14:21:29] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 14:21:29] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 14:21:29] isHeaderRow: YES
+
+[2026-09-26 14:21:29] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 14:21:29] Data rows to process: 5
+
+[2026-09-26 14:21:29] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Normalization complete. Returning 5 rows
+
+[2026-09-26 14:21:29] Normalized rows: 5
+
+[2026-09-26 14:21:29] previewStudents called with 5 rows
+
+[2026-09-26 14:21:29] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 14:21:29] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 3 valid: Maria Santos
+
+[2026-09-26 14:21:29] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 4 valid: Jose Reyes
+
+[2026-09-26 14:21:29] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 5 valid: Ana Mendoza
+
+[2026-09-26 14:21:29] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:21:29] Row 6 valid: Pedro Bautista
+
+[2026-09-26 14:21:29] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 14:35:00] File uploaded: Random Students List.xlsx (7958 bytes)
+
+[2026-09-26 14:35:00] Parsing XLSX file: C:\xampp\tmp\phpA57F.tmp
+
+[2026-09-26 14:35:00] Shared strings loaded: 23
+
+[2026-09-26 14:35:00] Excel rows read: 6
+
+[2026-09-26 14:35:00] normalizeImportRows called with 6 rows
+
+[2026-09-26 14:35:00] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 14:35:00] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 14:35:00] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 14:35:00] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 14:35:00] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 14:35:00] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 14:35:00] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 14:35:00] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 14:35:00] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 14:35:00] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 14:35:00] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 14:35:00] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 14:35:00] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 14:35:00] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 14:35:00] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 14:35:00] isHeaderRow: YES
+
+[2026-09-26 14:35:00] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 14:35:00] Data rows to process: 5
+
+[2026-09-26 14:35:00] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Normalization complete. Returning 5 rows
+
+[2026-09-26 14:35:00] Normalized rows: 5
+
+[2026-09-26 14:35:00] previewStudents called with 5 rows
+
+[2026-09-26 14:35:00] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 14:35:00] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 3 valid: Maria Santos
+
+[2026-09-26 14:35:00] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 4 valid: Jose Reyes
+
+[2026-09-26 14:35:00] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 5 valid: Ana Mendoza
+
+[2026-09-26 14:35:00] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:35:00] Row 6 valid: Pedro Bautista
+
+[2026-09-26 14:35:00] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 14:37:50] File uploaded: Random Students List.xlsx (7950 bytes)
+
+[2026-09-26 14:37:50] Parsing XLSX file: C:\xampp\tmp\php407E.tmp
+
+[2026-09-26 14:37:50] Shared strings loaded: 23
+
+[2026-09-26 14:37:50] Excel rows read: 6
+
+[2026-09-26 14:37:50] normalizeImportRows called with 6 rows
+
+[2026-09-26 14:37:50] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 14:37:50] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 14:37:50] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 14:37:50] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 14:37:50] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 14:37:50] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 14:37:50] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 14:37:50] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 14:37:50] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 14:37:50] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 14:37:50] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 14:37:50] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 14:37:50] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 14:37:50] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 14:37:50] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 14:37:50] isHeaderRow: YES
+
+[2026-09-26 14:37:50] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 14:37:50] Data rows to process: 5
+
+[2026-09-26 14:37:50] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Normalization complete. Returning 5 rows
+
+[2026-09-26 14:37:50] Normalized rows: 5
+
+[2026-09-26 14:37:50] previewStudents called with 5 rows
+
+[2026-09-26 14:37:50] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 14:37:50] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 3 valid: Maria Santos
+
+[2026-09-26 14:37:50] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 4 valid: Jose Reyes
+
+[2026-09-26 14:37:50] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 5 valid: Ana Mendoza
+
+[2026-09-26 14:37:50] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:37:50] Row 6 valid: Pedro Bautista
+
+[2026-09-26 14:37:50] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 14:38:18] File uploaded: Random Students List.xlsx (7950 bytes)
+
+[2026-09-26 14:38:18] Parsing XLSX file: C:\xampp\tmp\phpAD62.tmp
+
+[2026-09-26 14:38:18] Shared strings loaded: 23
+
+[2026-09-26 14:38:18] Excel rows read: 6
+
+[2026-09-26 14:38:18] normalizeImportRows called with 6 rows
+
+[2026-09-26 14:38:18] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 14:38:18] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 14:38:18] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 14:38:18] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 14:38:18] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 14:38:18] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 14:38:18] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 14:38:18] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 14:38:18] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 14:38:18] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 14:38:18] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 14:38:18] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 14:38:18] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 14:38:18] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 14:38:18] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 14:38:18] isHeaderRow: YES
+
+[2026-09-26 14:38:18] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 14:38:18] Data rows to process: 5
+
+[2026-09-26 14:38:18] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Normalization complete. Returning 5 rows
+
+[2026-09-26 14:38:18] Normalized rows: 5
+
+[2026-09-26 14:38:18] previewStudents called with 5 rows
+
+[2026-09-26 14:38:18] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 7
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 14:38:18] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 8
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 3 valid: Maria Santos
+
+[2026-09-26 14:38:18] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 9
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 4 valid: Jose Reyes
+
+[2026-09-26 14:38:18] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 10
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 5 valid: Ana Mendoza
+
+[2026-09-26 14:38:18] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 11
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:38:18] Row 6 valid: Pedro Bautista
+
+[2026-09-26 14:38:18] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 14:39:49] File uploaded: Random Students List.xlsx (7951 bytes)
+
+[2026-09-26 14:39:49] Parsing XLSX file: C:\xampp\tmp\php1167.tmp
+
+[2026-09-26 14:39:49] Shared strings loaded: 23
+
+[2026-09-26 14:39:49] Excel rows read: 6
+
+[2026-09-26 14:39:49] normalizeImportRows called with 6 rows
+
+[2026-09-26 14:39:49] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 14:39:49] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 14:39:49] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 14:39:49] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 14:39:49] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 14:39:49] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 14:39:49] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 14:39:49] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 14:39:49] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 14:39:49] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 14:39:49] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 14:39:49] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 14:39:49] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 14:39:49] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 14:39:49] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 14:39:49] isHeaderRow: YES
+
+[2026-09-26 14:39:49] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 14:39:49] Data rows to process: 5
+
+[2026-09-26 14:39:49] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:49] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:49] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:49] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:49] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:49] Normalization complete. Returning 5 rows
+
+[2026-09-26 14:39:49] Normalized rows: 5
+
+[2026-09-26 14:39:49] previewStudents called with 5 rows
+
+[2026-09-26 14:39:49] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:49] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 14:39:49] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:49] Row 3 valid: Maria Santos
+
+[2026-09-26 14:39:49] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:50] Row 4 valid: Jose Reyes
+
+[2026-09-26 14:39:50] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:50] Row 5 valid: Ana Mendoza
+
+[2026-09-26 14:39:50] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:39:50] Row 6 valid: Pedro Bautista
+
+[2026-09-26 14:39:50] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 14:42:33] File uploaded: Random Students List.xlsx (7951 bytes)
+
+[2026-09-26 14:42:33] Parsing XLSX file: C:\xampp\tmp\php8FB7.tmp
+
+[2026-09-26 14:42:33] Shared strings loaded: 23
+
+[2026-09-26 14:42:33] Excel rows read: 6
+
+[2026-09-26 14:42:33] normalizeImportRows called with 6 rows
+
+[2026-09-26 14:42:33] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 14:42:33] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 14:42:33] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 14:42:33] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 14:42:33] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 14:42:33] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 14:42:33] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 14:42:33] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 14:42:33] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 14:42:33] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 14:42:33] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 14:42:33] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 14:42:33] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 14:42:33] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 14:42:33] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 14:42:33] isHeaderRow: YES
+
+[2026-09-26 14:42:33] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 14:42:33] Data rows to process: 5
+
+[2026-09-26 14:42:33] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Normalization complete. Returning 5 rows
+
+[2026-09-26 14:42:33] Normalized rows: 5
+
+[2026-09-26 14:42:33] previewStudents called with 5 rows
+
+[2026-09-26 14:42:33] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 14:42:33] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 3 valid: Maria Santos
+
+[2026-09-26 14:42:33] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 4 valid: Jose Reyes
+
+[2026-09-26 14:42:33] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 5 valid: Ana Mendoza
+
+[2026-09-26 14:42:33] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 14:42:33] Row 6 valid: Pedro Bautista
+
+[2026-09-26 14:42:33] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 15:32:30] File uploaded: Random Students List.xlsx (7951 bytes)
+
+[2026-09-26 15:32:30] Parsing XLSX file: C:\xampp\tmp\php4987.tmp
+
+[2026-09-26 15:32:30] Shared strings loaded: 23
+
+[2026-09-26 15:32:30] Excel rows read: 6
+
+[2026-09-26 15:32:30] normalizeImportRows called with 6 rows
+
+[2026-09-26 15:32:30] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 15:32:30] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 15:32:30] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 15:32:30] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 15:32:30] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 15:32:30] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 15:32:30] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 15:32:30] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 15:32:30] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 15:32:30] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 15:32:30] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 15:32:30] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 15:32:30] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 15:32:30] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 15:32:30] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 15:32:30] isHeaderRow: YES
+
+[2026-09-26 15:32:30] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 15:32:30] Data rows to process: 5
+
+[2026-09-26 15:32:30] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Normalization complete. Returning 5 rows
+
+[2026-09-26 15:32:30] Normalized rows: 5
+
+[2026-09-26 15:32:30] previewStudents called with 5 rows
+
+[2026-09-26 15:32:30] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 15:32:30] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 3 valid: Maria Santos
+
+[2026-09-26 15:32:30] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 4 valid: Jose Reyes
+
+[2026-09-26 15:32:30] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 5 valid: Ana Mendoza
+
+[2026-09-26 15:32:30] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:32:30] Row 6 valid: Pedro Bautista
+
+[2026-09-26 15:32:30] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 15:33:00] File uploaded: Random Students List.xlsx (7951 bytes)
+
+[2026-09-26 15:33:00] Parsing XLSX file: C:\xampp\tmp\phpBEB8.tmp
+
+[2026-09-26 15:33:00] Shared strings loaded: 23
+
+[2026-09-26 15:33:00] Excel rows read: 6
+
+[2026-09-26 15:33:00] normalizeImportRows called with 6 rows
+
+[2026-09-26 15:33:00] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 15:33:00] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 15:33:00] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 15:33:00] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 15:33:00] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 15:33:00] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 15:33:00] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 15:33:00] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 15:33:00] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 15:33:00] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 15:33:00] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 15:33:00] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 15:33:00] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 15:33:00] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 15:33:00] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 15:33:00] isHeaderRow: YES
+
+[2026-09-26 15:33:00] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 15:33:00] Data rows to process: 5
+
+[2026-09-26 15:33:00] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Normalization complete. Returning 5 rows
+
+[2026-09-26 15:33:00] Normalized rows: 5
+
+[2026-09-26 15:33:00] previewStudents called with 5 rows
+
+[2026-09-26 15:33:00] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 15:33:00] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 3 valid: Maria Santos
+
+[2026-09-26 15:33:00] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 4 valid: Jose Reyes
+
+[2026-09-26 15:33:00] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 5 valid: Ana Mendoza
+
+[2026-09-26 15:33:00] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 3
+    [section] => Liliw
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 15:33:00] Row 6 valid: Pedro Bautista
+
+[2026-09-26 15:33:00] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 16:04:34] File uploaded: Random Students List.xlsx (7949 bytes)
+
+[2026-09-26 16:04:34] Parsing XLSX file: C:\xampp\tmp\phpA613.tmp
+
+[2026-09-26 16:04:34] Shared strings loaded: 23
+
+[2026-09-26 16:04:34] Excel rows read: 6
+
+[2026-09-26 16:04:34] normalizeImportRows called with 6 rows
+
+[2026-09-26 16:04:34] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 16:04:34] Mapped 'lrn' to column 0 ('LRN')
+
+[2026-09-26 16:04:34] Mapped 'first_name' to column 1 ('First Name')
+
+[2026-09-26 16:04:34] Mapped 'last_name' to column 2 ('Last Name')
+
+[2026-09-26 16:04:34] Mapped 'middle_name' to column 3 ('Middle Name')
+
+[2026-09-26 16:04:34] Mapped 'grade_level' to column 4 ('Grade Level')
+
+[2026-09-26 16:04:34] Mapped 'section' to column 5 ('Section')
+
+[2026-09-26 16:04:34] Mapped 'gender' to column 6 ('Gender')
+
+[2026-09-26 16:04:34] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 16:04:34] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 16:04:34] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 16:04:34] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 16:04:34] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 16:04:34] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 16:04:34] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 16:04:34] isHeaderRow: YES
+
+[2026-09-26 16:04:34] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 16:04:34] Data rows to process: 5
+
+[2026-09-26 16:04:34] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Normalization complete. Returning 5 rows
+
+[2026-09-26 16:04:34] Normalized rows: 5
+
+[2026-09-26 16:04:34] previewStudents called with 5 rows
+
+[2026-09-26 16:04:34] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 16:04:34] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 3 valid: Maria Santos
+
+[2026-09-26 16:04:34] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 4 valid: Jose Reyes
+
+[2026-09-26 16:04:34] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 5 valid: Ana Mendoza
+
+[2026-09-26 16:04:34] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:04:34] Row 6 valid: Pedro Bautista
+
+[2026-09-26 16:04:34] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 16:25:15] File uploaded: Random Students List.xlsx (7949 bytes)
+
+[2026-09-26 16:25:15] Parsing XLSX file: C:\xampp\tmp\php97A1.tmp
+
+[2026-09-26 16:25:15] Shared strings loaded: 23
+
+[2026-09-26 16:25:15] Excel rows read: 6
+
+[2026-09-26 16:25:15] normalizeImportRows called with 6 rows
+
+[2026-09-26 16:25:15] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 16:25:15] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 16:25:15] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 16:25:15] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 16:25:15] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 16:25:15] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 16:25:15] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 16:25:15] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 16:25:15] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 16:25:15] Data rows to process: 5
+
+[2026-09-26 16:25:15] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Normalization complete. Returning 5 rows
+
+[2026-09-26 16:25:15] Normalized rows: 5
+
+[2026-09-26 16:25:15] previewStudents called with 5 rows
+
+[2026-09-26 16:25:15] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 16:25:15] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 3 valid: Maria Santos
+
+[2026-09-26 16:25:15] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 4 valid: Jose Reyes
+
+[2026-09-26 16:25:15] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 5 valid: Ana Mendoza
+
+[2026-09-26 16:25:15] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:25:15] Row 6 valid: Pedro Bautista
+
+[2026-09-26 16:25:15] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 16:29:34] File uploaded: Random Students List.xlsx (7949 bytes)
+
+[2026-09-26 16:29:34] Parsing XLSX file: C:\xampp\tmp\php8B2B.tmp
+
+[2026-09-26 16:29:34] Shared strings loaded: 23
+
+[2026-09-26 16:29:34] Excel rows read: 6
+
+[2026-09-26 16:29:34] normalizeImportRows called with 6 rows
+
+[2026-09-26 16:29:34] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 16:29:34] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 16:29:34] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 16:29:34] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 16:29:34] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 16:29:34] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 16:29:34] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 16:29:34] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 16:29:34] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 16:29:34] Data rows to process: 5
+
+[2026-09-26 16:29:34] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Normalization complete. Returning 5 rows
+
+[2026-09-26 16:29:34] Normalized rows: 5
+
+[2026-09-26 16:29:34] previewStudents called with 5 rows
+
+[2026-09-26 16:29:34] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 16:29:34] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 3 valid: Maria Santos
+
+[2026-09-26 16:29:34] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 4 valid: Jose Reyes
+
+[2026-09-26 16:29:34] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 5 valid: Ana Mendoza
+
+[2026-09-26 16:29:34] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:29:34] Row 6 valid: Pedro Bautista
+
+[2026-09-26 16:29:34] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 16:41:02] File uploaded: Random Students List.xlsx (7949 bytes)
+
+[2026-09-26 16:41:02] Parsing XLSX file: C:\xampp\tmp\phpB29.tmp
+
+[2026-09-26 16:41:02] Shared strings loaded: 23
+
+[2026-09-26 16:41:02] Excel rows read: 6
+
+[2026-09-26 16:41:02] normalizeImportRows called with 6 rows
+
+[2026-09-26 16:41:02] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-09-26 16:41:02] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 16:41:02] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 16:41:02] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 16:41:02] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 16:41:02] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 16:41:02] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 16:41:02] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 16:41:02] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-09-26 16:41:02] Data rows to process: 5
+
+[2026-09-26 16:41:02] Row 1 normalized: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 2 normalized: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 3 normalized: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 4 normalized: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 5 normalized: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Normalization complete. Returning 5 rows
+
+[2026-09-26 16:41:02] Normalized rows: 5
+
+[2026-09-26 16:41:02] previewStudents called with 5 rows
+
+[2026-09-26 16:41:02] Previewing row 1: Array
+(
+    [lrn] => 101000112233
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 16:41:02] Previewing row 2: Array
+(
+    [lrn] => 102000223344
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 3 valid: Maria Santos
+
+[2026-09-26 16:41:02] Previewing row 3: Array
+(
+    [lrn] => 103000334455
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 4 valid: Jose Reyes
+
+[2026-09-26 16:41:02] Previewing row 4: Array
+(
+    [lrn] => 104000445566
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 5 valid: Ana Mendoza
+
+[2026-09-26 16:41:02] Previewing row 5: Array
+(
+    [lrn] => 105000556677
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 16:41:02] Row 6 valid: Pedro Bautista
+
+[2026-09-26 16:41:02] Preview complete. Valid: 5, Errors: 0
+
+[2026-09-26 17:35:05] File uploaded: Mayon Students.xlsx (9613 bytes)
+
+[2026-09-26 17:35:05] Parsing XLSX file: C:\xampp\tmp\php8618.tmp
+
+[2026-09-26 17:35:05] Shared strings loaded: 24
+
+[2026-09-26 17:35:05] Excel rows read: 6
+
+[2026-09-26 17:35:05] normalizeImportRows called with 6 rows
+
+[2026-09-26 17:35:05] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+    [7] => Birthdate
+)
+
+
+[2026-09-26 17:35:05] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-09-26 17:35:05] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-09-26 17:35:05] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-09-26 17:35:05] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-09-26 17:35:05] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-09-26 17:35:05] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-09-26 17:35:05] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-09-26 17:35:05] Exact header mapping: 'birthdate' => column 7 ('Birthdate')
+
+[2026-09-26 17:35:05] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+    [birthdate] => 7
+)
+
+
+[2026-09-26 17:35:05] Data rows to process: 5
+
+[2026-09-26 17:35:05] Row 1 normalized: Array
+(
+    [lrn] => 101000111222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 2 normalized: Array
+(
+    [lrn] => 102000333444
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 3 normalized: Array
+(
+    [lrn] => 103000555666
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 4 normalized: Array
+(
+    [lrn] => 104000777888
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 5 normalized: Array
+(
+    [lrn] => 105001999000
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Normalization complete. Returning 5 rows
+
+[2026-09-26 17:35:05] Normalized rows: 5
+
+[2026-09-26 17:35:05] previewStudents called with 5 rows
+
+[2026-09-26 17:35:05] Previewing row 1: Array
+(
+    [lrn] => 101000111222
+    [first_name] => Juan
+    [last_name] => Dela Cruz
+    [middle_name] => Santos
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 2 valid: Juan Dela Cruz
+
+[2026-09-26 17:35:05] Previewing row 2: Array
+(
+    [lrn] => 102000333444
+    [first_name] => Maria
+    [last_name] => Santos
+    [middle_name] => Garcia
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 3 valid: Maria Santos
+
+[2026-09-26 17:35:05] Previewing row 3: Array
+(
+    [lrn] => 103000555666
+    [first_name] => Jose
+    [last_name] => Reyes
+    [middle_name] => Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 4 valid: Jose Reyes
+
+[2026-09-26 17:35:05] Previewing row 4: Array
+(
+    [lrn] => 104000777888
+    [first_name] => Ana
+    [last_name] => Mendoza
+    [middle_name] => Lopez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 5 valid: Ana Mendoza
+
+[2026-09-26 17:35:05] Previewing row 5: Array
+(
+    [lrn] => 105001999000
+    [first_name] => Pedro
+    [last_name] => Bautista
+    [middle_name] => Reyes
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-09-26 17:35:05] Row 6 valid: Pedro Bautista
+
+[2026-09-26 17:35:05] Preview complete. Valid: 5, Errors: 0
+

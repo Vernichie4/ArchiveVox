@@ -1827,12 +1827,12 @@ async function renderAssignmentDetail(assignmentId) {
             <div class="assignment-detail-shell">
                 <div class="u-row-between u-mb-16">
                     <button class="btn-secondary" id="back-to-assignments">Back to Assignments</button>
-                    <h2>${escapeAssessmentHtml(assignment.title)}</h2>
+                    <h2>${escapeAssessmentHtml(assignment.title || 'Untitled Assignment')}</h2>
                 </div>
                 <div class="panel u-mb-16">
                     <p><strong>Instructions:</strong> ${escapeAssessmentHtml(assignment.instructions || '—')}</p>
                     <p><strong>Due:</strong> ${assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'No due date'}</p>
-                    <p><strong>Materials:</strong> ${assignment.materials.map(m => escapeAssessmentHtml(m.material_title)).join(', ')}</p>
+                    <p><strong>Materials:</strong> ${(assignment.materials || []).map(m => escapeAssessmentHtml(m.material_title)).join(', ') || 'No materials attached'}</p>
                 </div>
                 <div class="panel">
                     <h3>Student Progress</h3>
@@ -6093,8 +6093,8 @@ function getStudentModalsHTML() {
                 <form id="add-student-form">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>LRN (6 digits) *</label>
-                            <input type="text" name="lrn" placeholder="e.g. 123456" maxlength="6" required>
+                            <label>LRN *</label>
+                            <input type="text" name="lrn" placeholder="e.g. 123456789012" maxlength="12" required>
                         </div>
                         <div class="form-group">
                             <label>First Name *</label>

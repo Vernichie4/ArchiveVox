@@ -140,7 +140,7 @@ function renderStep4ReviewDetectedMiscues() {
                 </div>
 
                 <div style="display: flex; justify-content: space-between; gap: 12px;">
-                    <button id="review-back-btn" class="btn-secondary">← Back to Recording</button>
+                    <button id="review-back-btn" class="btn-secondary">Back to Recording</button>
                     <button id="review-confirm-btn" class="btn-primary">Confirm & Save Assessment ✓</button>
                 </div>
             </div>
