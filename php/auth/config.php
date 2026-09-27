@@ -1,7 +1,7 @@
 <?php
 // php/api/auth/config.php
-error_reporting(0);
-ini_set('display_errors', 0);
+// error_reporting(0);
+// ini_set('display_errors', 0);
 ini_set('default_charset', 'UTF-8');
 
 if (function_exists('mb_internal_encoding')) {
