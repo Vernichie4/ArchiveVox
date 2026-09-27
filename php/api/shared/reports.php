@@ -31,14 +31,14 @@ try {
         
         // Recent Assessments
         $stmt = $pdo->query("
-            SELECT 
-                CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+            SELECT
+                s.first_name || ' ' || s.last_name AS student_name,
                 m.title AS material_title,
                 ar.accuracy_percentage,
                 ar.assessed_at
-            FROM assessment_result ar 
-            JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
-            JOIN student s ON ra.student_id = s.student_id 
+            FROM assessment_result ar
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+            JOIN student s ON ra.student_id = s.student_id
             LEFT JOIN reading_material m ON ra.material_id = m.material_id
             ORDER BY ar.assessed_at DESC LIMIT 5
         ");
@@ -46,10 +46,10 @@ try {
 
         // Class Performance (Time Series for Chart)
         $stmt = $pdo->query("
-            SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
-            FROM assessment_result ar 
-            GROUP BY DATE(ar.assessed_at) 
-            ORDER BY DATE(ar.assessed_at) ASC LIMIT 7
+            SELECT DATE_TRUNC('day', ar.assessed_at)::date as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy
+            FROM assessment_result ar
+            GROUP BY DATE_TRUNC('day', ar.assessed_at)::date
+            ORDER BY DATE_TRUNC('day', ar.assessed_at)::date ASC LIMIT 7
         ");
         $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -114,29 +114,29 @@ try {
 
             // Recent Assessments
             $stmt = $pdo->query("
-                SELECT 
-                    CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                SELECT
+                    s.first_name || ' ' || s.last_name AS student_name,
                     m.title AS material_title,
                     ar.accuracy_percentage,
                     ar.assessed_at
-                FROM assessment_result ar 
-                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
-                JOIN student s ON ra.student_id = s.student_id 
+                FROM assessment_result ar
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                JOIN student s ON ra.student_id = s.student_id
                 LEFT JOIN reading_material m ON ra.material_id = m.material_id
-                WHERE s.teacher_id = $teacherId 
+                WHERE s.teacher_id = $teacherId
                 ORDER BY ar.assessed_at DESC LIMIT 5
             ");
             $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Class Performance (Time Series for Chart)
             $stmt = $pdo->query("
-                SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
-                FROM assessment_result ar 
-                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
-                JOIN student s ON ra.student_id = s.student_id 
-                WHERE s.teacher_id = $teacherId 
-                GROUP BY DATE(ar.assessed_at) 
-                ORDER BY DATE(ar.assessed_at) ASC LIMIT 7
+                SELECT DATE_TRUNC('day', ar.assessed_at)::date as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy
+                FROM assessment_result ar
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                JOIN student s ON ra.student_id = s.student_id
+                WHERE s.teacher_id = $teacherId
+                GROUP BY DATE_TRUNC('day', ar.assessed_at)::date
+                ORDER BY DATE_TRUNC('day', ar.assessed_at)::date ASC LIMIT 7
             ");
             $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

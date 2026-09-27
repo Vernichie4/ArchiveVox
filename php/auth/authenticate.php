@@ -24,16 +24,17 @@ function getUserAgent(): string {
 function isIPLocked(PDO $pdo, string $ip): array {
     try {
         // Check if IP has too many failed attempts
+        $lockoutTime = LOCKOUT_DURATION . ' seconds';
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as attempts, MAX(attempt_time) as last_attempt
-            FROM login_attempts 
-            WHERE ip_address = ? 
-            AND success = 0 
-            AND attempt_time > DATE_SUB(NOW(), INTERVAL ? SECOND)
+            FROM login_attempts
+            WHERE ip_address = ?
+            AND success = 0
+            AND attempt_time > NOW() - INTERVAL ?
         ");
-        $stmt->execute([$ip, LOCKOUT_DURATION]);
+        $stmt->execute([$ip, $lockoutTime]);
         $result = $stmt->fetch();
-        
+
         return [
             'locked' => ($result['attempts'] ?? 0) >= MAX_ATTEMPTS,
             'attempts' => (int)($result['attempts'] ?? 0),
@@ -61,20 +62,21 @@ function updateUserFailedAttempts(PDO $pdo, int $userId, bool $success): void {
     try {
         if ($success) {
             // Reset failed attempts on success
-            $stmt = $pdo->prepare("UPDATE `user` SET failed_attempts = 0, locked_until = NULL WHERE user_id = ?");
+            $stmt = $pdo->prepare("UPDATE \"user\" SET failed_attempts = 0, locked_until = NULL WHERE user_id = ?");
             $stmt->execute([$userId]);
         } else {
             // Increment failed attempts
+            $lockoutTime = LOCKOUT_DURATION . ' seconds';
             $stmt = $pdo->prepare("
-                UPDATE `user` 
+                UPDATE \"user\"
                 SET failed_attempts = failed_attempts + 1,
-                    locked_until = CASE 
-                        WHEN failed_attempts + 1 >= ? THEN DATE_ADD(NOW(), INTERVAL ? SECOND)
-                        ELSE locked_until 
+                    locked_until = CASE
+                        WHEN failed_attempts + 1 >= ? THEN NOW() + INTERVAL ?
+                        ELSE locked_until
                     END
                 WHERE user_id = ?
             ");
-            $stmt->execute([MAX_ATTEMPTS, LOCKOUT_DURATION, $userId]);
+            $stmt->execute([MAX_ATTEMPTS, $lockoutTime, $userId]);
         }
     } catch (Exception $e) {
         error_log('updateUserFailedAttempts error: ' . $e->getMessage());
@@ -85,10 +87,10 @@ function fetchUserRecord(PDO $pdo, string $username): ?array {
     try {
         // Check if user is locked
         $stmt = $pdo->prepare("
-            SELECT user_id, username, password, role, status, 
+            SELECT user_id, username, password, role, status,
                    failed_attempts, locked_until
-            FROM user 
-            WHERE username = :username 
+            FROM \"user\"
+            WHERE username = :username
             LIMIT 1
         ");
         $stmt->execute([':username' => $username]);
@@ -130,7 +132,7 @@ function getUserDetails(PDO $pdo, int $userId, string $role): array {
         } elseif ($role === 'admin') {
             $stmt = $pdo->prepare("
                 SELECT 'Administrator' as first_name, '' as last_name, username as email
-                FROM user 
+                FROM \"user\"
                 WHERE user_id = ?
             ");
             $stmt->execute([$userId]);
@@ -200,7 +202,7 @@ function authenticateUser(string $username, string $password): ?array {
             // Upgrade to hash on the fly
             try {
                 $hashed = password_hash($password, PASSWORD_BCRYPT, ['cost' => 10]);
-                $stmt = $pdo->prepare("UPDATE `user` SET password = ? WHERE user_id = ?");
+                $stmt = $pdo->prepare("UPDATE \"user\" SET password = ? WHERE user_id = ?");
                 $stmt->execute([$hashed, $user['user_id']]);
             } catch (Exception $e) {
                 error_log('Password upgrade error: ' . $e->getMessage());
@@ -213,7 +215,7 @@ function authenticateUser(string $username, string $password): ?array {
             logLoginAttempt($pdo, (int)$user['user_id'], $ip, false);
             
             // Get remaining attempts
-            $stmt = $pdo->prepare("SELECT failed_attempts FROM `user` WHERE user_id = ?");
+            $stmt = $pdo->prepare("SELECT failed_attempts FROM \"user\" WHERE user_id = ?");
             $stmt->execute([$user['user_id']]);
             $failed = $stmt->fetch();
             $remaining = MAX_ATTEMPTS - ($failed['failed_attempts'] ?? 0);
@@ -248,8 +250,8 @@ function authenticateUser(string $username, string $password): ?array {
         // Update last login
         try {
             $stmt = $pdo->prepare("
-                UPDATE `user` 
-                SET last_login = NOW(), 
+                UPDATE \"user\"
+                SET last_login = NOW(),
                     last_ip = ?,
                     last_device = ?,
                     failed_attempts = 0,

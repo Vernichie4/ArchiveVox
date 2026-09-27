@@ -1,0 +1,29 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+vendor/
+# Windows / IDE
+desktop.ini
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Logs
+logs/
+*.log
+# Generated / user-uploaded files
+uploads/
+# Temporary development files
+temp_functions.txt
+update_workflow.js
+generate_student_users.php
+# Python cache
+__pycache__/
+*.pyc
+
+# Development test files
+php/test_db.php
+python/python

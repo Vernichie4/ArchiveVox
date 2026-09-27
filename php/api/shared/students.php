@@ -81,16 +81,16 @@ if ($action === 'list') {
                     break;
                 }
 
-                $sql = "SELECT s.*, 
+                $sql = "SELECT s.*,
                             sc.grade_level,
                             c.section,
                             (SELECT AVG(ar.accuracy_percentage) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS avg_accuracy,
                             (SELECT MAX(ar.assessed_at) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ra.student_id = s.student_id) AS last_assessed,
                             (SELECT ar2.reading_level FROM assessment_result ar2 JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL ORDER BY ar2.assessed_at DESC LIMIT 1) AS reading_level
-                        FROM student s 
+                        FROM student s
                         LEFT JOIN student_category sc ON s.category_id = sc.category_id
                         LEFT JOIN class c ON s.class_id = c.class_id
-                        WHERE (s.lrn LIKE :term1 OR CONCAT(s.first_name, ' ', s.last_name) LIKE :term2)";
+                        WHERE (s.lrn LIKE :term1 OR s.first_name || ' ' || s.last_name LIKE :term2)";
                 $params = [
                     ':term1' => "%$term%",
                     ':term2' => "%$term%"

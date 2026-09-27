@@ -35,7 +35,7 @@ function getTeacherDashboard(int $teacherId): array {
             JOIN reading_activity ra ON ar.activity_id = ra.activity_id
             JOIN student s ON ra.student_id = s.student_id
             WHERE s.teacher_id = :teacher_id
-            AND ar.assessed_at >= DATE_FORMAT(CURDATE(), "%Y-%m-01")
+            AND ar.assessed_at >= DATE_TRUNC(\'month\', CURRENT_DATE)
         ');
         $stmt->execute([':teacher_id' => $teacherId]);
         $assessments = $stmt->fetch();
@@ -63,8 +63,8 @@ function getTeacherDashboard(int $teacherId): array {
         
         // 5. Get recent assessments (last 10)
         $stmt = $pdo->prepare('
-            SELECT 
-                CONCAT(s.first_name, " ", s.last_name) as student_name,
+            SELECT
+                s.first_name || \' \' || s.last_name as student_name,
                 rm.title as material_title,
                 ar.accuracy_percentage,
                 ar.fluency_score,
@@ -86,9 +86,9 @@ function getTeacherDashboard(int $teacherId): array {
         
         // 6. Get class performance data for charts (by student)
         $stmt = $pdo->prepare('
-            SELECT 
+            SELECT
                 s.student_id,
-                CONCAT(s.first_name, " ", s.last_name) as student_name,
+                s.first_name || \' \' || s.last_name as student_name,
                 AVG(ar.wcpm) as wcpm,
                 AVG(ar.accuracy_percentage) as accuracy_percentage,
                 MAX(ar.reading_level) as reading_level
@@ -175,40 +175,40 @@ function principalDashboard(): array {
         
         // Get students this week
         $stmt = $pdo->query('
-            SELECT COUNT(*) as total 
-            FROM student 
-            WHERE is_active = 1 
-            AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            SELECT COUNT(*) as total
+            FROM student
+            WHERE is_active = 1
+            AND created_at >= CURRENT_DATE - INTERVAL \'7 days\'
         ');
         $studentsThisWeek = (int)$stmt->fetch()['total'];
         
         // Get materials this week
         $stmt = $pdo->query('
-            SELECT COUNT(*) as total 
-            FROM reading_material 
-            WHERE upload_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            SELECT COUNT(*) as total
+            FROM reading_material
+            WHERE upload_date >= CURRENT_DATE - INTERVAL \'7 days\'
         ');
         $materialsThisWeek = (int)$stmt->fetch()['total'];
         
         // Get assessments this month
         $stmt = $pdo->query('
-            SELECT COUNT(*) as total 
-            FROM assessment_result 
-            WHERE assessed_at >= DATE_FORMAT(CURDATE(), "%Y-%m-01")
+            SELECT COUNT(*) as total
+            FROM assessment_result
+            WHERE assessed_at >= DATE_TRUNC(\'month\', CURRENT_DATE)
         ');
         $assessmentsThisMonth = (int)$stmt->fetch()['total'];
         
         // Get accuracy trend (compare this month vs last month)
         $stmt = $pdo->query('
-            SELECT 
-                AVG(CASE 
-                    WHEN assessed_at >= DATE_FORMAT(CURDATE(), "%Y-%m-01") 
-                    THEN accuracy_percentage 
+            SELECT
+                AVG(CASE
+                    WHEN assessed_at >= DATE_TRUNC(\'month\', CURRENT_DATE)
+                    THEN accuracy_percentage
                 END) as this_month,
-                AVG(CASE 
-                    WHEN assessed_at >= DATE_SUB(DATE_FORMAT(CURDATE(), "%Y-%m-01"), INTERVAL 1 MONTH)
-                    AND assessed_at < DATE_FORMAT(CURDATE(), "%Y-%m-01")
-                    THEN accuracy_percentage 
+                AVG(CASE
+                    WHEN assessed_at >= DATE_TRUNC(\'month\', CURRENT_DATE - INTERVAL \'1 month\')
+                    AND assessed_at < DATE_TRUNC(\'month\', CURRENT_DATE)
+                    THEN accuracy_percentage
                 END) as last_month
             FROM assessment_result
             WHERE accuracy_percentage > 0
@@ -226,14 +226,14 @@ function principalDashboard(): array {
             JOIN reading_activity ra ON s.student_id = ra.student_id
             JOIN assessment_result ar ON ra.activity_id = ar.activity_id
             WHERE ar.wcpm < 40
-            AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            AND ar.assessed_at >= CURRENT_DATE - INTERVAL \'30 days\'
         ');
         $studentsBelowTarget = (int)$stmt->fetch()['total'];
         
         // Get recent assessments
         $stmt = $pdo->query('
-            SELECT 
-                CONCAT(s.first_name, " ", s.last_name) as student_name,
+            SELECT
+                s.first_name || \' \' || s.last_name as student_name,
                 rm.title as material_title,
                 ar.accuracy_percentage,
                 ar.fluency_score,
@@ -251,12 +251,12 @@ function principalDashboard(): array {
         
         // Get weekly activity (last 7 days)
         $stmt = $pdo->query('
-            SELECT 
-                DAYNAME(assessed_at) as day,
+            SELECT
+                TO_CHAR(assessed_at, \'Day\') as day,
                 COUNT(*) as count
             FROM assessment_result
-            WHERE assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-            GROUP BY DAYNAME(assessed_at)
+            WHERE assessed_at >= CURRENT_DATE - INTERVAL \'7 days\'
+            GROUP BY TO_CHAR(assessed_at, \'Day\')
             ORDER BY assessed_at ASC
         ');
         $weeklyActivity = $stmt->fetchAll();
@@ -265,7 +265,9 @@ function principalDashboard(): array {
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         $weeklyMap = [];
         foreach ($weeklyActivity as $row) {
-            $weeklyMap[$row['day']] = (int)$row['count'];
+            // Trim the day name from PostgreSQL TO_CHAR output
+            $dayName = trim($row['day']);
+            $weeklyMap[$dayName] = (int)$row['count'];
         }
         $weeklyData = [];
         foreach ($days as $day) {
@@ -303,7 +305,7 @@ function principalDashboard(): array {
             JOIN reading_activity ra ON s.student_id = ra.student_id
             JOIN assessment_result ar ON ra.activity_id = ar.activity_id
             WHERE ar.reading_level = "High Emerging"
-            AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            AND ar.assessed_at >= CURRENT_DATE - INTERVAL \'30 days\'
             ORDER BY s.last_name ASC
             LIMIT 10
         ');

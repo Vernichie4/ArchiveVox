@@ -28,7 +28,7 @@ try {
                         SELECT COUNT(*) as total
                         FROM student
                         WHERE is_active = 1
-                            AND date_registered >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                            AND date_registered >= CURRENT_DATE - INTERVAL \'7 days\'
                 ');
                 $stmt->execute();
                 $studentsThisWeek = (int)($stmt->fetch()['total'] ?? 0);
@@ -41,7 +41,7 @@ try {
                         SELECT COUNT(*) as total
                         FROM reading_material
                         WHERE status = "Active"
-                            AND upload_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                            AND upload_date >= CURRENT_DATE - INTERVAL \'7 days\'
                 ');
                 $stmt->execute();
                 $materialsThisWeek = (int)($stmt->fetch()['total'] ?? 0);
@@ -53,7 +53,7 @@ try {
                 $stmt = $pdo->prepare('
                         SELECT COUNT(*) as total
                         FROM assessment_result
-                        WHERE assessed_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        WHERE assessed_at >= CURRENT_DATE - INTERVAL \'30 days\'
                 ');
                 $stmt->execute();
                 $assessmentsThisMonth = (int)($stmt->fetch()['total'] ?? 0);
@@ -66,7 +66,7 @@ try {
                         SELECT AVG(accuracy_percentage) as avg_accuracy
                         FROM assessment_result
                         WHERE accuracy_percentage IS NOT NULL
-                            AND assessed_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                            AND assessed_at >= CURRENT_DATE - INTERVAL \'30 days\'
                 ');
                 $stmt->execute();
                 $currentAccuracy = (float)($stmt->fetch()['avg_accuracy'] ?? 0);
@@ -75,16 +75,16 @@ try {
                         SELECT AVG(accuracy_percentage) as avg_accuracy
                         FROM assessment_result
                         WHERE accuracy_percentage IS NOT NULL
-                            AND assessed_at >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
-                            AND assessed_at < DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                            AND assessed_at >= CURRENT_DATE - INTERVAL \'60 days\'
+                            AND assessed_at < CURRENT_DATE - INTERVAL \'30 days\'
                 ');
                 $stmt->execute();
                 $previousAccuracy = (float)($stmt->fetch()['avg_accuracy'] ?? 0);
                 $accuracyTrend = round($currentAccuracy - $previousAccuracy, 1);
 
         $stmt = $pdo->prepare('
-            SELECT 
-                CONCAT(s.first_name, " ", s.last_name) as student_name,
+            SELECT
+                s.first_name || \' \' || s.last_name as student_name,
                 s.first_name,
                 s.last_name,
                 rm.title as material_title,
@@ -114,12 +114,12 @@ try {
         $belowTarget = $stmt->fetch()['count'] ?? 0;
 
         $stmt = $pdo->prepare('
-            SELECT 
-                DATE(ar.assessed_at) as activity_date,
+            SELECT
+                DATE_TRUNC(\'day\', ar.assessed_at)::date as activity_date,
                 COUNT(*) as count
             FROM assessment_result ar
-            WHERE ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-            GROUP BY DATE(ar.assessed_at)
+            WHERE ar.assessed_at >= CURRENT_DATE - INTERVAL \'6 days\'
+            GROUP BY DATE_TRUNC(\'day\', ar.assessed_at)::date
             ORDER BY activity_date ASC
         ');
         $stmt->execute();

@@ -243,12 +243,12 @@ function searchStudents(string $term): array {
             LEFT JOIN class c ON s.class_id = c.class_id
             WHERE s.is_active = 1
             AND (
-                s.lrn LIKE :term 
-                OR s.first_name LIKE :term 
+                s.lrn LIKE :term
+                OR s.first_name LIKE :term
                 OR s.last_name LIKE :term
-                OR CONCAT(s.first_name, " ", s.last_name) LIKE :term
-                OR CONCAT(s.last_name, ", ", s.first_name) LIKE :term
-                OR CONCAT(s.first_name, " ", s.middle_name, " ", s.last_name) LIKE :term
+                OR s.first_name || \' \' || s.last_name LIKE :term
+                OR s.last_name || \', \' || s.first_name LIKE :term
+                OR s.first_name || \' \' || s.middle_name || \' \' || s.last_name LIKE :term
             )
             ORDER BY 
                 CASE 

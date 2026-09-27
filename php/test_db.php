@@ -1,31 +1,54 @@
 <?php
-// php/test_db.php - Database connection test
+// php/test_db.php - Database connection test for Supabase (PostgreSQL)
 
-echo "<h2>Database Connection Test</h2>";
+echo "<h2>Database Connection Test (Supabase)</h2>";
 
-// You need to put YOUR MySQL Workbench password here
-// Whatever password you use to connect in MySQL Workbench
-$mysql_password = ''; // <-- PUT YOUR PASSWORD HERE
+// Load .env file manually
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+        list($name, $value) = explode('=', $line, 2);
+        $name = trim($name);
+        $value = trim($value);
+        if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
+            putenv(sprintf('%s=%s', $name, $value));
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
+}
 
-$host = 'localhost';
-$dbname = 'archivevox';
-$username = 'root';
+require_once __DIR__ . '/connection.php';
 
-// Test with the password you use for MySQL Workbench
-$conn = @new mysqli($host, $username, $mysql_password, $dbname);
+try {
+    $config = getDbConfig();
+    echo "<p>Connecting to: " . $config['host'] . ":" . $config['port'] . "</p>";
+    echo "<p>Database: " . $config['name'] . "</p>";
+    echo "<p>User: " . $config['user'] . "</p>";
 
-if ($conn->connect_error) {
-    echo "<p style='color:red'>Failed to connect: " . $conn->connect_error . "</p>";
-    echo "<p>Try changing the password in the script above.</p>";
-} else {
-    echo "<p style='color:green'>SUCCESS! Connected to database!</p>";
-    
+    $pdo = createPdoConnection();
+    echo "<p style='color:green'>SUCCESS! Connected to Supabase database!</p>";
+
     // Test query
-    $result = $conn->query("SELECT COUNT(*) as count FROM student");
+    $result = $pdo->query("SELECT COUNT(*) as count FROM student");
     if ($result) {
-        $row = $result->fetch_assoc();
+        $row = $result->fetch();
         echo "<p>Number of students: " . $row['count'] . "</p>";
     }
-    $conn->close();
+
+    // Test another query
+    $result = $pdo->query("SELECT version()");
+    if ($result) {
+        $row = $result->fetch();
+        echo "<p>PostgreSQL version: " . $row['version'] . "</p>";
+    }
+
+} catch (PDOException $e) {
+    echo "<p style='color:red'>Failed to connect: " . $e->getMessage() . "</p>";
+    echo "<p>Check your .env file configuration.</p>";
 }
 ?>

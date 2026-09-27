@@ -16,13 +16,6 @@ $pdo = createPdoConnection();
 // Optional: set timezone
 date_default_timezone_set('Asia/Manila');
 
-$dbConfig = getDbConfig();
-if (strtolower((string)($dbConfig['charset'] ?? '')) !== 'utf8mb4') {
-    putenv('DB_CHARSET=utf8mb4');
-}
-
-$pdo = createPdoConnection();
-
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
