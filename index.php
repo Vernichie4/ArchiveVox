@@ -14,7 +14,7 @@ header('Content-Type: text/html; charset=utf-8');
 </head>
 <body>
     <!-- ============================================ -->
-    <!-- LOGIN VIEW -->
+    <!-- LOGIN VIEW testing -->
     <!-- ============================================ -->
     <div id="login-view" class="login-shell">
         <div class="card login-card">
