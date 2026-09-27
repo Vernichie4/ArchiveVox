@@ -3,5 +3,6 @@
     "phpoffice/phpspreadsheet": "^5.10.0",
     "ext-gd": "*",
     "ext-pdo_mysql": "*",
+    "ext-pdo_pgsql": "*",
     "ext-pgsql": "*"
 }
