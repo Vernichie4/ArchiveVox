@@ -1,11 +1,25 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-// php/api/auth/login.php
-error_reporting(0);
-ini_set('display_errors', 0);
 
 header('Content-Type: application/json; charset=utf-8');
+
+$files_to_check = [
+    'config.php'       => __DIR__ . '/../../auth/config.php',
+    'authenticate.php' => __DIR__ . '/../../auth/authenticate.php',
+    'session.php'      => __DIR__ . '/../../auth/session.php',
+    'connection.php'   => __DIR__ . '/../../connection.php' 
+];
+
+foreach ($files_to_check as $name => $path) {
+    if (!file_exists($path)) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false, 
+            'message' => "CRASH PREVENTED: Cannot find $name!", 
+            'looked_in_path' => $path
+        ]);
+        exit;
+    }
+}
 
 require_once __DIR__ . '/../../auth/config.php';
 require_once __DIR__ . '/../../auth/authenticate.php';
