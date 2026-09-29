@@ -25,7 +25,7 @@ if ($action === 'list') {
     if ($teacherId) {
         // For teacher: get classes they teach
         $stmt = $pdo->prepare("
-            SELECT DISTINCT c.class_id, c.grade_level || ' - ' || c.section AS class_name
+            SELECT DISTINCT c.class_id, CONCAT(c.grade_level, ' - ', c.section) AS class_name 
             FROM class c
             JOIN student s ON s.class_id = c.class_id
             WHERE s.teacher_id = :teacher_id
@@ -35,8 +35,8 @@ if ($action === 'list') {
     } else if (in_array(strtolower($user['role']), ['principal', 'admin'])) {
         // For principal/admin: get all classes
         $stmt = $pdo->query("
-            SELECT class_id, grade_level || ' - ' || section AS class_name
-            FROM class
+            SELECT class_id, CONCAT(grade_level, ' - ', section) AS class_name 
+            FROM class 
             ORDER BY grade_level, section
         ");
     } else {

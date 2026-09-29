@@ -221,7 +221,7 @@ function searchStudents(string $term): array {
         $term = trim($term);
         $searchTerm = '%' . $term . '%';
         
-        $stmt = $pdo->prepare('
+        $stmt = $pdo->prepare("
             SELECT 
                 s.student_id,
                 s.lrn,
@@ -246,9 +246,9 @@ function searchStudents(string $term): array {
                 s.lrn LIKE :term
                 OR s.first_name LIKE :term
                 OR s.last_name LIKE :term
-                OR s.first_name || \' \' || s.last_name LIKE :term
-                OR s.last_name || \', \' || s.first_name LIKE :term
-                OR s.first_name || \' \' || s.middle_name || \' \' || s.last_name LIKE :term
+                OR CONCAT(s.first_name, ' ', s.last_name) LIKE :term
+                OR CONCAT(s.last_name, ', ', s.first_name) LIKE :term
+                OR CONCAT(s.first_name, ' ', s.middle_name, ' ', s.last_name) LIKE :term
             )
             ORDER BY 
                 CASE 
@@ -259,7 +259,7 @@ function searchStudents(string $term): array {
                 END,
                 s.last_name, s.first_name
             LIMIT 50
-        ');
+        ");
         $stmt->execute([':term' => $searchTerm]);
         $results = $stmt->fetchAll();
         

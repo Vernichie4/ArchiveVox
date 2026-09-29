@@ -1387,7 +1387,7 @@ function exportAssessmentCsv(PDO $pdo): void {
             ar.assessment_id,
             ar.activity_id,
             s.lrn,
-            s.first_name || \' \' || s.last_name AS student_name,
+            CONCAT(s.first_name, " ", s.last_name) AS student_name,
             sc.grade_level,
             c.section,
             rm.title AS material_title,
