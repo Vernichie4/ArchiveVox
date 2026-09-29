@@ -18,8 +18,8 @@
  */
 
 const ARCHIVEVOX_API_BASE =
-    "http://127.0.0.1:5000/api";
-const PHP_API_BASE = "/php/api";
+    "/ArchiveVox/php/api/assignments.php";
+const PHP_API_BASE = "/ArchiveVox/php/api";
 
 /* ============================================================
    GENERIC REQUEST HELPER
@@ -29,8 +29,9 @@ async function apiRequest(
     endpoint,
     options = {}
 ) {
+    // PHP API uses query parameter for routing
     const url =
-        `${ARCHIVEVOX_API_BASE}${endpoint}`;
+        `${ARCHIVEVOX_API_BASE}?endpoint=${encodeURIComponent(endpoint)}`;
 
     const response =
         await fetch(url, {

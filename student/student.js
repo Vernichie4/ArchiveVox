@@ -2,7 +2,7 @@
    ARCHIVEVOX — STUDENT DASHBOARD (Full with Quiz)
    ============================================================ */
 
-const API_BASE_URL = "http://127.0.0.1:5000";
+const API_BASE_URL = "/ArchiveVox/php/api/assignments.php";
 // Grab the logged-in user from localStorage
 const storedUser = JSON.parse(localStorage.getItem("archivevox_user") || "null");
 
@@ -64,7 +64,8 @@ function $all(selector) {
 ============================================================ */
 
 async function fetchJson(url, options = {}) {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
+    // PHP API uses query parameter for routing
+    const response = await fetch(`${API_BASE_URL}?endpoint=${encodeURIComponent(url)}`, {
         ...options,
         headers: {
             "Accept": "application/json",
@@ -131,7 +132,7 @@ async function initializeStudentDashboard() {
 async function handleLogout() {
     try {
         // UPDATE: Added { method: 'POST' }
-        await fetch('../php/api/auth/logout.php', { method: 'POST' }); 
+        await fetch('/ArchiveVox/php/api/auth/logout.php', { method: 'POST' }); 
         
         // Clear the student data from the browser's memory
         localStorage.removeItem('archivevox_user');
@@ -881,7 +882,7 @@ async function submitReading() {
     if (statusEl) statusEl.textContent = "Submitting and analyzing audio...";
 
     try {
-        const response = await fetch('../php/api/shared/assessment.php?action=record', {
+        const response = await fetch('/ArchiveVox/php/api/shared/assessment.php?action=record', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'

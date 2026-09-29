@@ -1,3 +1,7 @@
+# DEPRECATED: This file is no longer used.
+# The assignment API has been migrated to PHP: php/api/assignments.php
+# This file is kept for reference only.
+
 from __future__ import annotations
 
 import os

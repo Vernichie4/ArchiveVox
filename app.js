@@ -545,13 +545,14 @@ async function fetchJson(url, options = {}) {
 }
 
 // ============================================================
-// ASSIGNMENT API (Python Flask)
+// ASSIGNMENT API (PHP - migrated from Python Flask)
 // ============================================================
 
-const ASSIGNMENT_API_BASE = 'http://127.0.0.1:5000/api';
+const ASSIGNMENT_API_BASE = '/ArchiveVox/php/api/assignments.php';
 
 async function fetchAssignmentApi(endpoint, options = {}) {
-    const url = `${ASSIGNMENT_API_BASE}${endpoint}`;
+    // PHP API uses query parameter for routing
+    const url = `${ASSIGNMENT_API_BASE}?endpoint=${encodeURIComponent(endpoint)}`;
     const headers = new Headers(options.headers || {});
     headers.set('Accept', 'application/json');
     
@@ -569,9 +570,9 @@ async function fetchAssignmentApi(endpoint, options = {}) {
     const isTeacherRoute = endpoint.includes('/teacher/');
 
     if (isTeacherRoute && teacherId) {
-        const separator = finalUrl.includes('?') ? '&' : '?';
+        // URL already has ?endpoint=, so use & for additional params
         if (!finalUrl.includes('teacher_id=')) {
-            finalUrl += `${separator}teacher_id=${teacherId}`;
+            finalUrl += `&teacher_id=${teacherId}`;
         }
     } else if (isTeacherRoute && !teacherId) {
         console.warn('Teacher route called without teacher_id:', endpoint);
