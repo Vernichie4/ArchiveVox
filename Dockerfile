@@ -50,7 +50,7 @@ RUN echo "date.timezone=Asia/Manila" > /usr/local/etc/php/conf.d/timezone.ini
 
 # Configure Apache to use Railway's PORT at runtime
 # Create a startup script that reads PORT environment variable
-# Cache bust: fix-apache-config-v5
+# Cache bust: fix-apache-config-v6
 RUN cat > /usr/local/bin/start-apache.sh << 'EOF'
 #!/bin/bash
 # Disable conflicting MPMs to avoid "More than one MPM loaded" error
@@ -58,20 +58,20 @@ a2dismod mpm_event mpm_worker
 a2enmod mpm_prefork
 # Get Railway PORT or default to 80
 PORT=${PORT:-80}
-# Clear existing Listen directives and configure Apache
-cat > /etc/apache2/sites-available/000-default.conf << 'APACHECONF'
-Listen 80
-Listen ${PORT}
-<VirtualHost *:${PORT}>
-    DocumentRoot /var/www/html
-    <Directory /var/www/html>
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
-APACHECONF
-# Replace ${PORT} with actual value
-sed -i "s/\${PORT}/$PORT/g" /etc/apache2/sites-available/000-default.conf
+# Clear existing Apache config
+rm -f /etc/apache2/sites-enabled/*
+# Write new Apache configuration directly with PORT value
+echo "Listen 80" > /etc/apache2/sites-available/000-default.conf
+echo "Listen $PORT" >> /etc/apache2/sites-available/000-default.conf
+echo "<VirtualHost *:$PORT>" >> /etc/apache2/sites-available/000-default.conf
+echo "    DocumentRoot /var/www/html" >> /etc/apache2/sites-available/000-default.conf
+echo "    <Directory /var/www/html>" >> /etc/apache2/sites-available/000-default.conf
+echo "        AllowOverride All" >> /etc/apache2/sites-available/000-default.conf
+echo "        Require all granted" >> /etc/apache2/sites-available/000-default.conf
+echo "    </Directory>" >> /etc/apache2/sites-available/000-default.conf
+echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf
+# Enable the site
+ln -sf /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 # Start Apache
 apache2-foreground
 EOF
