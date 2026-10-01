@@ -50,7 +50,7 @@ RUN echo "date.timezone=Asia/Manila" > /usr/local/etc/php/conf.d/timezone.ini
 
 # Configure Apache to use Railway's PORT at runtime
 # Create a startup script that reads PORT environment variable
-# Cache bust: fix-apache-config-v6
+# Cache bust: fix-apache-config-v7
 RUN cat > /usr/local/bin/start-apache.sh << 'EOF'
 #!/bin/bash
 # Disable conflicting MPMs to avoid "More than one MPM loaded" error
@@ -60,9 +60,8 @@ a2enmod mpm_prefork
 PORT=${PORT:-80}
 # Clear existing Apache config
 rm -f /etc/apache2/sites-enabled/*
-# Write new Apache configuration directly with PORT value
-echo "Listen 80" > /etc/apache2/sites-available/000-default.conf
-echo "Listen $PORT" >> /etc/apache2/sites-available/000-default.conf
+# Write new Apache configuration - only listen on PORT (not both 80 and PORT)
+echo "Listen $PORT" > /etc/apache2/sites-available/000-default.conf
 echo "<VirtualHost *:$PORT>" >> /etc/apache2/sites-available/000-default.conf
 echo "    DocumentRoot /var/www/html" >> /etc/apache2/sites-available/000-default.conf
 echo "    <Directory /var/www/html>" >> /etc/apache2/sites-available/000-default.conf
