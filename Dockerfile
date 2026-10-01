@@ -50,23 +50,31 @@ RUN echo "date.timezone=Asia/Manila" > /usr/local/etc/php/conf.d/timezone.ini
 
 # Configure Apache to use Railway's PORT at runtime
 # Create a startup script that reads PORT environment variable
-# Cache bust: fix-mpm-v2
-RUN echo '#!/bin/bash\n\
-# Disable conflicting MPMs to avoid "More than one MPM loaded" error\n\
-a2dismod mpm_event mpm_worker\n\
-a2enmod mpm_prefork\n\
-# Get Railway PORT or default to 80\n\
-PORT=${PORT:-80}\n\
-# Configure Apache to listen on the PORT\n\
-echo "Listen 80\nListen $PORT\n<VirtualHost *:$PORT>\n\
-    DocumentRoot /var/www/html\n\
-    <Directory /var/www/html>\n\
-        AllowOverride All\n\
-        Require all granted\n\
-    </Directory>\n\
-</VirtualHost>" > /etc/apache2/sites-available/000-default.conf\n\
-# Start Apache\n\
-apache2-foreground' > /usr/local/bin/start-apache.sh && \
+# Cache bust: fix-apache-config-v3
+RUN cat > /usr/local/bin/start-apache.sh << 'EOF'
+#!/bin/bash
+# Disable conflicting MPMs to avoid "More than one MPM loaded" error
+a2dismod mpm_event mpm_worker
+a2enmod mpm_prefork
+# Get Railway PORT or default to 80
+PORT=${PORT:-80}
+# Clear existing Listen directives and configure Apache
+cat > /etc/apache2/sites-available/000-default.conf << 'APACHECONF'
+Listen 80
+Listen ${PORT}
+<VirtualHost *:${PORT}>
+    DocumentRoot /var/www/html
+    <Directory /var/www/html>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+APACHECONF
+# Replace ${PORT} with actual value
+sed -i "s/\${PORT}/$PORT/g" /etc/apache2/sites-available/000-default.conf
+# Start Apache
+apache2-foreground
+EOF
 chmod +x /usr/local/bin/start-apache.sh
 
 # Expose port 80 (Railway will map this to its assigned PORT)
