@@ -23,7 +23,10 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql pgsql gd mbstring zip
 
 # Enable Apache mod_rewrite for clean URLs
-RUN a2enmod rewrite
+# Disable conflicting MPMs to avoid "More than one MPM loaded" error
+RUN a2dismod mpm_event mpm_worker && \
+    a2enmod mpm_prefork && \
+    a2enmod rewrite
 
 # Set working directory
 WORKDIR /var/www/html
