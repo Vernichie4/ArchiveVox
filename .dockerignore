@@ -1,0 +1,36 @@
+# Environment / secrets (loaded from Railway environment variables)
+.env
+.env.*
+
+# Dependencies (rebuilt during container build)
+vendor/
+
+# Version control
+.git
+.gitignore
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Development files
+temp_functions.txt
+update_workflow.js
+generate_student_users.php
+php/test_db.php
+
+# Python files (not used in PHP container)
+python/
+__pycache__/
+*.pyc
+*.py
+
+# Logs directory (mounted as volume, not copied initially)
+logs/
+*.log
+
+# NOTE: uploads/ is NOT excluded because it contains user-uploaded files
+# that need to be preserved across deployments
