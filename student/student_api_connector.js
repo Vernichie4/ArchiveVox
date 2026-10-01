@@ -17,9 +17,12 @@
  * ============================================================
  */
 
+// Detect if running on ArchiveVox subdirectory (local) or domain root (Railway)
+const BASE_PATH = window.location.pathname.startsWith('/ArchiveVox') ? '/ArchiveVox' : '';
+
 const ARCHIVEVOX_API_BASE =
-    "/ArchiveVox/php/api/assignments.php";
-const PHP_API_BASE = "/ArchiveVox/php/api";
+    BASE_PATH + "/php/api/assignments.php";
+const PHP_API_BASE = BASE_PATH + "/php/api";
 
 /* ============================================================
    GENERIC REQUEST HELPER

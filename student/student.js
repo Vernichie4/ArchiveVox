@@ -2,7 +2,10 @@
    ARCHIVEVOX — STUDENT DASHBOARD (Full with Quiz)
    ============================================================ */
 
-const API_BASE_URL = "/ArchiveVox/php/api/assignments.php";
+// Detect if running on ArchiveVox subdirectory (local) or domain root (Railway)
+const BASE_PATH = window.location.pathname.startsWith('/ArchiveVox') ? '/ArchiveVox' : '';
+
+const API_BASE_URL = BASE_PATH + "/php/api/assignments.php";
 // Grab the logged-in user from localStorage
 const storedUser = JSON.parse(localStorage.getItem("archivevox_user") || "null");
 
@@ -132,7 +135,7 @@ async function initializeStudentDashboard() {
 async function handleLogout() {
     try {
         // UPDATE: Added { method: 'POST' }
-        await fetch('/ArchiveVox/php/api/auth/logout.php', { method: 'POST' }); 
+        await fetch(BASE_PATH + '/php/api/auth/logout.php', { method: 'POST' }); 
         
         // Clear the student data from the browser's memory
         localStorage.removeItem('archivevox_user');
@@ -882,7 +885,7 @@ async function submitReading() {
     if (statusEl) statusEl.textContent = "Submitting and analyzing audio...";
 
     try {
-        const response = await fetch('/ArchiveVox/php/api/shared/assessment.php?action=record', {
+        const response = await fetch(BASE_PATH + '/php/api/shared/assessment.php?action=record', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'

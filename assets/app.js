@@ -2,6 +2,9 @@
 // 1. CONFIGURATION & STATE
 // ============================================================
 
+// Detect if running on ArchiveVox subdirectory (local) or domain root (Railway)
+const BASE_PATH = window.location.pathname.startsWith('/ArchiveVox') ? '/ArchiveVox' : '';
+
 const state = {
     user: null,
     activeView: 'dashboard',
@@ -550,7 +553,7 @@ async function fetchJson(url, options = {}) {
 // ASSIGNMENT API (PHP)
 // ============================================================
 
-const ASSIGNMENT_API_BASE = '/ArchiveVox/php/api/assignments.php';
+const ASSIGNMENT_API_BASE = BASE_PATH + '/php/api/assignments.php';
 
 async function fetchAssignmentApi(endpoint, options = {}) {
     // PHP API uses query parameter for routing
