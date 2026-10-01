@@ -23,10 +23,7 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql pgsql gd mbstring zip
 
 # Enable Apache mod_rewrite for clean URLs
-# Disable conflicting MPMs to avoid "More than one MPM loaded" error
-RUN a2dismod mpm_event mpm_worker && \
-    a2enmod mpm_prefork && \
-    a2enmod rewrite
+RUN a2enmod rewrite
 
 # Set working directory
 WORKDIR /var/www/html
@@ -53,7 +50,11 @@ RUN echo "date.timezone=Asia/Manila" > /usr/local/etc/php/conf.d/timezone.ini
 
 # Configure Apache to use Railway's PORT at runtime
 # Create a startup script that reads PORT environment variable
+# Cache bust: fix-mpm-v2
 RUN echo '#!/bin/bash\n\
+# Disable conflicting MPMs to avoid "More than one MPM loaded" error\n\
+a2dismod mpm_event mpm_worker\n\
+a2enmod mpm_prefork\n\
 # Get Railway PORT or default to 80\n\
 PORT=${PORT:-80}\n\
 # Configure Apache to listen on the PORT\n\
