@@ -1,11 +1,16 @@
-import whisper
 import sys
 import json
 import os
 import shutil
 
+# Set cache directory BEFORE importing whisper to avoid permission issues
+cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'uploads', 'temp', '.whisper_cache')
+os.makedirs(cache_dir, exist_ok=True)
+os.environ['HF_HOME'] = cache_dir
+os.environ['XDG_CACHE_HOME'] = cache_dir
+os.environ['TRANSFORMERS_CACHE'] = cache_dir
 
-def ensure_ffmpeg_available():
+import whisper
     """Make ffmpeg discoverable when PHP launches Python without a full user PATH."""
     # Rely on system PATH - works on both local and production
     if shutil.which("ffmpeg"):
