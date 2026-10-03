@@ -62,6 +62,45 @@ function $all(selector) {
     return document.querySelectorAll(selector);
 }
 
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
+function showError(message) {
+    const errorEl = document.getElementById('errorMessage');
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+        setTimeout(() => {
+            errorEl.classList.add('hidden');
+        }, 5000);
+    } else {
+        console.error(message);
+    }
+}
+
+function renderLoading(container) {
+    if (!container) return;
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+    `;
+}
+
+function renderEmptyAssignments(container, message) {
+    if (!container) return;
+    container.innerHTML = `
+        <div class="empty-state">
+            <p>${escapeHtml(message)}</p>
+        </div>
+    `;
+}
+
 /* ============================================================
    API HELPER
 ============================================================ */
@@ -101,15 +140,6 @@ async function fetchJson(url, options = {}) {
 document.addEventListener("DOMContentLoaded", () => {
     // Start the dashboard
     initializeStudentDashboard();
-
-    // 2. Safely attach the logout listener
-    const logoutBtn = document.getElementById("studentLogoutBtn"); 
-    
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", handleLogout);
-    } else {
-        console.warn("Logout button with ID 'logoutButton' not found in HTML.");
-    }
 });
 
 async function initializeStudentDashboard() {
@@ -122,9 +152,8 @@ async function initializeStudentDashboard() {
 
     setupNavigation();
     setupModal();
-    setupViewButtons();
     setStudentPlaceholder();
-    
+
     await loadAssignments();
     loadCompletedAssignments();
 }
@@ -135,19 +164,19 @@ async function initializeStudentDashboard() {
 async function handleLogout() {
     try {
         // UPDATE: Added { method: 'POST' }
-        await fetch(BASE_PATH + '/php/api/auth/logout.php', { method: 'POST' }); 
-        
+        await fetch(BASE_PATH + '/php/api/auth/logout.php', { method: 'POST' });
+
         // Clear the student data from the browser's memory
         localStorage.removeItem('archivevox_user');
-        
+
         // Redirect back to the main login page
-        window.location.href = '../index.php'; 
-        
+        window.location.href = BASE_PATH ? BASE_PATH + '/index.php' : '../index.php';
+
     } catch (error) {
         console.error('Logout error:', error);
-        
+
         localStorage.removeItem('archivevox_user');
-        window.location.href = '../index.php';
+        window.location.href = BASE_PATH ? BASE_PATH + '/index.php' : '../index.php';
     }
 }
 
@@ -163,6 +192,27 @@ function setStudentPlaceholder() {
     ];
     nameElements.forEach(el => {
         if (el) el.textContent = "Student";
+    });
+}
+
+function setupNavigation() {
+    const navItems = $all('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const view = item.dataset.view;
+            if (view) {
+                // Update active state
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+
+                // Show/hide views
+                $all('.view').forEach(v => v.classList.remove('active'));
+                const targetView = document.getElementById(`${view}View`);
+                if (targetView) {
+                    targetView.classList.add('active');
+                }
+            }
+        });
     });
 }
 
@@ -336,7 +386,7 @@ function createAssignmentCard(assignment) {
                 <p class="assignment-instructions">${escapeHtml(assignment.instructions)}</p>
                 <div class="assignment-meta">
                     <span>📚 ${materialsCount} ${materialsCount === 1 ? "story" : "stories"}</span>
-                    ${assignment.teacherName ? `<span>👨🏫 ${escapeHtml(assignment.teacherName)}</span>` : ""}
+                    ${assignment.teacherName ? `<span>👨‍🏫 ${escapeHtml(assignment.teacherName)}</span>` : ""}
                 </div>
                 <div class="progress-container">
                     <div class="progress-label">
@@ -473,13 +523,13 @@ async function openAssignmentModal(assignmentId) {
             `/api/student/assignments/${assignmentId}?student_id=${encodeURIComponent(STUDENT_ID)}`
         );
 
-        // Store the detailed data
+        // Store the detailed data (API returns { assignment: {...} })
         state.currentAssignmentDetail = data.assignment;
 
         // Normalize using the detail data
         const normalized = normalizeAssignment({
             ...listAssignment,
-            materials: data.assignment.materials || []
+            materials: data.assignment?.materials || []   // override with detailed materials
         });
 
         state.currentAssignment = normalized;
@@ -1030,7 +1080,7 @@ async function startQuiz() {
         state.currentQuizId = response.quiz_id;
 
         // Use questions from the detail data
-        const questions = response.questions || [];
+        const questions = material.questions || [];
         if (!questions.length) {
             throw new Error("No quiz questions found for this material.");
         }
@@ -1325,9 +1375,183 @@ async function viewActivityDetails(activityId) {
         const response = await fetchJson(`/api/shared/activity/${activityId}/details`);
         
         // Ensure we safely extract the data based on your API's response wrapper
-        // If your API wraps everything in a 'data' object, adjust this slightly (e.g., re... (9 KB left)
+        // If your API wraps everything in a 'data' object, adjust this slightly (e.g., response.data.assessment)
+        const data = response.assessment || response.data?.assessment;
+        const quiz = response.quiz_details || response.data?.quiz_details;
+
+        // NEW: Uses file_path and adds the correct folder URL!
+        const friendlyImageHtml = data.file_path 
+            ? `<div style="text-align: center; margin-bottom: 20px;">
+                   <img src="../uploads/materials/${data.file_path}" alt="Story Illustration" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+               </div>` 
+            : '';
+
+            modalBody.innerHTML = `
+            <div style="padding: 16px;">
+                <h3 style="margin-top: 0;">Reading Fluency</h3>
+                
+                <!-- Expanded Grid for 4 Metrics -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">WCPM</span>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.wcpm || 0}</div>
+                    </div>
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">Accuracy</span>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.accuracy_percentage ? Math.round(data.accuracy_percentage) : 0}%</div>
+                    </div>
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">Time Taken</span>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.reading_time_seconds || 0}s</div>
+                    </div>
+                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 12px; color: var(--muted);">Reading Level</span>
+                        <!-- Slightly smaller font size to accommodate longer text like 'Transitioning Reader' -->
+                        <div style="font-size: 18px; font-weight: bold; color: var(--primary); margin-top: 4px;">${data.final_reading_level || data.reading_level || 'Pending'}</div>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 8px;">Miscue Breakdown (AI Analysis)</h4>
+                <div style="display: flex; gap: 16px; margin-bottom: 24px; font-size: 14px;">
+                    <span style="color: #d97706;">🔄 Substitutions: <strong>${data.substitutions || 0}</strong></span>
+                    <span style="color: #dc2626;">➖ Omissions: <strong>${data.omissions || 0}</strong></span>
+                    <span style="color: #2563eb;">➕ Insertions: <strong>${data.insertions || 0}</strong></span>
+                    <span style="color: #9333ea;">🔁 Repetitions: <strong>${data.repetitions || 0}</strong></span>
+                </div>
+
+                <h4 style="margin-bottom: 8px;">What You Read:</h4>
+                
+                ${friendlyImageHtml}
+
+                <div style="background: #f8fafc; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-style: italic; color: #475569; margin-bottom: 32px;">
+                    "${escapeHtml(data.transcript || 'No transcript available.')}"
+                </div>
+                
+                <h3 style="margin-top: 0; border-top: 1px solid var(--border); padding-top: 24px;">Quiz Results</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${quiz && quiz.length > 0 ? quiz.map(q => `
+                        <div style="display: flex; align-items: flex-start; gap: 8px;">
+                            <span style="font-size: 18px;">${q.is_correct ? '✅' : '❌'}</span>
+                            <div>
+                                <div style="font-weight: 500; font-size: 14px;">${q.question_number}.${escapeHtml(q.question_text)}</div>
+                                <div style="font-size: 13px; color: ${q.is_correct ? 'var(--success)' : 'var(--danger)'};">
+                                    Your answer: ${escapeHtml(q.student_answer || 'Skipped / Unanswered')}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('') : '<div style="color: var(--muted); font-size: 14px;">No quiz attached to this reading material.</div>'}
+                </div>
+            </div>
+        `;
+
+        // When they close the modal, make sure the button comes back for future assignments
+        const closeBtn = modal.querySelector(".modal-close");
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                startButton.style.display = "block";
+            }, { once: true });
+        }
+
     } catch (error) {
         console.error("Error loading details:", error);
         document.querySelector(".modal-body").innerHTML = `<div style="color: red; padding: 20px;">Failed to load details: ${error.message}</div>`;
     }
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+
+function setupNavigation() {
+    $all(".nav-item").forEach(button => {
+        button.addEventListener("click", () => {
+            const view = button.dataset.view;
+            if (view) switchView(view);
+        });
+    });
+}
+
+function setupViewButtons() {
+    $all("[data-view-target]").forEach(button => {
+        button.addEventListener("click", () => {
+            const view = button.dataset.viewTarget;
+            if (view) switchView(view);
+        });
+    });
+}
+
+function switchView(viewName) {
+    const validViews = ["dashboard", "assignments", "progress"];
+    if (!validViews.includes(viewName)) return;
+
+    state.currentView = viewName;
+
+    $all(".view").forEach(view => view.classList.remove("active"));
+    const targetView = $(`#${viewName}View`);
+    if (targetView) targetView.classList.add("active");
+
+    $all(".nav-item").forEach(button => {
+        button.classList.toggle("active", button.dataset.view === viewName);
+    });
+}
+
+/* ============================================================
+   LOADING / EMPTY STATES
+============================================================ */
+
+function renderLoading(container) {
+    if (!container) return;
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+    `;
+}
+
+function renderEmptyAssignments(container, message) {
+    if (!container) return;
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-icon">📚</div>
+            <h3>No assignments yet</h3>
+            <p>${escapeHtml(message)}</p>
+        </div>
+    `;
+}
+
+/* ============================================================
+   MESSAGES
+============================================================ */
+
+function showError(message) {
+    const element = $("#errorMessage");
+    if (!element) return;
+    element.textContent = message;
+    element.classList.remove("hidden");
+    clearTimeout(showError.timeout);
+    showError.timeout = setTimeout(() => element.classList.add("hidden"), 6000);
+}
+
+function showInfo(message) {
+    const element = $("#errorMessage");
+    if (!element) return;
+    element.textContent = message;
+    element.classList.remove("hidden");
+    clearTimeout(showInfo.timeout);
+    showInfo.timeout = setTimeout(() => element.classList.add("hidden"), 5000);
+}
+
+/* ============================================================
+   HTML ESCAPING
+============================================================ */
+
+function escapeHtml(value) {
+    if (value === null || value === undefined) return "";
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }

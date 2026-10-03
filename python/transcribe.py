@@ -7,17 +7,20 @@ import shutil
 
 def ensure_ffmpeg_available():
     """Make ffmpeg discoverable when PHP launches Python without a full user PATH."""
+    # Rely on system PATH - works on both local and production
     if shutil.which("ffmpeg"):
         return
 
+    # If not in PATH, try common locations (local development only)
     candidate_dirs = [
-        r"C:\ffmpeg\ffmpeg-8.1.2-full_build\bin",
-        r"C:\Program Files\ffmpeg\bin",
-        r"C:\Program Files (x86)\ffmpeg\bin",
+        "/usr/bin",  # Linux/Railway
+        "/usr/local/bin",  # Linux/Railway
+        r"C:\ffmpeg\bin",  # Windows
+        r"C:\Program Files\ffmpeg\bin",  # Windows
     ]
 
     for directory in candidate_dirs:
-        ffmpeg_exe = os.path.join(directory, "ffmpeg.exe")
+        ffmpeg_exe = os.path.join(directory, "ffmpeg.exe" if os.name == 'nt' else "ffmpeg")
         if os.path.exists(ffmpeg_exe):
             os.environ["PATH"] = directory + os.pathsep + os.environ.get("PATH", "")
             return

@@ -15,7 +15,7 @@ Thumbs.db
 logs/
 *.log
 # Generated / user-uploaded files
-uploads/
+uploads/audio
 # Temporary development files
 temp_functions.txt
 update_workflow.js

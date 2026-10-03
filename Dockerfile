@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies for PHP extensions
+# Install system dependencies for PHP extensions and transcription
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
@@ -10,7 +10,13 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
+    python3 \
+    python3-pip \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Whisper for audio transcription
+RUN pip3 install --no-cache-dir openai-whisper
 
 # Install required PHP extensions
 # - pdo: Database abstraction layer

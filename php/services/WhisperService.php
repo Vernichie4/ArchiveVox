@@ -16,12 +16,24 @@ class WhisperService
 
     public function __construct(string $language = 'auto')
     {
-        // Prefer the known interpreter path, but fall back to the Windows launcher if needed.
-        $primaryPython = 'C:\\Users\\aleli\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe';
-        $launcherPython = 'py -3.14';
+        // Try to find Python in system PATH (works on both local and production)
+        $pythonPaths = [
+            'python3', // Linux/Railway
+            'python', // Windows/Linux
+            'python3.14',
+            'python3.13',
+            'python3.12',
+        ];
 
-        $this->pythonPath = file_exists($primaryPython) ? $primaryPython : $launcherPython;
-        
+        $this->pythonPath = 'python3'; // Default for production
+        foreach ($pythonPaths as $path) {
+            $output = shell_exec($path . ' --version 2>&1');
+            if ($output !== null && strpos($output, 'Python') !== false) {
+                $this->pythonPath = $path;
+                break;
+            }
+        }
+
         // Path to the Python transcription script
         $this->scriptPath = __DIR__ . '/../../python/transcribe.py';
         $this->language = $language;
