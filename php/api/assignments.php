@@ -636,6 +636,7 @@ if ($method === 'GET' && $uri === '/api/health') {
     $assignment_material_id = (int)$matches[2];
     $data = get_json_payload();
     $student_id = $data['student_id'] ?? null;
+    $activity_id = $data['activity_id'] ?? null; 
     
     if (!$student_id) error("student_id is required.");
     
@@ -657,15 +658,23 @@ if ($method === 'GET' && $uri === '/api/health') {
         $quiz = $stmt->fetch();
         if (!$quiz) throw new Exception("No quiz found for this material.", 404);
         
+        // --- NEW LOGIC: Clear any stuck 'in_progress' attempts for a fresh start ---
         $stmt = $pdo->prepare("SELECT attempt_id FROM quiz_attempt WHERE student_id = ? AND assignment_material_id = ? AND status = 'in_progress' LIMIT 1");
         $stmt->execute([$student_id, $assignment_material_id]);
         $existing = $stmt->fetch();
-        if ($existing) throw new Exception("You already have a quiz in progress for this material.", 400);
         
-        $stmt = $pdo->prepare("INSERT INTO quiz_attempt (quiz_id, student_id, assignment_material_id, activity_id, score, total_questions, percentage, started_at, status) VALUES (?, ?, ?, NULL, 0, 0, 0, NOW(), 'in_progress')");
-        $stmt->execute([$quiz['quiz_id'], $student_id, $assignment_material_id]);
+        if ($existing) {
+            // Delete associated answers first (foreign key constraint), then delete the stuck attempt
+            $pdo->prepare("DELETE FROM quiz_answer WHERE attempt_id = ?")->execute([$existing['attempt_id']]);
+            $pdo->prepare("DELETE FROM quiz_attempt WHERE attempt_id = ?")->execute([$existing['attempt_id']]);
+        }
+        
+        // Create a brand new clean attempt
+        $stmt = $pdo->prepare("INSERT INTO quiz_attempt (quiz_id, student_id, assignment_material_id, activity_id, score, total_questions, percentage, started_at, status) VALUES (?, ?, ?, ?, 0, 0, 0, NOW(), 'in_progress')");
+        $stmt->execute([$quiz['quiz_id'], $student_id, $assignment_material_id, $activity_id]);
         $attempt_id = $pdo->lastInsertId();
         
+        // Fetch the questions
         $questions = get_quiz_questions($pdo, $quiz['quiz_id']);
         
         $pdo->commit();
@@ -869,20 +878,36 @@ if ($method === 'GET' && $uri === '/api/health') {
     $pdo = get_db();
     try {
         $stmt = $pdo->prepare("
-            SELECT ra.activity_id, ra.activity_status, ra.started_at, ra.finished_at,
-                   rm.title AS material_title, rm.material_type
+            SELECT 
+                ra.activity_id, 
+                ra.activity_status, 
+                ra.started_at, 
+                ra.finished_at,
+                rm.title AS material_title, 
+                rm.material_type,
+                rasg.title AS assignment_title,
+                ar.accuracy_percentage,
+                ar.wcpm,
+                qa.score,
+                qa.total_questions
             FROM reading_activity ra
             INNER JOIN reading_material rm ON rm.material_id = ra.material_id
+            LEFT JOIN reading_assignment_material ram ON ram.assignment_material_id = ra.assignment_material_id
+            LEFT JOIN reading_assignment rasg ON rasg.assignment_id = ram.assignment_id
+            LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
+            LEFT JOIN quiz_attempt qa ON qa.activity_id = ra.activity_id
             WHERE ra.student_id = ? AND ra.activity_status = 'Completed'
             ORDER BY ra.finished_at DESC
         ");
         $stmt->execute([$student_id]);
-        $activities = $stmt->fetchAll();
-        success(['activities' => $activities]);
+        $completed_assignments = $stmt->fetchAll();
+        
+        // Changed the array key to match what student.js is looking for
+        success(['completed_assignments' => $completed_assignments]);
     } finally {
         $pdo = null;
     }
-
+    
 } elseif ($method === 'GET' && preg_match('#^/api/shared/activity/(\d+)/details$#', $uri, $matches)) {
     $activity_id = (int)$matches[1];
     
