@@ -22,11 +22,9 @@ update_workflow.js
 generate_student_users.php
 php/test_db.php
 
-# Python files (not used in PHP container)
-python/
+# Python cache files (but keep the python/ directory for transcription)
 __pycache__/
 *.pyc
-*.py
 
 # Logs directory (mounted as volume, not copied initially)
 logs/
