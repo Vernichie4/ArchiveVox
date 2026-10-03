@@ -83,19 +83,17 @@ class WhisperService
             mkdir($cacheDir, 0755, true);
         }
 
+        // Set environment variable for Whisper cache using putenv
+        putenv('HF_HOME=' . $cacheDir);
+        putenv('XDG_CACHE_HOME=' . $cacheDir);
+
         // Build a safe command for Windows paths
         $command = $this->pythonPath;
         if ($this->pythonPath !== 'py -3.14') {
             $command = escapeshellarg($this->pythonPath);
         }
 
-        // Set environment variable for Whisper cache
-        $envCommand = 'export HF_HOME=' . escapeshellarg($cacheDir) . ' && ';
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $envCommand = 'set HF_HOME=' . escapeshellarg($cacheDir) . ' && ';
-        }
-
-        $command = $envCommand . $command . ' ' . escapeshellarg($this->scriptPath)
+        $command .= ' ' . escapeshellarg($this->scriptPath)
             . ' ' . escapeshellarg($audioPath);
 
         // Add language parameter if specified
