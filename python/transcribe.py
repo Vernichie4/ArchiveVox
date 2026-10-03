@@ -11,9 +11,12 @@ os.environ['XDG_CACHE_HOME'] = cache_dir
 os.environ['TRANSFORMERS_CACHE'] = cache_dir
 
 import whisper
+
+def ensure_ffmpeg_available():
     """Make ffmpeg discoverable when PHP launches Python without a full user PATH."""
-    # Rely on system PATH - works on both local and production
-    if shutil.which("ffmpeg"):
+    # Check current PATH
+    ffmpeg_in_path = shutil.which("ffmpeg")
+    if ffmpeg_in_path:
         return
 
     # If not in PATH, try common locations (local development only)
