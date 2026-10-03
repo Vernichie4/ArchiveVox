@@ -108,6 +108,8 @@ class WhisperService
                 'success' => false,
                 'error' => 'Transcription command returned no output',
                 'command' => $command,
+                'python_path' => $this->pythonPath,
+                'cache_dir' => $cacheDir
             ];
         }
         
@@ -133,7 +135,10 @@ class WhisperService
             return [
                 'success' => false,
                 'error' => 'Failed to parse transcription output',
-                'raw_output' => substr($output, 0, 4000)
+                'raw_output' => substr($output, 0, 4000),
+                'python_path' => $this->pythonPath,
+                'script_path' => $this->scriptPath,
+                'cache_dir' => $cacheDir ?? 'not set'
             ];
         }
         
