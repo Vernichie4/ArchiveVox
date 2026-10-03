@@ -155,8 +155,8 @@ if ($action === 'list') {
             }
 
             // 2. Validate required fields (Grade and Section checks are intentionally gone)
-            if (empty($data['lrn']) || !preg_match('/^[0-9]{6}$/', $data['lrn'])) {
-                echo json_encode(['success' => false, 'message' => 'LRN must be exactly 6 digits']);
+            if (empty($data['lrn']) || !preg_match('/^[0-9]{12}$/', $data['lrn'])) {
+                echo json_encode(['success' => false, 'message' => 'LRN must be exactly 12 digits']);
                 break;
             }
             if (empty($data['first_name']) || empty($data['last_name'])) {

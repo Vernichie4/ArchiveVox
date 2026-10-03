@@ -104,8 +104,8 @@ function registerStudent(array $data): array {
     }
 
     // Validate LRN (if provided)
-    if (!empty($data['lrn']) && !preg_match('/^\d{6}$/', $data['lrn'])) {
-        return ['success' => false, 'message' => 'LRN must be exactly 6 digits'];
+    if (!empty($data['lrn']) && !preg_match('/^\d{12}$/', $data['lrn'])) {
+        return ['success' => false, 'message' => 'LRN must be exactly 12 digits'];
     }
 
     // Check for duplicate LRN
