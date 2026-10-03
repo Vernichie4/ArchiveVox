@@ -20,6 +20,7 @@ def ensure_ffmpeg_available():
         return
 
     # If not in PATH, try common locations (local development only)
+    # Note: Production (Railway) will have ffmpeg in PATH
     candidate_dirs = [
         "/usr/bin",  # Linux/Railway
         "/usr/local/bin",  # Linux/Railway
