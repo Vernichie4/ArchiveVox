@@ -18,6 +18,7 @@ class WhisperService
     {
         // Try to find Python in system PATH (works on both local and production)
         $pythonPaths = [
+            '/opt/whisper-venv/bin/python3', // Docker virtual environment
             'python3', // Linux/Railway
             'python', // Windows/Linux
             'python3.14',
@@ -27,10 +28,12 @@ class WhisperService
 
         $this->pythonPath = 'python3'; // Default for production
         foreach ($pythonPaths as $path) {
-            $output = shell_exec($path . ' --version 2>&1');
-            if ($output !== null && strpos($output, 'Python') !== false) {
-                $this->pythonPath = $path;
-                break;
+            if (file_exists($path) || $path === 'python3' || $path === 'python') {
+                $output = shell_exec($path . ' --version 2>&1');
+                if ($output !== null && strpos($output, 'Python') !== false) {
+                    $this->pythonPath = $path;
+                    break;
+                }
             }
         }
 

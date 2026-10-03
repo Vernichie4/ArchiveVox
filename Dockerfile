@@ -11,12 +11,14 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     python3 \
-    python3-pip \
+    python3-venv \
+    python3-full \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Whisper for audio transcription
-RUN pip3 install --no-cache-dir openai-whisper
+# Create virtual environment and install Whisper for audio transcription
+RUN python3 -m venv /opt/whisper-venv && \
+    /opt/whisper-venv/bin/pip install --no-cache-dir openai-whisper
 
 # Install required PHP extensions
 # - pdo: Database abstraction layer

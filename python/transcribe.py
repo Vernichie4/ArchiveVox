@@ -15,6 +15,7 @@ def ensure_ffmpeg_available():
     candidate_dirs = [
         "/usr/bin",  # Linux/Railway
         "/usr/local/bin",  # Linux/Railway
+        "/opt/whisper-venv/bin",  # Docker virtual environment
         r"C:\ffmpeg\bin",  # Windows
         r"C:\Program Files\ffmpeg\bin",  # Windows
     ]
