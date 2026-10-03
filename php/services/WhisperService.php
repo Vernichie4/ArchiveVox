@@ -61,7 +61,7 @@ class WhisperService
     {
         // Use the language passed or fall back to the constructor default
         $lang = $language ?? $this->language;
-        
+
         // Check if file exists
         if (!file_exists($audioPath)) {
             return [
@@ -76,21 +76,33 @@ class WhisperService
                 'error' => 'Python script not found: ' . $this->scriptPath
             ];
         }
-        
+
+        // Set cache directory to writable location (uploads/temp)
+        $cacheDir = __DIR__ . '/../../../uploads/temp/.whisper_cache';
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+
         // Build a safe command for Windows paths
         $command = $this->pythonPath;
         if ($this->pythonPath !== 'py -3.14') {
             $command = escapeshellarg($this->pythonPath);
         }
 
-        $command .= ' ' . escapeshellarg($this->scriptPath)
+        // Set environment variable for Whisper cache
+        $envCommand = 'export HF_HOME=' . escapeshellarg($cacheDir) . ' && ';
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $envCommand = 'set HF_HOME=' . escapeshellarg($cacheDir) . ' && ';
+        }
+
+        $command = $envCommand . $command . ' ' . escapeshellarg($this->scriptPath)
             . ' ' . escapeshellarg($audioPath);
-        
+
         // Add language parameter if specified
         if ($lang !== 'auto' && $lang !== null) {
             $command .= ' ' . escapeshellarg($lang);
         }
-        
+
         // Execute and capture output
         $output = shell_exec($command . ' 2>&1');
         if ($output === null) {
