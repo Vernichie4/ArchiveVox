@@ -413,6 +413,8 @@ function handleRecordAssessment(PDO $pdo): void {
         $transcription = $whisper->transcribeAudio($filePath, $language);
 
         if (empty($transcription['success'])) {
+            $errorDetails = is_array($transcription) ? json_encode($transcription) : $transcription;
+            error_log("Transcription failed: " . $errorDetails);
             throw new Exception('Transcription failed: ' . ($transcription['error'] ?? 'Unknown error'));
         }
 

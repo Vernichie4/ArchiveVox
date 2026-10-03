@@ -3,6 +3,10 @@ import json
 import os
 import shutil
 
+# Suppress Whisper progress bars by redirecting stderr
+import io
+sys.stderr = io.StringIO()
+
 # Set cache directory BEFORE importing whisper to avoid permission issues
 cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'uploads', 'temp', '.whisper_cache')
 os.makedirs(cache_dir, exist_ok=True)
@@ -27,6 +31,8 @@ def ensure_ffmpeg_available():
         "/opt/whisper-venv/bin",  # Docker virtual environment
         r"C:\ffmpeg\bin",  # Windows
         r"C:\Program Files\ffmpeg\bin",  # Windows
+        # Dynamic Winget installation path (works for any user)
+        rf"C:\Users\{os.getenv('USERNAME')}\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.2-full_build\bin",
     ]
 
     for directory in candidate_dirs:
@@ -56,19 +62,20 @@ def main():
     
     try:
         model = whisper.load_model("base")
-        
+
         # Build transcription arguments dynamically
         transcribe_args = {
             "task": "transcribe",
-            "fp16": False
+            "fp16": False,
+            "verbose": False  # Suppress progress output
         }
-        
+
         # Force Whisper to use the specific language model to prevent hallucinations
         if target_language:
             transcribe_args["language"] = target_language
-            
+
         result = model.transcribe(audio_path, **transcribe_args)
-        
+
         print(json.dumps({
             "success": True,
             "text": result["text"],
