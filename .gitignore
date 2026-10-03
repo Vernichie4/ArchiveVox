@@ -16,6 +16,7 @@ logs/
 *.log
 # Generated / user-uploaded files
 uploads/audio
+uploads/temp/.whisper_cache
 # Temporary development files
 temp_functions.txt
 update_workflow.js
