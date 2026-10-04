@@ -57,11 +57,18 @@ class WhisperService
      * @param string $audioPath Full path to the audio file
      * @return array Array with 'success', 'text', and 'language' or 'error'
      */
-     public function transcribeAudio(string $audioPath, ?string $language = null): array
+    public function transcribeAudio(string $audioPath, ?string $language = null): array
     {
         // Use the language passed or fall back to the constructor default
         $lang = $language ?? $this->language;
 
+        // Check if external transcription service is configured
+        $serviceUrl = getenv('TRANSCRIPTION_SERVICE_URL');
+        if ($serviceUrl) {
+            return $this->transcribeAudioViaAPI($audioPath, $lang);
+        }
+
+        // Fall back to local Python (for local development)
         // Check if file exists
         if (!file_exists($audioPath)) {
             return [
@@ -139,6 +146,70 @@ class WhisperService
                 'python_path' => $this->pythonPath,
                 'script_path' => $this->scriptPath,
                 'cache_dir' => $cacheDir ?? 'not set'
+            ];
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Transcribe audio via external HTTP API service
+     * 
+     * @param string $audioPath Full path to the audio file
+     * @param string $language Language code
+     * @return array Array with 'success', 'text', and 'language' or 'error'
+     */
+    private function transcribeAudioViaAPI(string $audioPath, string $language): array
+    {
+        $serviceUrl = getenv('TRANSCRIPTION_SERVICE_URL');
+        if (!$serviceUrl) {
+            return [
+                'success' => false,
+                'error' => 'TRANSCRIPTION_SERVICE_URL not configured'
+            ];
+        }
+        
+        $url = rtrim($serviceUrl, '/') . '/transcribe';
+        
+        $ch = curl_init();
+        $cfile = new CURLFile($audioPath, 'audio/webm', basename($audioPath));
+        
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => [
+                'audio' => $cfile,
+                'language' => $language
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 120, // 2 minutes
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            return [
+                'success' => false,
+                'error' => 'HTTP request failed: ' . $error
+            ];
+        }
+        
+        if ($httpCode !== 200) {
+            return [
+                'success' => false,
+                'error' => 'HTTP error: ' . $httpCode,
+                'response' => $response
+            ];
+        }
+        
+        $result = json_decode($response, true);
+        if (!is_array($result)) {
+            return [
+                'success' => false,
+                'error' => 'Invalid JSON response from transcription service'
             ];
         }
         

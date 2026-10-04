@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies for PHP extensions and transcription
+# Install system dependencies for PHP extensions only
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
@@ -10,24 +10,9 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
-    python3 \
-    python3-venv \
-    python3-full \
-    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment and install Whisper for audio transcription
-RUN python3 -m venv /opt/whisper-venv && \
-    /opt/whisper-venv/bin/pip install --no-cache-dir openai-whisper
-
 # Install required PHP extensions
-# - pdo: Database abstraction layer
-# - pdo_mysql: MySQL driver (required for Railway MySQL)
-# - pdo_pgsql: PostgreSQL driver (required by composer.json)
-# - pgsql: PostgreSQL client (required by composer.json)
-# - gd: Image processing (required by PhpSpreadsheet)
-# - mbstring: Multibyte string functions (used in php/auth/config.php)
-# - zip: ZipArchive for file operations (used in student import)
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql pgsql gd mbstring zip
 
 # Enable Apache mod_rewrite for clean URLs
@@ -47,9 +32,6 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Copy application files
 COPY . .
-
-# Cache bust: tiny model deployment
-RUN echo "Whisper tiny model deployment" > /tmp/.cachebust
 
 # Create persistent data directories with proper permissions
 RUN mkdir -p uploads/materials uploads/audio uploads/temp logs database && \

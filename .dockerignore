@@ -25,6 +25,7 @@ php/test_db.php
 # Python cache files (but keep the python/ directory for transcription)
 __pycache__/
 *.pyc
+uploads/temp/.whisper_cache
 
 # Logs directory (mounted as volume, not copied initially)
 logs/
