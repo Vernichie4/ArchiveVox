@@ -48,6 +48,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Copy application files
 COPY . .
 
+# Cache bust: tiny model deployment
+RUN echo "Whisper tiny model deployment" > /tmp/.cachebust
+
 # Create persistent data directories with proper permissions
 RUN mkdir -p uploads/materials uploads/audio uploads/temp logs database && \
     chown -R www-data:www-data /var/www/html && \
