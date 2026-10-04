@@ -61,7 +61,9 @@ def main():
         return
     
     try:
-        model = whisper.load_model("base")
+        # Use tiny model for lower memory usage on Railway
+        # tiny: ~39MB, base: ~139MB, small: ~461MB, medium: ~1.5GB, large: ~2.9GB
+        model = whisper.load_model("tiny")
 
         # Build transcription arguments dynamically
         transcribe_args = {
