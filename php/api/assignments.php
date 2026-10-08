@@ -302,13 +302,13 @@ if ($method === 'GET' && $uri === '/api/health') {
     $material_ids = array_column($all_materials, 'assignment_material_id');
     if ($material_ids) {
         $placeholders = implode(',', array_fill(0, count($material_ids), '?'));
-        
-        $qStmt = $pdo->prepare("SELECT * FROM quiz_attempt WHERE student_id = ? AND assignment_material_id IN ($placeholders) ORDER BY attempt_id DESC");
+
+        $qStmt = $pdo->prepare("SELECT attempt_id, assignment_material_id, status, score, total_questions, percentage FROM quiz_attempt WHERE student_id = ? AND assignment_material_id IN ($placeholders) ORDER BY attempt_id DESC");
         $qStmt->execute(array_merge([$student_id], $material_ids));
         $quiz_dict = [];
         foreach ($qStmt->fetchAll() as $qa) $quiz_dict[$qa['assignment_material_id']] ??= $qa;
 
-        $rStmt = $pdo->prepare("SELECT ra.*, ar.* FROM reading_activity ra LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) ORDER BY ra.activity_id DESC, ar.assessment_id DESC");
+        $rStmt = $pdo->prepare("SELECT ra.activity_id, ra.assignment_material_id, ra.activity_status FROM reading_activity ra WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) ORDER BY ra.activity_id DESC");
         $rStmt->execute(array_merge([$student_id], $material_ids));
         $reading_dict = [];
         foreach ($rStmt->fetchAll() as $rr) $reading_dict[$rr['assignment_material_id']] ??= $rr;
@@ -579,11 +579,48 @@ if ($method === 'GET' && $uri === '/api/health') {
     try {
         $assignment = get_assignment_for_student($pdo, $assignment_id, $student_id);
         if (!$assignment) error("Assignment not found or not assigned to this student's class.", 404);
-        
+
         $materials = get_assignment_materials($pdo, $assignment_id);
+
+        // Get student's completed reading activities for this assignment
+        $material_ids = array_column($materials, 'assignment_material_id');
+        if ($material_ids) {
+            $placeholders = implode(',', array_fill(0, count($material_ids), '?'));
+            $rStmt = $pdo->prepare("
+                SELECT ra.assignment_material_id, ra.activity_id, ra.activity_status
+                FROM reading_activity ra
+                WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed'
+            ");
+            $rStmt->execute(array_merge([$student_id], $material_ids));
+            $reading_results = $rStmt->fetchAll(PDO::FETCH_KEY_PAIR); // assignment_material_id => activity_id
+
+            // Get student's completed quiz attempts for this assignment
+            $qStmt = $pdo->prepare("
+                SELECT qa.assignment_material_id, qa.attempt_id, qa.status, qa.score, qa.total_questions, qa.percentage
+                FROM quiz_attempt qa
+                WHERE qa.student_id = ? AND qa.assignment_material_id IN ($placeholders) AND qa.status = 'completed'
+            ");
+            $qStmt->execute(array_merge([$student_id], $material_ids));
+            $quiz_results = $qStmt->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC); // assignment_material_id => array of attempts
+        }
+
         foreach ($materials as &$mat) {
             if ($mat['quiz_id']) {
                 $mat['quiz']['questions'] = get_quiz_questions($pdo, $mat['quiz_id']);
+            }
+
+            // Attach reading activity result if exists
+            $assignment_material_id = $mat['assignment_material_id'];
+            if (isset($reading_results[$assignment_material_id])) {
+                $mat['reading_result'] = [
+                    'activity_id' => $reading_results[$assignment_material_id],
+                    'activity_status' => 'Completed'
+                ];
+            }
+
+            // Attach quiz attempt if exists
+            if (isset($quiz_results[$assignment_material_id])) {
+                $mat['quiz_attempt'] = $quiz_results[$assignment_material_id][0]; // Take the most recent
             }
         }
         $assignment['materials'] = $materials;
@@ -870,15 +907,40 @@ if ($method === 'GET' && $uri === '/api/health') {
     try {
         $stmt = $pdo->prepare("
             SELECT ra.activity_id, ra.activity_status, ra.started_at, ra.finished_at,
-                   rm.title AS material_title, rm.material_type
+                   rm.title AS material_title, rm.material_type,
+                   rtitle.title AS assignment_title,
+                   MAX(ar.accuracy_percentage) AS accuracy_percentage,
+                   MAX(ar.wcpm) AS wcpm,
+                   MAX(ar.reading_time_seconds) AS reading_time_seconds,
+                   MAX(ar.final_reading_level) AS final_reading_level,
+                   MAX(qa.score) AS score, MAX(qa.total_questions) AS total_questions, MAX(qa.percentage) AS quiz_percentage
             FROM reading_activity ra
             INNER JOIN reading_material rm ON rm.material_id = ra.material_id
+            INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ra.assignment_material_id
+            INNER JOIN reading_assignment rtitle ON rtitle.assignment_id = ram.assignment_id
+            LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
+            LEFT JOIN quiz_attempt qa ON qa.assignment_material_id = ra.assignment_material_id AND qa.student_id = ra.student_id AND qa.status = 'completed'
             WHERE ra.student_id = ? AND ra.activity_status = 'Completed'
+            GROUP BY ra.activity_id, ra.activity_status, ra.started_at, ra.finished_at,
+                     rm.title, rm.material_type, rtitle.title
             ORDER BY ra.finished_at DESC
         ");
         $stmt->execute([$student_id]);
         $activities = $stmt->fetchAll();
-        success(['activities' => $activities]);
+
+        // Debug info in response
+        $debug = [
+            'count' => count($activities),
+            'activities' => array_map(function($act) {
+                return [
+                    'activity_id' => $act['activity_id'],
+                    'material_title' => $act['material_title'],
+                    'quiz_score' => $act['score'] ?? 'null'
+                ];
+            }, $activities)
+        ];
+
+        success(['completed_assignments' => $activities, 'debug' => $debug]);
     } finally {
         $pdo = null;
     }

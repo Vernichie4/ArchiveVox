@@ -28,3 +28,7 @@ __pycache__/
 # Development test files
 php/test_db.php
 python/python
+
+
+# database
+database/*.sql

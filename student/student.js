@@ -151,6 +151,7 @@ async function initializeStudentDashboard() {
     }
 
     setupNavigation();
+    setupViewButtons();
     setupModal();
     setStudentPlaceholder();
 
@@ -305,15 +306,24 @@ function normalizeAssignment(assignment) {
     const materials = assignment.materials || assignment.reading_materials || assignment.material || [];
     const normalizedMaterials = Array.isArray(materials) ? materials : [materials];
 
-    // --- NEW LOGIC: Calculate progress based on completed quizzes ---
+    // --- NEW LOGIC: Calculate progress based on completed quizzes AND reading activities ---
     let completedCount = 0;
     let totalScore = 0;
 
     normalizedMaterials.forEach(m => {
-        // If the backend attached a completed quiz attempt, count it!
-        if (m.quiz_attempt && m.quiz_attempt.status === 'completed') {
+        // A material is considered complete if EITHER reading OR quiz is done
+        const quizCompleted = m.quiz_attempt && m.quiz_attempt.status === 'completed';
+        const readingCompleted = m.reading_result && m.reading_result.activity_status === 'Completed';
+
+        console.log('Material full object:', m);
+        console.log('Material title:', m.title || m.material_title);
+        console.log('quiz_attempt:', m.quiz_attempt, 'reading_result:', m.reading_result, 'quizCompleted:', quizCompleted, 'readingCompleted:', readingCompleted);
+
+        if (quizCompleted || readingCompleted) {
             completedCount++;
-            totalScore += Number(m.quiz_attempt.percentage || 0);
+            if (m.quiz_attempt && m.quiz_attempt.percentage) {
+                totalScore += Number(m.quiz_attempt.percentage);
+            }
         }
     });
 
@@ -438,10 +448,19 @@ function updateAssignmentStatistics() {
 }
 
 function calculateAverageScore() {
-    const scores = state.assignments
-        .map(a => a.score ?? a.quiz_score ?? a.percentage)
-        .filter(s => s !== null && s !== undefined && !Number.isNaN(Number(s)))
-        .map(s => Number(s));
+    const scores = [];
+
+    state.assignments.forEach(assignment => {
+        const materials = assignment.materials || [];
+        materials.forEach(material => {
+            if (material.quiz_attempt && material.quiz_attempt.status === 'completed') {
+                const score = Number(material.quiz_attempt.percentage);
+                if (!Number.isNaN(score)) {
+                    scores.push(score);
+                }
+            }
+        });
+    });
 
     if (!scores.length) return null;
     const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
@@ -688,7 +707,7 @@ function showReadingContent() {
                     <span id="timer-display" class="timer-display">00:00</span>
                 </div>
                 <div class="button-row">
-                    <button id="start-record-btn" class="btn-primary btn-record">🎤 Start Recording</button>
+                    <button id="start-record-btn" class="btn-primary btn-record ready">� Start Recording</button>
                     <button id="stop-record-btn" class="btn-danger btn-record hidden">⏹️ Stop</button>
                     <button id="play-record-btn" class="btn-secondary" disabled>▶️ Playback</button>
                     <button id="clear-record-btn" class="btn-secondary" disabled>🗑️ Clear</button>
@@ -837,6 +856,14 @@ function startRecording() {
             document.getElementById('clear-record-btn').disabled = false;
             document.getElementById('modalStartButton').disabled = false;
             document.getElementById('recording-status').textContent = 'Recording complete. Ready to submit.';
+
+            // Change button back to ready state
+            const startBtn = document.getElementById('start-record-btn');
+            if (startBtn) {
+                startBtn.classList.remove('recording');
+                startBtn.classList.add('ready');
+                startBtn.textContent = '🎙 Start Recording';
+            }
         };
 
         // Collect audio data every 1 second
@@ -850,6 +877,14 @@ function startRecording() {
         document.getElementById('start-record-btn').classList.add('hidden');
         document.getElementById('stop-record-btn').classList.remove('hidden');
         document.getElementById('recording-status').textContent = '⏺️ Recording...';
+
+        // Change button to recording state
+        const startBtn = document.getElementById('start-record-btn');
+        if (startBtn) {
+            startBtn.classList.remove('ready');
+            startBtn.classList.add('recording');
+            startBtn.textContent = '⏺️ Recording...';
+        }
     })
     .catch(err => {
         alert('Microphone access denied: ' + err.message);
@@ -871,6 +906,14 @@ function stopRecording() {
     }
     document.getElementById('start-record-btn').classList.remove('hidden');
     document.getElementById('stop-record-btn').classList.add('hidden');
+
+    // Change button back to ready state
+    const startBtn = document.getElementById('start-record-btn');
+    if (startBtn) {
+        startBtn.classList.remove('recording');
+        startBtn.classList.add('ready');
+        startBtn.textContent = '🎙 Start Recording';
+    }
 }
 
 function playRecording() {
@@ -1079,8 +1122,8 @@ async function startQuiz() {
         state.currentAttemptId = response.attempt_id;
         state.currentQuizId = response.quiz_id;
 
-        // Use questions from the detail data
-        const questions = material.questions || [];
+        // Use questions from the API response
+        const questions = response.questions || [];
         if (!questions.length) {
             throw new Error("No quiz questions found for this material.");
         }
@@ -1304,7 +1347,8 @@ async function loadCompletedAssignments() {
         container.innerHTML = '<p>Loading your past scores...</p>';
         const response = await fetchJson(`/api/student/${STUDENT_ID}/completed`);
 
-        if (!response.completed_assignments || response.completed_assignments.length === 0) {
+        const activities = response.completed_assignments || response.activities || [];
+        if (!activities || activities.length === 0) {
             container.innerHTML = ''; // Clear the loading text
             if (emptyState) emptyState.style.display = 'flex'; // Show the plant icon
             if (contentState) contentState.style.display = 'none'; // Hide the grid
@@ -1316,13 +1360,13 @@ async function loadCompletedAssignments() {
         if (contentState) contentState.style.display = 'block';
 
         let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">';
-        
-        response.completed_assignments.forEach(item => {
+
+        activities.forEach(item => {
             html += `
                 <div style="background: var(--bg-alt); padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
-                    <h4 style="margin: 0 0 4px 0;">${escapeHtml(item.assignment_title)}</h4>
+                    <h4 style="margin: 0 0 4px 0;">${escapeHtml(item.assignment_title || 'Assignment')}</h4>
                     <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--muted);">${escapeHtml(item.material_title)}</p>
-                    
+
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                         <span>Accuracy:</span>
                         <strong style="color: var(--primary);">${Math.round(item.accuracy_percentage || 0)}%</strong>
@@ -1331,10 +1375,12 @@ async function loadCompletedAssignments() {
                         <span>Fluency (WCPM):</span>
                         <strong style="color: var(--primary);">${item.wcpm || 0}</strong>
                     </div>
+                    ${item.score && item.total_questions ? `
                     <div style="display: flex; justify-content: space-between;">
                         <span>Quiz Score:</span>
                         <strong style="color: var(--primary);">${item.score}/${item.total_questions}</strong>
                     </div>
+                    ` : ''}
 
                     <hr style="border-top: 1px solid var(--border); margin: 12px 0;">
                     <button class="btn-secondary" style="width: 100%;" onclick="viewActivityDetails(${item.activity_id})">

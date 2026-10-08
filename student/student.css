@@ -2035,7 +2035,62 @@ body {
     margin: 8px 0;
 }
 .btn-record {
-    padding: 8px 16px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary.btn-record {
+    background: #eaf2ff;
+    color: #1e4d8c;
+    border: 1px solid #d0e1ff;
+}
+
+.btn-primary.btn-record:hover {
+    background: #d0e1ff;
+}
+
+.btn-danger.btn-record {
+    background: #fff0f0;
+    color: #c94a4a;
+    border: 1px solid #ffd6d6;
+}
+
+.btn-secondary {
+    background: #f5f7fb;
+    color: #1d2939;
+    border: 1px solid #e4e7ec;
+    border-radius: 8px;
+}
+
+.btn-secondary:hover {
+    background: #e4e7ec;
+}
+
+/* Recording button states */
+.btn-record.recording {
+    background: #d1d5db;
+    color: #1d2939;
+    border: 1px solid #9ca3af;
+}
+
+.btn-record.recording:hover {
+    background: #c5c9d0;
+}
+
+.btn-record.ready {
+    background: #eaf2ff;
+    color: #1e4d8c;
+    border: 1px solid #d0e1ff;
+}
+
+.btn-record.ready:hover {
+    background: #d0e1ff;
+}
+
+.hidden {
+    display: none !important;
 }
 .recording-status-msg {
     font-size: 0.9rem;
