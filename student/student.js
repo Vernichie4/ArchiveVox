@@ -315,10 +315,6 @@ function normalizeAssignment(assignment) {
         const quizCompleted = m.quiz_attempt && m.quiz_attempt.status === 'completed';
         const readingCompleted = m.reading_result && m.reading_result.activity_status === 'Completed';
 
-        console.log('Material full object:', m);
-        console.log('Material title:', m.title || m.material_title);
-        console.log('quiz_attempt:', m.quiz_attempt, 'reading_result:', m.reading_result, 'quizCompleted:', quizCompleted, 'readingCompleted:', readingCompleted);
-
         if (quizCompleted || readingCompleted) {
             completedCount++;
             if (m.quiz_attempt && m.quiz_attempt.percentage) {

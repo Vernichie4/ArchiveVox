@@ -927,20 +927,7 @@ if ($method === 'GET' && $uri === '/api/health') {
         ");
         $stmt->execute([$student_id]);
         $activities = $stmt->fetchAll();
-
-        // Debug info in response
-        $debug = [
-            'count' => count($activities),
-            'activities' => array_map(function($act) {
-                return [
-                    'activity_id' => $act['activity_id'],
-                    'material_title' => $act['material_title'],
-                    'quiz_score' => $act['score'] ?? 'null'
-                ];
-            }, $activities)
-        ];
-
-        success(['completed_assignments' => $activities, 'debug' => $debug]);
+        success(['completed_assignments' => $activities]);
     } finally {
         $pdo = null;
     }

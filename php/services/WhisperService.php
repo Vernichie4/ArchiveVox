@@ -183,7 +183,7 @@ class WhisperService
                 'language' => $language
             ],
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30, // 30 seconds to submit
+            CURLOPT_TIMEOUT => 120, // 2 minutes to submit (increased from 30s)
         ]);
 
         $response = curl_exec($ch);
