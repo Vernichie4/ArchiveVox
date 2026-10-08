@@ -1798,7 +1798,7 @@ async function deleteAssignment(id) {
         await fetchAssignmentApi(`/teacher/assignments/${id}`, {
             method: 'DELETE'
         });
-        showToast('Assignment archived.', 'info');
+        showToast('Assignment deleted.', 'info');
         await loadAssignmentList();
     } catch (error) {
         showToast('Delete failed: ' + error.message, 'error');
@@ -5355,8 +5355,8 @@ async function renderStudentDetail(studentId) {
         
         const completedReadings = allMaterials.filter(m => m.reading_result);
         const totalAssessments = completedReadings.length;
-        const avgWcpm = totalAssessments ? completedReadings.reduce((sum, m) => sum + Number(m.reading_result.wcpm || 0), 0) / totalAssessments : 0;
-        const avgAccuracy = totalAssessments ? completedReadings.reduce((sum, m) => sum + Number(m.reading_result.accuracy_percentage || 0), 0) / totalAssessments : 0;
+        const avgWcpm = totalAssessments ? completedReadings.reduce((sum, m) => sum + (Number(m.reading_result.wcpm) || 0), 0) / totalAssessments : 0;
+        const avgAccuracy = totalAssessments ? completedReadings.reduce((sum, m) => sum + (Number(m.reading_result.accuracy_percentage) || 0), 0) / totalAssessments : 0;
 
         // Render the UI
         viewContainer.innerHTML = `
@@ -5415,7 +5415,7 @@ async function renderStudentDetail(studentId) {
                                 </thead>
                                 <tbody>
                                     ${assignments.map(a => {
-                                        // Look inside the materials array for results
+                                        // Look inside the materials array for results in THIS assignment
                                         const materialWithReading = a.materials?.find(m => m.reading_result);
                                         const materialWithQuiz = a.materials?.find(m => m.quiz_attempt && m.quiz_attempt.status === 'completed');
 
@@ -5423,10 +5423,12 @@ async function renderStudentDetail(studentId) {
                                         let readHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
                                         if (materialWithReading) {
                                             const rr = materialWithReading.reading_result;
-                                            readHtml = `<strong style="color: #059669;">${Math.round(rr.accuracy_percentage)}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${Math.round(rr.wcpm)} WCPM</span>`;
+                                            const acc = rr.accuracy_percentage ? Math.round(rr.accuracy_percentage) : 0;
+                                            const wcpm = rr.wcpm ? Math.round(rr.wcpm) : 0;
+                                            readHtml = `<strong style="color: #059669;">${acc}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${wcpm} WCPM</span>`;
                                         }
 
-                                        // Process Quiz Result (Notice we use quiz_attempt now)
+                                        // Process Quiz Result
                                         let quizHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
                                         if (materialWithQuiz) {
                                             const qa = materialWithQuiz.quiz_attempt;
@@ -5437,11 +5439,11 @@ async function renderStudentDetail(studentId) {
 
                                         // Smart Status Badges
                                         let statusBadge = '<span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Assigned</span>';
-                                        
+
                                         // If backend says completed, or if they finished both parts
-                                        if (a.status === 'completed' || (materialWithReading && materialWithQuiz)) { 
+                                        if (a.status === 'completed' || (materialWithReading && materialWithQuiz)) {
                                             statusBadge = '<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Completed</span>';
-                                        } 
+                                        }
                                         // If backend says in_progress, or if they finished at least one part
                                         else if (a.status === 'in_progress' || materialWithReading || materialWithQuiz) {
                                             statusBadge = '<span style="background: #fef9c3; color: #854d0e; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">In Progress</span>';

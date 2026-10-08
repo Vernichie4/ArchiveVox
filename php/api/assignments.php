@@ -295,8 +295,8 @@ if ($method === 'GET' && $uri === '/api/health') {
     $all_materials = [];
     foreach ($assignments as &$assignment) {
         $materials = get_assignment_materials($pdo, $assignment['assignment_id']);
-        $assignment['materials'] = &$materials;
-        foreach ($materials as &$mat) $all_materials[] = &$mat;
+        $assignment['materials'] = $materials;
+        foreach ($materials as $mat) $all_materials[] = $mat;
     }
 
     $material_ids = array_column($all_materials, 'assignment_material_id');
@@ -308,18 +308,19 @@ if ($method === 'GET' && $uri === '/api/health') {
         $quiz_dict = [];
         foreach ($qStmt->fetchAll() as $qa) $quiz_dict[$qa['assignment_material_id']] ??= $qa;
 
-        $rStmt = $pdo->prepare("SELECT ra.activity_id, ra.assignment_material_id, ra.activity_status FROM reading_activity ra WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed' ORDER BY ra.activity_id DESC");
+        $rStmt = $pdo->prepare("SELECT ra.activity_id, ra.assignment_material_id, ra.activity_status, ar.accuracy_percentage, ar.wcpm FROM reading_activity ra LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed' ORDER BY ra.activity_id DESC");
         $rStmt->execute(array_merge([$student_id], $material_ids));
         $reading_dict = [];
         foreach ($rStmt->fetchAll() as $rr) $reading_dict[$rr['assignment_material_id']] ??= $rr;
 
-        foreach ($all_materials as &$mat) {
-            $mat['quiz_attempt'] = $quiz_dict[$mat['assignment_material_id']] ?? null;
-            $mat['reading_result'] = $reading_dict[$mat['assignment_material_id']] ?? null;
+        // Attach completion data directly to assignment materials
+        foreach ($assignments as &$assignment) {
+            foreach ($assignment['materials'] as &$mat) {
+                $mat['quiz_attempt'] = $quiz_dict[$mat['assignment_material_id']] ?? null;
+                $mat['reading_result'] = $reading_dict[$mat['assignment_material_id']] ?? null;
+            }
         }
     }
-    // Debug: Log what we're returning
-    error_log("Student dashboard for student $student_id: " . json_encode(['assignments_count' => count($assignments), 'materials_count' => count($all_materials), 'quiz_dict_count' => count($quiz_dict), 'reading_dict_count' => count($reading_dict)]));
     success(['student' => $student, 'assignments' => $assignments]);
 
 } elseif ($method === 'POST' && preg_match('#^/api/student/assignments/(\d+)/materials/(\d+)/quiz/submit$#', $uri, $matches)) {
@@ -532,13 +533,61 @@ if ($method === 'GET' && $uri === '/api/health') {
     $assignment_id = (int)$matches[1];
     $teacher_id = $_GET['teacher_id'] ?? null;
     if (!$teacher_id) error("teacher_id is required.");
-    
+
     $pdo = get_db();
     try {
-        $stmt = $pdo->prepare("UPDATE reading_assignment SET status = 'archived' WHERE assignment_id = ? AND teacher_id = ?");
+        $pdo->beginTransaction();
+
+        // Verify ownership
+        $stmt = $pdo->prepare("SELECT assignment_id FROM reading_assignment WHERE assignment_id = ? AND teacher_id = ?");
         $stmt->execute([$assignment_id, $teacher_id]);
-        if ($stmt->rowCount() === 0) error("Assignment not found or not owned.", 404);
-        success(['message' => 'Assignment archived.']);
+        if (!$stmt->fetch()) error("Assignment not found or not owned.", 404);
+
+        // Delete assignment materials
+        $stmt = $pdo->prepare("DELETE FROM reading_assignment_material WHERE assignment_id = ?");
+        $stmt->execute([$assignment_id]);
+
+        // Delete quiz attempts and answers for this assignment
+        $stmt = $pdo->prepare("
+            DELETE qa FROM quiz_answer qa
+            INNER JOIN quiz_attempt q ON qa.attempt_id = q.attempt_id
+            INNER JOIN reading_assignment_material ram ON q.assignment_material_id = ram.assignment_material_id
+            WHERE ram.assignment_id = ?
+        ");
+        $stmt->execute([$assignment_id]);
+
+        $stmt = $pdo->prepare("
+            DELETE q FROM quiz_attempt q
+            INNER JOIN reading_assignment_material ram ON q.assignment_material_id = ram.assignment_material_id
+            WHERE ram.assignment_id = ?
+        ");
+        $stmt->execute([$assignment_id]);
+
+        // Delete reading activities and assessment results for this assignment
+        $stmt = $pdo->prepare("
+            DELETE ar FROM assessment_result ar
+            INNER JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+            INNER JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+            WHERE ram.assignment_id = ?
+        ");
+        $stmt->execute([$assignment_id]);
+
+        $stmt = $pdo->prepare("
+            DELETE ra FROM reading_activity ra
+            INNER JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+            WHERE ram.assignment_id = ?
+        ");
+        $stmt->execute([$assignment_id]);
+
+        // Delete the assignment
+        $stmt = $pdo->prepare("DELETE FROM reading_assignment WHERE assignment_id = ?");
+        $stmt->execute([$assignment_id]);
+
+        $pdo->commit();
+        success(['message' => 'Assignment deleted successfully.']);
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error("Failed to delete assignment: " . $e->getMessage(), 500);
     } finally {
         $pdo = null;
     }
@@ -562,6 +611,7 @@ if ($method === 'GET' && $uri === '/api/health') {
                     ) FROM quiz_attempt qa
                     INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = qa.assignment_material_id
                     WHERE qa.student_id = s.student_id AND ram.assignment_id = ? AND qa.status = 'completed'
+                    ORDER BY qa.percentage DESC
                     LIMIT 1) AS quiz_result,
                    (SELECT JSON_OBJECT(
                       'accuracy_percentage', ar.accuracy_percentage, 'wcpm', ar.wcpm
@@ -569,6 +619,7 @@ if ($method === 'GET' && $uri === '/api/health') {
                     INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ract.assignment_material_id
                     LEFT JOIN assessment_result ar ON ar.activity_id = ract.activity_id
                     WHERE ract.student_id = s.student_id AND ram.assignment_id = ? AND ract.activity_status = 'Completed'
+                    ORDER BY ar.accuracy_percentage DESC, ar.wcpm DESC
                     LIMIT 1) AS reading_result
             FROM student s
             INNER JOIN class c ON c.class_id = s.class_id
@@ -578,8 +629,6 @@ if ($method === 'GET' && $uri === '/api/health') {
         ");
         $stmt->execute([$assignment_id, $assignment_id, $assignment_id]);
         $results = $stmt->fetchAll();
-        // Debug: Log what we're returning
-        error_log("Teacher results for assignment $assignment_id: " . json_encode($results));
         success(['assignment_id' => $assignment_id, 'results' => $results]);
     } finally {
         $pdo = null;
@@ -607,7 +656,10 @@ if ($method === 'GET' && $uri === '/api/health') {
                 WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed'
             ");
             $rStmt->execute(array_merge([$student_id], $material_ids));
-            $reading_results = $rStmt->fetchAll(PDO::FETCH_KEY_PAIR); // assignment_material_id => activity_id
+            $reading_results = [];
+            foreach ($rStmt->fetchAll() as $row) {
+                $reading_results[$row['assignment_material_id']] = $row;
+            }
 
             // Get student's completed quiz attempts for this assignment
             $qStmt = $pdo->prepare("

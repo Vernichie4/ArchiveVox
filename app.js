@@ -1795,7 +1795,7 @@ async function deleteAssignment(id) {
         await fetchAssignmentApi(`/teacher/assignments/${id}`, {
             method: 'DELETE'
         });
-        showToast('Assignment archived.', 'info');
+        showToast('Assignment deleted.', 'info');
         await loadAssignmentList();
     } catch (error) {
         showToast('Delete failed: ' + error.message, 'error');
