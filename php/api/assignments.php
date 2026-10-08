@@ -288,7 +288,7 @@ if ($method === 'GET' && $uri === '/api/health') {
     if (!$student['class_id']) success(['student' => $student, 'assignments' => []]);
 
     $pdo = get_db();
-    $stmt = $pdo->prepare("SELECT ra.*, c.grade_level, c.section, c.school_year FROM reading_assignment ra INNER JOIN class c ON c.class_id = ra.class_id WHERE ra.class_id = ? AND ra.status = 'assigned' ORDER BY ra.assigned_at DESC");
+    $stmt = $pdo->prepare("SELECT ra.*, c.grade_level, c.section, c.school_year FROM reading_assignment ra INNER JOIN class c ON c.class_id = ra.class_id WHERE ra.class_id = ? AND ra.status IN ('assigned', 'archived') ORDER BY ra.assigned_at DESC");
     $stmt->execute([$student['class_id']]);
     $assignments = $stmt->fetchAll();
 
@@ -303,12 +303,12 @@ if ($method === 'GET' && $uri === '/api/health') {
     if ($material_ids) {
         $placeholders = implode(',', array_fill(0, count($material_ids), '?'));
 
-        $qStmt = $pdo->prepare("SELECT attempt_id, assignment_material_id, status, score, total_questions, percentage FROM quiz_attempt WHERE student_id = ? AND assignment_material_id IN ($placeholders) ORDER BY attempt_id DESC");
+        $qStmt = $pdo->prepare("SELECT attempt_id, assignment_material_id, status, score, total_questions, percentage FROM quiz_attempt WHERE student_id = ? AND assignment_material_id IN ($placeholders) AND status = 'completed' ORDER BY attempt_id DESC");
         $qStmt->execute(array_merge([$student_id], $material_ids));
         $quiz_dict = [];
         foreach ($qStmt->fetchAll() as $qa) $quiz_dict[$qa['assignment_material_id']] ??= $qa;
 
-        $rStmt = $pdo->prepare("SELECT ra.activity_id, ra.assignment_material_id, ra.activity_status FROM reading_activity ra WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) ORDER BY ra.activity_id DESC");
+        $rStmt = $pdo->prepare("SELECT ra.activity_id, ra.assignment_material_id, ra.activity_status FROM reading_activity ra WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed' ORDER BY ra.activity_id DESC");
         $rStmt->execute(array_merge([$student_id], $material_ids));
         $reading_dict = [];
         foreach ($rStmt->fetchAll() as $rr) $reading_dict[$rr['assignment_material_id']] ??= $rr;
@@ -318,6 +318,8 @@ if ($method === 'GET' && $uri === '/api/health') {
             $mat['reading_result'] = $reading_dict[$mat['assignment_material_id']] ?? null;
         }
     }
+    // Debug: Log what we're returning
+    error_log("Student dashboard for student $student_id: " . json_encode(['assignments_count' => count($assignments), 'materials_count' => count($all_materials), 'quiz_dict_count' => count($quiz_dict), 'reading_dict_count' => count($reading_dict)]));
     success(['student' => $student, 'assignments' => $assignments]);
 
 } elseif ($method === 'POST' && preg_match('#^/api/student/assignments/(\d+)/materials/(\d+)/quiz/submit$#', $uri, $matches)) {
@@ -555,16 +557,29 @@ if ($method === 'GET' && $uri === '/api/health') {
         $stmt = $pdo->prepare("
             SELECT s.student_id, s.lrn, s.first_name, s.last_name, c.grade_level, c.section,
                    ra.assignment_id, ra.title AS assignment_title,
-                   (SELECT COUNT(*) FROM quiz_attempt qa WHERE qa.student_id = s.student_id) AS quiz_attempts,
-                   (SELECT COUNT(*) FROM reading_activity ract WHERE ract.student_id = s.student_id) AS reading_activities
+                   (SELECT JSON_OBJECT(
+                      'score', qa.score, 'total_questions', qa.total_questions, 'percentage', qa.percentage
+                    ) FROM quiz_attempt qa
+                    INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = qa.assignment_material_id
+                    WHERE qa.student_id = s.student_id AND ram.assignment_id = ? AND qa.status = 'completed'
+                    LIMIT 1) AS quiz_result,
+                   (SELECT JSON_OBJECT(
+                      'accuracy_percentage', ar.accuracy_percentage, 'wcpm', ar.wcpm
+                    ) FROM reading_activity ract
+                    INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ract.assignment_material_id
+                    LEFT JOIN assessment_result ar ON ar.activity_id = ract.activity_id
+                    WHERE ract.student_id = s.student_id AND ram.assignment_id = ? AND ract.activity_status = 'Completed'
+                    LIMIT 1) AS reading_result
             FROM student s
             INNER JOIN class c ON c.class_id = s.class_id
             INNER JOIN reading_assignment ra ON ra.class_id = c.class_id
             WHERE ra.assignment_id = ? AND s.is_active = 1
             ORDER BY s.last_name, s.first_name
         ");
-        $stmt->execute([$assignment_id]);
+        $stmt->execute([$assignment_id, $assignment_id, $assignment_id]);
         $results = $stmt->fetchAll();
+        // Debug: Log what we're returning
+        error_log("Teacher results for assignment $assignment_id: " . json_encode($results));
         success(['assignment_id' => $assignment_id, 'results' => $results]);
     } finally {
         $pdo = null;
@@ -919,7 +934,7 @@ if ($method === 'GET' && $uri === '/api/health') {
             INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ra.assignment_material_id
             INNER JOIN reading_assignment rtitle ON rtitle.assignment_id = ram.assignment_id
             LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
-            LEFT JOIN quiz_attempt qa ON qa.assignment_material_id = ra.assignment_material_id AND qa.student_id = ra.student_id AND qa.status = 'completed'
+            LEFT JOIN quiz_attempt qa ON qa.assignment_material_id = ra.assignment_material_id AND qa.student_id = ra.student_id AND LOWER(qa.status) = 'completed'
             WHERE ra.student_id = ? AND ra.activity_status = 'Completed'
             GROUP BY ra.activity_id, ra.activity_status, ra.started_at, ra.finished_at,
                      rm.title, rm.material_type, rtitle.title
