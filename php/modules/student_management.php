@@ -140,23 +140,34 @@ function registerStudent(array $data): array {
 
     // ----- Insert student -----
     try {
+        // Create user account first
+        $lrn = $data['lrn'] ?? null;
+        $baseUsername = !empty($lrn) ? $lrn : strtolower(preg_replace('/[^a-z0-9]/i', '', $data['first_name'] . $data['last_name'])) . rand(100, 999);
+        $passwordString = !empty($lrn) ? $lrn : 'archivevox123';
+        $defaultPassword = password_hash($passwordString, PASSWORD_DEFAULT);
+
+        $userStmt = $pdo->prepare("INSERT INTO user (username, password, role, status) VALUES (?, ?, 'student', 'Active')");
+        $userStmt->execute([$baseUsername, $defaultPassword]);
+        $userId = (int) $pdo->lastInsertId();
+
         $stmt = $pdo->prepare('
             INSERT INTO student (
-                teacher_id, category_id, class_id, lrn,
+                user_id, teacher_id, category_id, class_id, lrn,
                 first_name, middle_name, last_name,
                 gender, birthdate, is_active
             ) VALUES (
-                :teacher_id, :category_id, :class_id, :lrn,
+                :user_id, :teacher_id, :category_id, :class_id, :lrn,
                 :first_name, :middle_name, :last_name,
                 :gender, :birthdate, :is_active
             )
         ');
 
         $stmt->execute([
+            ':user_id'     => $userId,
             ':teacher_id'   => $teacherId,
             ':category_id'  => $categoryId,
             ':class_id'     => $classId,
-            ':lrn'          => $data['lrn'] ?? null,
+            ':lrn'          => $lrn,
             ':first_name'   => $data['first_name'],
             ':middle_name'  => $data['middle_name'] ?? null,
             ':last_name'    => $data['last_name'],
@@ -168,6 +179,8 @@ function registerStudent(array $data): array {
         return [
             'success'    => true,
             'student_id' => (int) $pdo->lastInsertId(),
+            'username'   => $baseUsername,
+            'password'   => $passwordString,
             'message'    => 'Student registered successfully'
         ];
     } catch (PDOException $e) {

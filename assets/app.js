@@ -1851,23 +1851,26 @@ async function renderAssignmentDetail(assignmentId) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${results.map(row => `
+                                    ${results.map(row => {
+                                        const readingResult = row.reading_result ? (typeof row.reading_result === 'string' ? JSON.parse(row.reading_result) : row.reading_result) : null;
+                                        const quizResult = row.quiz_result ? (typeof row.quiz_result === 'string' ? JSON.parse(row.quiz_result) : row.quiz_result) : null;
+                                        return `
                                         <tr>
                                             <td>${escapeAssessmentHtml(row.first_name + ' ' + row.last_name)}</td>
                                             <td>
-                                                ${row.reading_result ? `
-                                                    Acc: ${safeNumber(row.reading_result.accuracy_percentage, 1)}%<br>
-                                                    WCPM: ${safeNumber(row.reading_result.wcpm, 1)}
+                                                ${readingResult ? `
+                                                    Acc: ${safeNumber(readingResult.accuracy_percentage, 1)}%<br>
+                                                    WCPM: ${safeNumber(readingResult.wcpm, 1)}
                                                 ` : 'Not started'}
                                             </td>
                                             <td>
-                                                ${row.quiz_result ? `
-                                                    ${row.quiz_result.score}/${row.quiz_result.total_questions}
-                                                    (${safeNumber(row.quiz_result.percentage, 1)}%)
+                                                ${quizResult ? `
+                                                    ${quizResult.score}/${quizResult.total_questions}
+                                                    (${safeNumber(quizResult.percentage, 1)}%)
                                                 ` : 'Not taken'}
                                             </td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
                             </table>
                         </div>
