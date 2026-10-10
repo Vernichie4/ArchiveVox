@@ -1416,10 +1416,15 @@ async function viewActivityDetails(activityId) {
 
         const response = await fetchJson(`/api/shared/activity/${activityId}/details`);
         
-        // Ensure we safely extract the data based on your API's response wrapper
-        // If your API wraps everything in a 'data' object, adjust this slightly (e.g., response.data.assessment)
-        const data = response.assessment || response.data?.assessment;
-        const quiz = response.quiz_details || response.data?.quiz_details;
+        // Catch all common API response structures
+        const data = response.assessment || response.data?.assessment || response.data || response;
+        const quiz = response.quiz_details || response.data?.quiz_details || response.quiz || [];
+
+        // Stop and show an error inside the modal if data is still completely empty
+        if (!data || Object.keys(data).length === 0) {
+            modalBody.innerHTML = `<div style="color: red; padding: 20px; text-align: center;">Error: Assessment data is empty. Press F12 and check the console log.</div>`;
+            return;
+        }
 
         // NEW: Uses file_path and adds the correct folder URL!
         const friendlyImageHtml = data.file_path 
