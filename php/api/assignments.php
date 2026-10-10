@@ -1004,9 +1004,11 @@ if ($method === 'GET' && $uri === '/api/health') {
     
     $pdo = get_db();
     try {
+        // 1. Fetch activity details, complete assessment results, and material file path
         $stmt = $pdo->prepare("
-            SELECT ra.*, s.student_id, s.first_name, s.last_name, rm.title AS material_title,
-                   ar.assessment_id, ar.total_words, ar.words_correct, ar.accuracy_percentage, ar.wcpm
+            SELECT ra.*, s.student_id, s.first_name, s.last_name, 
+                   rm.title AS material_title, rm.file_path,
+                   ar.*
             FROM reading_activity ra
             INNER JOIN student s ON s.student_id = ra.student_id
             INNER JOIN reading_material rm ON rm.material_id = ra.material_id
@@ -1015,8 +1017,34 @@ if ($method === 'GET' && $uri === '/api/health') {
         ");
         $stmt->execute([$activity_id]);
         $activity = $stmt->fetch();
+
         if (!$activity) error("Activity not found.", 404);
-        success(['activity' => $activity]);
+
+        // 2. Fetch quiz questions and student's submitted answers for the LATEST attempt
+        $qStmt = $pdo->prepare("
+            SELECT qq.question_number, qq.question_text, qa.is_correct, 
+                   qc.choice_text AS student_answer
+            FROM quiz_attempt qatt
+            INNER JOIN quiz_answer qa ON qa.attempt_id = qatt.attempt_id
+            INNER JOIN quiz_question qq ON qq.question_id = qa.question_id
+            LEFT JOIN quiz_choice qc ON qc.choice_id = qa.selected_choice_id
+            WHERE qatt.attempt_id = (
+                SELECT attempt_id 
+                FROM quiz_attempt 
+                WHERE student_id = ? AND assignment_material_id = ? AND status = 'completed'
+                ORDER BY attempt_id DESC 
+                LIMIT 1
+            )
+            ORDER BY qq.question_number ASC
+        ");
+        $qStmt->execute([$activity['student_id'], $activity['assignment_material_id']]);
+        $quiz_details = $qStmt->fetchAll();
+
+        // 3. Return keys expected by frontend JavaScript
+        success([
+            'assessment' => $activity,
+            'quiz_details' => $quiz_details
+        ]);
     } finally {
         $pdo = null;
     }
