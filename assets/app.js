@@ -4624,7 +4624,7 @@ async function renderTeacherDetail(teacherId) {
         students.forEach(s => {
             const grade = s.grade_level || 'Unassigned';
             const section = s.section || 'General';
-            const classKey = `${grade} - ${section}`;
+            const classKey = `${grade}|${section}`;
             
             if (!classesMap[classKey]) {
                 classesMap[classKey] = { grade, section, students: [] };
@@ -4653,17 +4653,43 @@ async function renderTeacherDetail(teacherId) {
 
                     <h3 style="color: #0f172a; margin-bottom: 12px;">Advisory Classes</h3>
                     
-                    <div class="grid three">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;" class="u-mt-20">
                         ${classesList.map(cls => `
-                            <div class="stat-card" style="cursor: pointer; padding: 24px;" onclick="state.selectedTeacherClass = '${cls.grade} - ${cls.section}'; renderTeacherDetail('${teacherId}');">
-                                <div class="stat-card-icon" style="background: #eff6ff; color: #1e40af; width: 54px; height: 54px;">
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <div data-preserve-inline-colors="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 20px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div style="display: flex; gap: 12px; align-items: center;">
+                                        <div style="width: 42px; height: 42px; border-radius: 10px; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a; font-family: 'Inter', sans-serif;">${escapeAssessmentHtml(cls.section)}</h4>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Class • ${escapeAssessmentHtml(cls.grade)}</div>
+                                        </div>
+                                    </div>
+                                    <button type="button" aria-label="More options for ${escapeAssessmentHtml(cls.section)}" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                                    </button>
                                 </div>
-                                <div class="stat-card-content">
-                                    <h4 style="color: #0f172a; font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">${escapeAssessmentHtml(cls.grade)}</h4>
-                                    <div class="stat-label" style="font-size: 0.95rem; color: #64748b;">Section: ${escapeAssessmentHtml(cls.section)}</div>
-                                    <div class="stat-label u-mt-12"><strong style="color: #1e40af; font-size: 1rem;">${cls.students.length}</strong> Enrolled Students</div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
+                                        <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Grade Level</div>
+                                        <div style="font-size: 14px; font-weight: 600; color: #0f172a;">${escapeAssessmentHtml(cls.grade)}</div>
+                                    </div>
+                                    <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
+                                        <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Students</div>
+                                        <div style="font-size: 18px; font-weight: 600; color: #2563eb;">${cls.students.length}</div>
+                                    </div>
                                 </div>
+
+                                <button type="button" onclick="state.selectedTeacherClass = '${cls.grade}|${cls.section}'; renderTeacherDetail('${teacherId}');" style="width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+                                    View Students
+                                </button>
                             </div>
                         `).join('')}
                         ${classesList.length === 0 ? `
