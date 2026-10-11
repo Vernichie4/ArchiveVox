@@ -5337,7 +5337,7 @@ function renderDefaultReports() {
 }
 
 // ============================================================
-// STUDENT DETAIL (Python Assignments ONLY)
+// STUDENT DETAIL
 // ============================================================
 
 async function renderStudentDetail(studentId) {
@@ -5359,11 +5359,13 @@ async function renderStudentDetail(studentId) {
 
         // 2. Fetch Assignments & Quizzes (Python API)
         let assignments = [];
+        let assignmentsError = null; // NEW: Track if the fetch fails
         try {
             const assignData = await fetchAssignmentApi(`/student/assignments?student_id=${studentId}`);
             assignments = assignData.assignments || [];
         } catch (e) {
             console.warn("Could not load Python assignments:", e);
+            assignmentsError = e.message || "Failed to connect to the assignment server."; // NEW: Capture the error
         }
 
         // 3. Compute aggregate stats purely from completed Python Assignments
@@ -5422,7 +5424,14 @@ async function renderStudentDetail(studentId) {
                             <h3 style="margin: 0;">Assignments & Quizzes</h3>
                         </div>
                     </div>
-                    ${assignments.length ? `
+                    
+                    <!-- NEW: Check for API error first, then length, then standard empty state -->
+                    ${assignmentsError ? `
+                        <div class="empty-state" style="background: #fef2f2; border: 1px dashed #fca5a5;">
+                            <p style="margin: 0; font-size: 15px; color: #dc2626;">⚠️ Unable to load assignments</p>
+                            <p class="u-text-muted-xs" style="margin-top: 4px; color: #ef4444;">${escapeAssessmentHtml(assignmentsError)}</p>
+                        </div>
+                    ` : assignments.length ? `
                         <div class="u-scroll-x">
                             <table class="table-clean">
                                 <thead>
@@ -5461,11 +5470,9 @@ async function renderStudentDetail(studentId) {
                                         // Smart Status Badges
                                         let statusBadge = '<span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Assigned</span>';
 
-                                        // If backend says completed, or if they finished both parts
                                         if (a.status === 'completed' || (materialWithReading && materialWithQuiz)) {
                                             statusBadge = '<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Completed</span>';
                                         }
-                                        // If backend says in_progress, or if they finished at least one part
                                         else if (a.status === 'in_progress' || materialWithReading || materialWithQuiz) {
                                             statusBadge = '<span style="background: #fef9c3; color: #854d0e; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">In Progress</span>';
                                         }
@@ -5506,7 +5513,7 @@ async function renderStudentDetail(studentId) {
     } catch (error) {
         viewContainer.innerHTML = `<div class="panel"><p class="u-text-danger">Error loading student data: ${escapeAssessmentHtml(error.message)}</p></div>`;
     }
-}   
+}
 
 function renderPrincipalReports() {
     viewContainer.innerHTML = `
