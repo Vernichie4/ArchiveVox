@@ -45,6 +45,14 @@ header('Content-Type: text/html; charset=utf-8');
         <!-- TOPBAR - Fixed at top of app shell        -->
         <!-- ========================================== -->
         <header class="topbar" id="topbar">
+            <!-- ADDED: Mobile Hamburger Menu Button -->
+            <button id="sidebar-toggle-mobile" class="sidebar-toggle-mobile icon-btn" aria-label="Open Navigation" style="margin-right: 12px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
             <div id="topbar-content" class="topbar-content">
                 <!-- Dynamic content rendered by JavaScript -->
             </div>
@@ -67,7 +75,7 @@ header('Content-Type: text/html; charset=utf-8');
                     <div class="sidebar-brand-copy">
                         <div class="logo-small">ArchiveVox</div>
                     </div>
-                    <button id="sidebar-toggle" class="sidebar-toggle sidebar-toggle-mobile" aria-label="Toggle Navigation" aria-expanded="true">
+                    <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle Navigation" aria-expanded="true">
                         <span></span><span></span><span></span>
                     </button>
                 </div>

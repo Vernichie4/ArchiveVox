@@ -151,6 +151,7 @@ async function initializeStudentDashboard() {
     }
 
     setupNavigation();
+    setupMobileMenu();
     setupViewButtons();
     setupModal();
     setStudentPlaceholder();
@@ -1540,6 +1541,38 @@ function switchView(viewName) {
     $all(".nav-item").forEach(button => {
         button.classList.toggle("active", button.dataset.view === viewName);
     });
+}
+
+/* ============================================================
+   MOBILE MENU SETUP
+============================================================ */
+function setupMobileMenu() {
+    const toggleBtn = document.getElementById('mobileSidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('studentMobileOverlay');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    if (toggleBtn && sidebar && overlay) {
+        // Open sidebar
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+        });
+
+        // Close sidebar when clicking the dark overlay
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        // Close sidebar when clicking any navigation link
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        });
+    }
 }
 
 /* ============================================================
