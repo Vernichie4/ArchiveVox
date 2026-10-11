@@ -944,8 +944,20 @@ function updateTimerDisplay() {
 async function submitReading() {
     // Force stop recording if student clicked submit while mic was active
     if (readingState.recording) {
+        // NEW: Wait dynamically for the MediaRecorder to fire its stop event
+        const waitForBlob = new Promise(resolve => {
+            if (readingState.mediaRecorder) {
+                readingState.mediaRecorder.addEventListener('stop', () => {
+                    // A tiny 50ms tick to ensure the browser's internal blob generation completes
+                    setTimeout(resolve, 50);
+                }, { once: true });
+            } else {
+                resolve();
+            }
+        });
+
         stopRecording();
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await waitForBlob;
     }
 
     if (!readingState.audioBlob || readingState.audioBlob.size === 0) {
