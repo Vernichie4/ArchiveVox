@@ -1444,12 +1444,8 @@ async function renderTeacherAssignments() {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Material 1 *</label>
+                        <label>Material *</label>
                         <select id="assignment-material-1" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Material 2 (optional)</label>
-                        <select id="assignment-material-2"></select>
                     </div>
                     <div class="form-group">
                         <label>Due Date</label>
@@ -1516,9 +1512,10 @@ async function renderTeacherAssignments() {
         // Only include class_id and materials when creating a NEW assignment
         if (!assignmentId) {
             const class_id = parseInt(document.getElementById('assignment-class').value) || 0;
+            
+            // Kept as an array to ensure it matches the API's expected format
             const materials = [
-                document.getElementById('assignment-material-1').value,
-                document.getElementById('assignment-material-2').value
+                document.getElementById('assignment-material-1').value
             ].filter(id => id);
 
             if (!class_id) {
@@ -1526,7 +1523,7 @@ async function renderTeacherAssignments() {
                 return;
             }
             if (!title || materials.length === 0) {
-                showToast('Title and at least one material are required.', 'error');
+                showToast('Title and material are required.', 'error');
                 return;
             }
 
@@ -1634,19 +1631,17 @@ async function openAssignmentModal(assignmentId = null) {
     const form = document.getElementById('assignment-form');
     const titleInput = document.getElementById('assignment-title');
     const instructionsInput = document.getElementById('assignment-instructions');
-    const materialSelect1 = document.getElementById('assignment-material-1');
-    const materialSelect2 = document.getElementById('assignment-material-2');
+    const materialSelect = document.getElementById('assignment-material-1'); // Adjusted to single select
     const classSelect = document.getElementById('assignment-class');
     const dueInput = document.getElementById('assignment-due');
     const saveBtn = document.getElementById('assignment-save-btn');
     const modalTitle = document.getElementById('assignment-modal-title');
 
-    // Reset form fields (except class dropdown – populated later)
+    // Reset form fields
     titleInput.value = '';
     if (instructionsInput) instructionsInput.value = '';
     dueInput.value = '';
-    materialSelect1.innerHTML = '<option value="">Loading materials...</option>';
-    materialSelect2.innerHTML = '<option value="">Loading materials...</option>';
+    materialSelect.innerHTML = '<option value="">Loading material...</option>';
     classSelect.innerHTML = '<option value="">Loading classes...</option>';
 
     // Remove any existing "readonly" note from previous opens
@@ -1656,7 +1651,7 @@ async function openAssignmentModal(assignmentId = null) {
 
     // Populate dropdowns
     await populateClassDropdown();
-    await populateMaterialDropdowns(materialSelect1, materialSelect2);
+    await populateMaterialDropdown(materialSelect); // Updated to single dropdown function
 
     // If editing, fetch and fill assignment data
     if (assignmentId) {
@@ -1670,23 +1665,22 @@ async function openAssignmentModal(assignmentId = null) {
             dueInput.value = assignment.due_date ? assignment.due_date.slice(0, 10) : '';
 
             // Disable class and material selects for editing
-            [classSelect, materialSelect1, materialSelect2].forEach(el => {
+            [classSelect, materialSelect].forEach(el => {
                 if (el) el.disabled = true;
             });
 
             // Add a note explaining immutability
             const note = document.createElement('p');
             note.className = 'u-text-muted-xs u-mt-4 field-readonly-note';
-            note.textContent = 'Class and materials cannot be changed after creation.';
+            note.textContent = 'Class and material cannot be changed after creation.';
             parent?.appendChild(note);
 
             // Set class
             if (classSelect) classSelect.value = assignment.class_id || '';
 
-            // Set materials (1 or 2)
+            // Set material
             const materials = assignment.materials || [];
-            if (materials.length >= 1) materialSelect1.value = materials[0].material_id;
-            if (materials.length >= 2) materialSelect2.value = materials[1].material_id;
+            if (materials.length >= 1) materialSelect.value = materials[0].material_id;
 
             saveBtn.textContent = 'Update';
             modalTitle.textContent = 'Edit Assignment';
@@ -1699,7 +1693,7 @@ async function openAssignmentModal(assignmentId = null) {
         }
     } else {
         // Create mode – ensure selects are enabled
-        [classSelect, materialSelect1, materialSelect2].forEach(el => {
+        [classSelect, materialSelect].forEach(el => {
             if (el) el.disabled = false;
         });
 
@@ -1709,6 +1703,21 @@ async function openAssignmentModal(assignmentId = null) {
     }
 
     showModal('assignment-modal');
+}
+
+// Replaced populateMaterialDropdowns (plural) with single variant
+async function populateMaterialDropdown(select) {
+    try {
+        const data = await fetchAssignmentApi('/teacher/materials');
+        const materials = data.materials || [];
+        const options = materials.map(m => 
+            `<option value="${m.material_id}">${escapeAssessmentHtml(m.title)}</option>`
+        ).join('');
+        select.innerHTML = `<option value="">Select a material...</option>${options}`;
+    } catch (error) {
+        showToast('Failed to load materials: ' + error.message, 'error');
+        select.innerHTML = '<option value="">Error loading materials</option>';
+    }
 }
 
 async function populateClassDropdown() {
@@ -1728,22 +1737,6 @@ async function populateClassDropdown() {
     } catch (error) {
         showToast('Failed to load classes: ' + error.message, 'error');
         select.innerHTML = '<option value="">Error loading classes</option>';
-    }
-}
-
-async function populateMaterialDropdowns(select1, select2) {
-    try {
-        // Use the new /teacher/materials endpoint – teacher_id is auto‑injected
-        const data = await fetchAssignmentApi('/teacher/materials');
-        const materials = data.materials || [];
-        const options = materials.map(m => 
-            `<option value="${m.material_id}">${escapeAssessmentHtml(m.title)}</option>`
-        ).join('');
-        select1.innerHTML = `<option value="">Select material 1</option>${options}`;
-        select2.innerHTML = `<option value="">Select material 2 (optional)</option>${options}`;
-    } catch (error) {
-        showToast('Failed to load materials: ' + error.message, 'error');
-        // Optionally leave dropdowns empty or show a fallback
     }
 }
 
@@ -4683,6 +4676,8 @@ async function renderTeacherDetail(teacherId) {
                                         <div style="font-size: 18px; font-weight: 600; color: #2563eb;">${cls.students.length}</div>
                                     </div>
                                 </div>
+
+                                // Replace the button block with this:
 
                                 <button type="button" onclick="state.selectedTeacherClass = '${cls.grade}|${cls.section}'; renderTeacherDetail('${teacherId}');" style="width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

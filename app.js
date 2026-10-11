@@ -1441,12 +1441,8 @@ async function renderTeacherAssignments() {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Material 1 *</label>
+                        <label>Material *</label>
                         <select id="assignment-material-1" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Material 2 (optional)</label>
-                        <select id="assignment-material-2"></select>
                     </div>
                     <div class="form-group">
                         <label>Due Date</label>
@@ -1513,9 +1509,10 @@ async function renderTeacherAssignments() {
         // Only include class_id and materials when creating a NEW assignment
         if (!assignmentId) {
             const class_id = parseInt(document.getElementById('assignment-class').value) || 0;
+            
+            // Kept as an array to ensure it matches the API's expected format
             const materials = [
-                document.getElementById('assignment-material-1').value,
-                document.getElementById('assignment-material-2').value
+                document.getElementById('assignment-material-1').value
             ].filter(id => id);
 
             if (!class_id) {
@@ -1523,7 +1520,7 @@ async function renderTeacherAssignments() {
                 return;
             }
             if (!title || materials.length === 0) {
-                showToast('Title and at least one material are required.', 'error');
+                showToast('Title and material are required.', 'error');
                 return;
             }
 
@@ -1631,19 +1628,17 @@ async function openAssignmentModal(assignmentId = null) {
     const form = document.getElementById('assignment-form');
     const titleInput = document.getElementById('assignment-title');
     const instructionsInput = document.getElementById('assignment-instructions');
-    const materialSelect1 = document.getElementById('assignment-material-1');
-    const materialSelect2 = document.getElementById('assignment-material-2');
+    const materialSelect = document.getElementById('assignment-material-1');
     const classSelect = document.getElementById('assignment-class');
     const dueInput = document.getElementById('assignment-due');
     const saveBtn = document.getElementById('assignment-save-btn');
     const modalTitle = document.getElementById('assignment-modal-title');
 
-    // Reset form fields (except class dropdown – populated later)
+    // Reset form fields
     titleInput.value = '';
     if (instructionsInput) instructionsInput.value = '';
     dueInput.value = '';
-    materialSelect1.innerHTML = '<option value="">Loading materials...</option>';
-    materialSelect2.innerHTML = '<option value="">Loading materials...</option>';
+    materialSelect.innerHTML = '<option value="">Loading material...</option>';
     classSelect.innerHTML = '<option value="">Loading classes...</option>';
 
     // Remove any existing "readonly" note from previous opens
@@ -1653,7 +1648,7 @@ async function openAssignmentModal(assignmentId = null) {
 
     // Populate dropdowns
     await populateClassDropdown();
-    await populateMaterialDropdowns(materialSelect1, materialSelect2);
+    await populateMaterialDropdown(materialSelect);
 
     // If editing, fetch and fill assignment data
     if (assignmentId) {
@@ -1667,23 +1662,22 @@ async function openAssignmentModal(assignmentId = null) {
             dueInput.value = assignment.due_date ? assignment.due_date.slice(0, 10) : '';
 
             // Disable class and material selects for editing
-            [classSelect, materialSelect1, materialSelect2].forEach(el => {
+            [classSelect, materialSelect].forEach(el => {
                 if (el) el.disabled = true;
             });
 
             // Add a note explaining immutability
             const note = document.createElement('p');
             note.className = 'u-text-muted-xs u-mt-4 field-readonly-note';
-            note.textContent = 'Class and materials cannot be changed after creation.';
+            note.textContent = 'Class and material cannot be changed after creation.';
             parent?.appendChild(note);
 
             // Set class
             if (classSelect) classSelect.value = assignment.class_id || '';
 
-            // Set materials (1 or 2)
+            // Set material
             const materials = assignment.materials || [];
-            if (materials.length >= 1) materialSelect1.value = materials[0].material_id;
-            if (materials.length >= 2) materialSelect2.value = materials[1].material_id;
+            if (materials.length >= 1) materialSelect.value = materials[0].material_id;
 
             saveBtn.textContent = 'Update';
             modalTitle.textContent = 'Edit Assignment';
@@ -1696,7 +1690,7 @@ async function openAssignmentModal(assignmentId = null) {
         }
     } else {
         // Create mode – ensure selects are enabled
-        [classSelect, materialSelect1, materialSelect2].forEach(el => {
+        [classSelect, materialSelect].forEach(el => {
             if (el) el.disabled = false;
         });
 
@@ -1728,56 +1722,19 @@ async function populateClassDropdown() {
     }
 }
 
-async function populateMaterialDropdowns(select1, select2) {
+async function populateMaterialDropdown(selectElement) {
     try {
-        // Use the new /teacher/materials endpoint – teacher_id is auto‑injected
         const data = await fetchAssignmentApi('/teacher/materials');
         const materials = data.materials || [];
+        
         const options = materials.map(m => 
             `<option value="${m.material_id}">${escapeAssessmentHtml(m.title)}</option>`
         ).join('');
-        select1.innerHTML = `<option value="">Select material 1</option>${options}`;
-        select2.innerHTML = `<option value="">Select material 2 (optional)</option>${options}`;
+        
+        selectElement.innerHTML = `<option value="">Select a material...</option>${options}`;
     } catch (error) {
         showToast('Failed to load materials: ' + error.message, 'error');
-        // Optionally leave dropdowns empty or show a fallback
-    }
-}
-
-// Populate material and student dropdowns
-async function populateAssignmentDropdowns() {
-    const materialSelect = document.getElementById('assignment-material');
-    const studentSelect = document.getElementById('assignment-students');
-
-    try {
-        // Fetch materials
-        const materials = await fetchAssignmentApi('/materials');
-        materialSelect.innerHTML = '<option value="">Select a story...</option>';
-        (materials.materials || []).forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = m.title;
-            materialSelect.appendChild(opt);
-        });
-
-        // Fetch students (optional) – if you have a student list endpoint
-        // We'll reuse your existing PHP endpoint? Or use Python API.
-        // For now, we'll try to use the Python API if available, else fallback to PHP.
-        try {
-            const students = await fetchAssignmentApi('/students');
-            studentSelect.innerHTML = '';
-            (students.students || []).forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = `${s.first_name} ${s.last_name}`;
-                studentSelect.appendChild(opt);
-            });
-        } catch (e) {
-            // If no student endpoint, keep the select empty
-            studentSelect.innerHTML = '<option value="">No students available</option>';
-        }
-    } catch (error) {
-        showToast('Error loading materials: ' + error.message, 'error');
+        selectElement.innerHTML = '<option value="">Error loading materials</option>';
     }
 }
 
@@ -5173,32 +5130,99 @@ async function populateExportClassDropdown() {
 // 6. REPORTING & ANALYTICS (Continued)
 // ============================================================
 
+// 1. The Traffic Cop - Routes the user to the correct dashboard
 function renderReports() {
     const role = String(state.user?.role || '').toLowerCase();
 
-    // Unified report view with export class report button
+    if (role === 'principal' || role === 'admin') {
+        renderPrincipalReports();
+    } else if (role === 'teacher') {
+        renderTeacherReports();
+    } else {
+        renderDefaultReports();
+    }
+}
+
+// 2. Updated Principal Reports View
+function renderPrincipalReports() {
     viewContainer.innerHTML = `
         <div class="reports-shell">
-            <div class="reports-toolbar">
-                <div class="u-row-wrap u-gap-8">
-                    <button id="report-school-wide" class="btn-primary">School Overview</button>
-                    <button id="report-by-grade" class="btn-secondary">By Grade Level</button>
-                    <button id="report-materials" class="btn-secondary">Material Usage</button>
+            <div class="page-header u-mb-16">
+                <div>
+                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">School Analytics & Reports</h2>
+                    <p class="subtitle" style="margin-top: 4px;">Track campus-wide reading progress and material engagement</p>
+                </div>
+                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    <button id="export-assessments-btn" class="btn-export">📊 Export CSV</button>
+                    <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div class="nav-tabs" style="margin-bottom: 20px; flex-direction: row; border-radius: 12px; border: 1px solid var(--border);">
+                <button id="report-school-wide" class="nav-btn active">School Overview</button>
+                <button id="report-by-grade" class="nav-btn">By Grade Level</button>
+                <button id="report-materials" class="nav-btn">Material Usage</button>
+            </div>
+
+            <div id="report-content" class="u-mt-16">
+                <div class="panel u-text-center">
+                    <div class="spinner u-mt-20">⏳ Loading dashboard...</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Tab Logic
+    const navButtons = document.querySelectorAll('.reports-shell .nav-tabs .nav-btn');
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            navButtons.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const actionId = e.target.id;
+            if (actionId === 'report-school-wide') loadAndDisplayReport('school-wide');
+            if (actionId === 'report-by-grade') loadAndDisplayReport('class-performance');
+            if (actionId === 'report-materials') loadAndDisplayReport('material-usage');
+        });
+    });
+
+    // Auto-load first tab
+    if (navButtons.length > 0) navButtons[0].click();
+
+    // Action Buttons
+    document.getElementById('export-assessments-btn')?.addEventListener('click', () => exportAssessmentResults());
+    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderPrincipalReports());
+}
+
+// 3. Updated Teacher Reports View (with Export Modal restored)
+function renderTeacherReports() {
+    viewContainer.innerHTML = `
+        <div class="reports-shell">
+            <div class="page-header u-mb-16">
+                <div>
+                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Class Analytics & Reports</h2>
+                    <p class="subtitle" style="margin-top: 4px;">Track your students' reading progress and performance</p>
+                </div>
+                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
                     <button id="export-class-report-btn" class="btn-export">📊 Export Class Report</button>
                     <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
                 </div>
             </div>
 
+            <div class="nav-tabs" style="margin-bottom: 20px; flex-direction: row; border-radius: 12px; border: 1px solid var(--border);">
+                <button id="report-class-performance" class="nav-btn active">Class Performance</button>
+            </div>
+
             <div id="report-content" class="u-mt-16">
-                <div class="panel">
-                    <p class="u-text-muted">Select a report type to view</p>
+                <div class="panel u-text-center">
+                    <div class="spinner u-mt-20">⏳ Loading dashboard...</div>
                 </div>
             </div>
         </div>
 
         <!-- Export Class Report Modal -->
         <div id="export-class-modal" class="modal hidden">
-            <div class="modal-content">
+            <div class="modal-content modal-content-compact">
                 <div class="modal-header">
                     <h3>Export Class Report</h3>
                     <button class="close-modal">x</button>
@@ -5216,6 +5240,15 @@ function renderReports() {
                             </label>
                         </div>
                     </div>
+                    
+                    <!-- Missing Class Dropdown Fixed Here -->
+                    <div class="form-group" id="group-class-select">
+                        <label for="export-class-select">Select Class</label>
+                        <select id="export-class-select" name="class_id">
+                            <option value="">Loading classes...</option>
+                        </select>
+                    </div>
+
                     <!-- Grade Dropdown (Hidden by default) -->
                     <div class="form-group hidden" id="group-grade-select" style="display: none;">
                         <label for="export-grade-select">Select Grade Level</label>
@@ -5229,7 +5262,7 @@ function renderReports() {
                             <option value="Grade 6">Grade 6</option>
                         </select>
                     </div>
-                    <!-- Language Filter (Always visible) -->
+                    
                     <div class="form-group">
                         <label for="export-language-select">Target Language</label>
                         <select id="export-language-select" name="language">
@@ -5248,58 +5281,61 @@ function renderReports() {
         </div>
     `;
 
-    // Event listeners for existing buttons
-    document.getElementById('report-school-wide')?.addEventListener('click', () => loadAndDisplayReport('school-wide'));
-    document.getElementById('report-by-grade')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
-    document.getElementById('report-materials')?.addEventListener('click', () => loadAndDisplayReport('material-usage'));
-    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderReports());
+    // Tab Logic & Auto-load
+    document.getElementById('report-class-performance')?.addEventListener('click', (e) => {
+        document.querySelectorAll('.reports-shell .nav-tabs .nav-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        loadAndDisplayReport('class-performance');
+    });
+    
+    // Auto-load Class Performance
+    loadAndDisplayReport('class-performance');
 
-// Export button
+    // Action Buttons
+    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderTeacherReports());
+    
+    // Export Modal Logic
     document.getElementById('export-class-report-btn')?.addEventListener('click', () => {
-        populateExportClassDropdown();
+        if(typeof populateExportClassDropdown === 'function') populateExportClassDropdown();
         showModal('export-class-modal');
     });
 
-    // Close modal
     document.querySelectorAll('#export-class-modal .close-modal').forEach(btn => {
         btn.addEventListener('click', () => closeModal('export-class-modal'));
     });
 
-    // Handle scope toggle (Class vs Grade)
     document.querySelectorAll('input[name="export_scope"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
             const classGroup = document.getElementById('group-class-select');
             const gradeGroup = document.getElementById('group-grade-select');
             
             if (e.target.value === 'class') {
-                classGroup.style.display = 'block';
-                gradeGroup.style.display = 'none';
-                document.getElementById('export-grade-select').value = ""; // Reset hidden field
+                if(classGroup) classGroup.style.display = 'block';
+                if(gradeGroup) gradeGroup.style.display = 'none';
+                const gradeSel = document.getElementById('export-grade-select');
+                if(gradeSel) gradeSel.value = ""; 
             } else {
-                classGroup.style.display = 'none';
-                gradeGroup.style.display = 'block';
-                document.getElementById('export-class-select').value = ""; // Reset hidden field
+                if(classGroup) classGroup.style.display = 'none';
+                if(gradeGroup) gradeGroup.style.display = 'block';
+                const classSel = document.getElementById('export-class-select');
+                if(classSel) classSel.value = ""; 
             }
         });
     });
 
-    // Form submit
     document.getElementById('export-class-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const classId = document.getElementById('export-class-select').value;
+        const classSelect = document.getElementById('export-class-select');
+        const classId = classSelect ? classSelect.value : '';
         const gradeLevel = document.getElementById('export-grade-select').value;
         const language = document.getElementById('export-language-select').value;
 
-        // Build URL with parameters
         let url = 'php/api/teacher/export-class-report.php?';
         if (classId) url += `class_id=${encodeURIComponent(classId)}&`;
         if (gradeLevel) url += `grade_level=${encodeURIComponent(gradeLevel)}&`;
         if (language) url += `language=${encodeURIComponent(language)}&`;
-        // Remove trailing & if any
+        
         url = url.replace(/&$/, '');
-
-        // Trigger download via hidden iframe or window.open
-        // Using window.open to start download
         window.open(url, '_blank');
         closeModal('export-class-modal');
     });
@@ -5484,56 +5520,426 @@ async function renderStudentDetail(studentId) {
     }
 }   
 
+// 1. The Traffic Cop - Routes the user to the correct dashboard
+function renderReports() {
+    const role = String(state.user?.role || '').toLowerCase();
+
+    if (role === 'principal' || role === 'admin') {
+        renderPrincipalReports();
+    } else if (role === 'teacher') {
+        renderTeacherReports();
+    } else {
+        renderDefaultReports();
+    }
+}
+
+// 2. Updated Principal Reports View
 function renderPrincipalReports() {
     viewContainer.innerHTML = `
         <div class="reports-shell">
-
-            <div class="reports-toolbar">
-                <div class="u-row-wrap u-gap-8">
-                    <button id="report-school-wide" class="btn-primary">School Overview</button>
-                    <button id="report-by-grade" class="btn-secondary">By Grade Level</button>
-                    <button id="report-materials" class="btn-secondary">Material Usage</button>
-                    <button id="export-assessments-btn" class="btn-export">Export CSV</button>
+            <div class="page-header u-mb-16">
+                <div>
+                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">School Analytics & Reports</h2>
+                    <p class="subtitle" style="margin-top: 4px;">Track campus-wide reading progress and material engagement</p>
+                </div>
+                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    <button id="export-assessments-btn" class="btn-export">📊 Export CSV</button>
                     <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
                 </div>
             </div>
 
+            <div class="nav-tabs" style="margin-bottom: 20px; flex-direction: row; border-radius: 12px; border: 1px solid var(--border);">
+                <button id="report-school-wide" class="nav-btn active">School Overview</button>
+                <button id="report-by-grade" class="nav-btn">By Grade Level</button>
+                <button id="report-materials" class="nav-btn">Material Usage</button>
+            </div>
+
             <div id="report-content" class="u-mt-16">
-                <div class="panel">
-                    <p class="u-text-muted">Select a report type to view</p>
+                <div class="panel u-text-center">
+                    <div class="spinner u-mt-20">⏳ Loading dashboard...</div>
                 </div>
             </div>
         </div>
     `;
 
-    document.getElementById('report-school-wide')?.addEventListener('click', () => loadAndDisplayReport('school-wide'));
-    document.getElementById('report-by-grade')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
-    document.getElementById('report-materials')?.addEventListener('click', () => loadAndDisplayReport('material-usage'));
+    // Tab Logic
+    const navButtons = document.querySelectorAll('.reports-shell .nav-tabs .nav-btn');
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            navButtons.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const actionId = e.target.id;
+            if (actionId === 'report-school-wide') loadAndDisplayReport('school-wide');
+            if (actionId === 'report-by-grade') loadAndDisplayReport('class-performance');
+            if (actionId === 'report-materials') loadAndDisplayReport('material-usage');
+        });
+    });
+
+    // Auto-load first tab
+    if (navButtons.length > 0) navButtons[0].click();
+
+    // Action Buttons
     document.getElementById('export-assessments-btn')?.addEventListener('click', () => exportAssessmentResults());
     document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderPrincipalReports());
 }
 
+// 3. Updated Teacher Reports View (with Export Modal restored)
 function renderTeacherReports() {
     viewContainer.innerHTML = `
         <div class="reports-shell">
-
-            <div class="reports-toolbar">
-                <div class="u-row-wrap u-gap-8">
-                    <button id="report-class-performance" class="btn-primary">Class Performance</button>
+            <div class="page-header u-mb-16">
+                <div>
+                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Class Analytics & Reports</h2>
+                    <p class="subtitle" style="margin-top: 4px;">Track your students' reading progress and performance</p>
+                </div>
+                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    <button id="export-class-report-btn" class="btn-export">📊 Export Class Report</button>
                     <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
                 </div>
             </div>
 
+            <div class="nav-tabs" style="margin-bottom: 20px; flex-direction: row; border-radius: 12px; border: 1px solid var(--border);">
+                <button id="report-class-performance" class="nav-btn active">Class Performance</button>
+            </div>
+
             <div id="report-content" class="u-mt-16">
-                <div class="panel">
-                    <p class="u-text-muted">Click above to view your class performance report</p>
+                <div class="panel u-text-center">
+                    <div class="spinner u-mt-20">⏳ Loading dashboard...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Class Report Modal -->
+        <div id="export-class-modal" class="modal hidden">
+            <div class="modal-content modal-content-compact">
+                <div class="modal-header">
+                    <h3>Export Class Report</h3>
+                    <button class="close-modal">x</button>
+                </div>
+                <form id="export-class-form">
+                    <!-- Scope Toggle -->
+                    <div class="form-group" style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <label style="margin-bottom: 8px; font-weight: 600;">Report Scope</label>
+                        <div style="display: flex; gap: 16px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="export_scope" value="class" checked> Specific Class
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="export_scope" value="grade"> Entire Grade
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Missing Class Dropdown Fixed Here -->
+                    <div class="form-group" id="group-class-select">
+                        <label for="export-class-select">Select Class</label>
+                        <select id="export-class-select" name="class_id">
+                            <option value="">Loading classes...</option>
+                        </select>
+                    </div>
+
+                    <!-- Grade Dropdown (Hidden by default) -->
+                    <div class="form-group hidden" id="group-grade-select" style="display: none;">
+                        <label for="export-grade-select">Select Grade Level</label>
+                        <select id="export-grade-select" name="grade_level">
+                            <option value="">All Grades</option>
+                            <option value="Grade 1">Grade 1</option>
+                            <option value="Grade 2">Grade 2</option>
+                            <option value="Grade 3">Grade 3</option>
+                            <option value="Grade 4">Grade 4</option>
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="export-language-select">Target Language</label>
+                        <select id="export-language-select" name="language">
+                            <option value="">All Languages</option>
+                            <option value="English">English</option>
+                            <option value="Filipino">Filipino</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Generate & Download CSV</button>
+                        <button type="button" class="btn-secondary close-modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    // Tab Logic & Auto-load
+    document.getElementById('report-class-performance')?.addEventListener('click', (e) => {
+        document.querySelectorAll('.reports-shell .nav-tabs .nav-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        loadAndDisplayReport('class-performance');
+    });
+    
+    // Auto-load Class Performance
+    loadAndDisplayReport('class-performance');
+
+    // Action Buttons
+    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderTeacherReports());
+    
+    // Export Modal Logic
+    document.getElementById('export-class-report-btn')?.addEventListener('click', () => {
+        if(typeof populateExportClassDropdown === 'function') populateExportClassDropdown();
+        showModal('export-class-modal');
+    });
+
+    document.querySelectorAll('#export-class-modal .close-modal').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('export-class-modal'));
+    });
+
+    document.querySelectorAll('input[name="export_scope"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const classGroup = document.getElementById('group-class-select');
+            const gradeGroup = document.getElementById('group-grade-select');
+            
+            if (e.target.value === 'class') {
+                if(classGroup) classGroup.style.display = 'block';
+                if(gradeGroup) gradeGroup.style.display = 'none';
+                const gradeSel = document.getElementById('export-grade-select');
+                if(gradeSel) gradeSel.value = ""; 
+            } else {
+                if(classGroup) classGroup.style.display = 'none';
+                if(gradeGroup) gradeGroup.style.display = 'block';
+                const classSel = document.getElementById('export-class-select');
+                if(classSel) classSel.value = ""; 
+            }
+        });
+    });
+
+    document.getElementById('export-class-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const classSelect = document.getElementById('export-class-select');
+        const classId = classSelect ? classSelect.value : '';
+        const gradeLevel = document.getElementById('export-grade-select').value;
+        const language = document.getElementById('export-language-select').value;
+
+        let url = 'php/api/teacher/export-class-report.php?';
+        if (classId) url += `class_id=${encodeURIComponent(classId)}&`;
+        if (gradeLevel) url += `grade_level=${encodeURIComponent(gradeLevel)}&`;
+        if (language) url += `language=${encodeURIComponent(language)}&`;
+        
+        url = url.replace(/&$/, '');
+        window.open(url, '_blank');
+        closeModal('export-class-modal');
+    });
+}
+
+// 1. The Traffic Cop - Routes the user to the correct dashboard
+function renderReports() {
+    const role = String(state.user?.role || '').toLowerCase();
+
+    if (role === 'principal' || role === 'admin') {
+        renderPrincipalReports();
+    } else if (role === 'teacher') {
+        renderTeacherReports();
+    } else {
+        renderDefaultReports();
+    }
+}
+
+// 2. Updated Principal Reports View
+function renderPrincipalReports() {
+    viewContainer.innerHTML = `
+        <div class="reports-shell">
+            <div class="page-header u-mb-16">
+                <div>
+                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">School Analytics & Reports</h2>
+                    <p class="subtitle" style="margin-top: 4px;">Track campus-wide reading progress and material engagement</p>
+                </div>
+                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    <button id="export-assessments-btn" class="btn-export">📊 Export CSV</button>
+                    <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div class="nav-tabs" style="margin-bottom: 20px; flex-direction: row; border-radius: 12px; border: 1px solid var(--border);">
+                <button id="report-school-wide" class="nav-btn active">School Overview</button>
+                <button id="report-by-grade" class="nav-btn">By Grade Level</button>
+                <button id="report-materials" class="nav-btn">Material Usage</button>
+            </div>
+
+            <div id="report-content" class="u-mt-16">
+                <div class="panel u-text-center">
+                    <div class="spinner u-mt-20">⏳ Loading dashboard...</div>
                 </div>
             </div>
         </div>
     `;
 
-    document.getElementById('report-class-performance')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
+    // Tab Logic
+    const navButtons = document.querySelectorAll('.reports-shell .nav-tabs .nav-btn');
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            navButtons.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const actionId = e.target.id;
+            if (actionId === 'report-school-wide') loadAndDisplayReport('school-wide');
+            if (actionId === 'report-by-grade') loadAndDisplayReport('class-performance');
+            if (actionId === 'report-materials') loadAndDisplayReport('material-usage');
+        });
+    });
+
+    // Auto-load first tab
+    if (navButtons.length > 0) navButtons[0].click();
+
+    // Action Buttons
+    document.getElementById('export-assessments-btn')?.addEventListener('click', () => exportAssessmentResults());
+    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderPrincipalReports());
+}
+
+// 3. Updated Teacher Reports View (with Export Modal restored)
+function renderTeacherReports() {
+    viewContainer.innerHTML = `
+        <div class="reports-shell">
+            <div class="page-header u-mb-16">
+                <div>
+                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Class Analytics & Reports</h2>
+                    <p class="subtitle" style="margin-top: 4px;">Track your students' reading progress and performance</p>
+                </div>
+                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    <button id="export-class-report-btn" class="btn-export">📊 Export Class Report</button>
+                    <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div class="nav-tabs" style="margin-bottom: 20px; flex-direction: row; border-radius: 12px; border: 1px solid var(--border);">
+                <button id="report-class-performance" class="nav-btn active">Class Performance</button>
+            </div>
+
+            <div id="report-content" class="u-mt-16">
+                <div class="panel u-text-center">
+                    <div class="spinner u-mt-20">⏳ Loading dashboard...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Class Report Modal -->
+        <div id="export-class-modal" class="modal hidden">
+            <div class="modal-content modal-content-compact">
+                <div class="modal-header">
+                    <h3>Export Class Report</h3>
+                    <button class="close-modal">x</button>
+                </div>
+                <form id="export-class-form">
+                    <!-- Scope Toggle -->
+                    <div class="form-group" style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <label style="margin-bottom: 8px; font-weight: 600;">Report Scope</label>
+                        <div style="display: flex; gap: 16px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="export_scope" value="class" checked> Specific Class
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                <input type="radio" name="export_scope" value="grade"> Entire Grade
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Missing Class Dropdown Fixed Here -->
+                    <div class="form-group" id="group-class-select">
+                        <label for="export-class-select">Select Class</label>
+                        <select id="export-class-select" name="class_id">
+                            <option value="">Loading classes...</option>
+                        </select>
+                    </div>
+
+                    <!-- Grade Dropdown (Hidden by default) -->
+                    <div class="form-group hidden" id="group-grade-select" style="display: none;">
+                        <label for="export-grade-select">Select Grade Level</label>
+                        <select id="export-grade-select" name="grade_level">
+                            <option value="">All Grades</option>
+                            <option value="Grade 1">Grade 1</option>
+                            <option value="Grade 2">Grade 2</option>
+                            <option value="Grade 3">Grade 3</option>
+                            <option value="Grade 4">Grade 4</option>
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="export-language-select">Target Language</label>
+                        <select id="export-language-select" name="language">
+                            <option value="">All Languages</option>
+                            <option value="English">English</option>
+                            <option value="Filipino">Filipino</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Generate & Download CSV</button>
+                        <button type="button" class="btn-secondary close-modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    // Tab Logic & Auto-load
+    document.getElementById('report-class-performance')?.addEventListener('click', (e) => {
+        document.querySelectorAll('.reports-shell .nav-tabs .nav-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        loadAndDisplayReport('class-performance');
+    });
+    
+    // Auto-load Class Performance
+    loadAndDisplayReport('class-performance');
+
+    // Action Buttons
     document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderTeacherReports());
+    
+    // Export Modal Logic
+    document.getElementById('export-class-report-btn')?.addEventListener('click', () => {
+        if(typeof populateExportClassDropdown === 'function') populateExportClassDropdown();
+        showModal('export-class-modal');
+    });
+
+    document.querySelectorAll('#export-class-modal .close-modal').forEach(btn => {
+        btn.addEventListener('click', () => closeModal('export-class-modal'));
+    });
+
+    document.querySelectorAll('input[name="export_scope"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const classGroup = document.getElementById('group-class-select');
+            const gradeGroup = document.getElementById('group-grade-select');
+            
+            if (e.target.value === 'class') {
+                if(classGroup) classGroup.style.display = 'block';
+                if(gradeGroup) gradeGroup.style.display = 'none';
+                const gradeSel = document.getElementById('export-grade-select');
+                if(gradeSel) gradeSel.value = ""; 
+            } else {
+                if(classGroup) classGroup.style.display = 'none';
+                if(gradeGroup) gradeGroup.style.display = 'block';
+                const classSel = document.getElementById('export-class-select');
+                if(classSel) classSel.value = ""; 
+            }
+        });
+    });
+
+    document.getElementById('export-class-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const classSelect = document.getElementById('export-class-select');
+        const classId = classSelect ? classSelect.value : '';
+        const gradeLevel = document.getElementById('export-grade-select').value;
+        const language = document.getElementById('export-language-select').value;
+
+        let url = 'php/api/teacher/export-class-report.php?';
+        if (classId) url += `class_id=${encodeURIComponent(classId)}&`;
+        if (gradeLevel) url += `grade_level=${encodeURIComponent(gradeLevel)}&`;
+        if (language) url += `language=${encodeURIComponent(language)}&`;
+        
+        url = url.replace(/&$/, '');
+        window.open(url, '_blank');
+        closeModal('export-class-modal');
+    });
 }
 
 async function loadAndDisplayReport(reportType) {
