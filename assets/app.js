@@ -4737,8 +4737,6 @@ async function renderTeacherDetail(teacherId) {
                                     </div>
                                 </div>
 
-                                // Replace the button block with this:
-
                                 <button type="button" onclick="state.selectedTeacherClass = '${cls.grade}|${cls.section}'; renderTeacherDetail('${teacherId}');" style="width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
