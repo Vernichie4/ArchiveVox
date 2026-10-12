@@ -706,6 +706,13 @@ function calculateORF(string $transcribed, string $original, int $timeSeconds = 
             $wordsCorrect++;
             continue;
         }
+
+        // Phonetic Matching for Homophones (Catches "Gim" vs "Jim")
+        if (metaphone($transWord) === metaphone($origWord)) {
+            $nearMisses++;
+            $wordsCorrect++; // Count as correct for accuracy but note as a near miss
+            continue;
+        }
         
         // Check for near-match (Levenshtein distance <= 2 for words longer than 4 chars)
         $distance = levenshtein($transWord, $origWord);
@@ -909,9 +916,10 @@ function normalizeWords(string $text): array {
 
     // --- NEW: Convert numbers to words to prevent false mismatches ---
     $numberMap = [
-        '0' => 'zero', '1' => 'one', '2' => 'two', '3' => 'three', 
-        '4' => 'four', '5' => 'five', '6' => 'six', '7' => 'seven', 
-        '8' => 'eight', '9' => 'nine', '10' => 'ten'
+        '0' => 'zero', '1' => 'one', '2' => 'two', '3' => 'three', '4' => 'four', '5' => 'five', '6' => 'six', '7' => 'seven', '8' => 'eight', '9' => 'nine', '10' => 'ten',
+        '11' => 'eleven', '12' => 'twelve', '13' => 'thirteen', '14' => 'fourteen', '15' => 'fifteen', '16' => 'sixteen', '17' => 'seventeen', '18' => 'eighteen',
+        '19' => 'nineteen', '20' => 'twenty', '30' => 'thirty', '40' => 'forty', '50' => 'fifty', '60' => 'sixty', '70' => 'seventy', '80' => 'eighty',
+        '90' => 'ninety', '100' => 'hundred'
     ];
     $text = preg_replace_callback('/\b\d+\b/', function($matches) use ($numberMap) {
         return $numberMap[$matches[0]] ?? $matches[0];
