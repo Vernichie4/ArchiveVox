@@ -218,7 +218,7 @@ class WhisperService
         $jobId = $result['job_id'];
 
         // Step 2: Poll for status until completed
-        $maxAttempts = 60; // 60 attempts * 2 seconds = 2 minutes max
+        $maxAttempts = 150; // 150 attempts * 2 seconds = 5 minutes max
         $attempt = 0;
 
         while ($attempt < $maxAttempts) {
