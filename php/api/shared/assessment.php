@@ -617,8 +617,7 @@ function handleUpdateComprehension(PDO $pdo): void {
             UPDATE assessment_result
             SET comprehension_score = :comprehension_score,
                 final_reading_level = :final_reading_level,
-                observation_level = :observation_level,
-                updated_at = NOW()
+                observation_level = :observation_level
             WHERE activity_id = :activity_id
         ');
 
