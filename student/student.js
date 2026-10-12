@@ -48,6 +48,7 @@ const readingState = {
     results: null,          // will hold WCPM, accuracy, etc.
     activityId: null,
     assessmentId: null,
+    sessionLocked: false  // Locks from recording start to quiz end
 };
 
 /* ============================================================
@@ -478,17 +479,31 @@ function setupModal() {
 
     // Listen for X button and explicit overlay clicks
     closeButton?.addEventListener("click", attemptClose);
-    overlay?.addEventListener("click", attemptClose);
+    overlay?.addEventListener("click", (e) => {
+        // Block closing if recording or quiz is active
+        if (readingState.recording || state.currentAttemptId) {
+            return; // Ignore the click completely
+        }
+        attemptClose();
+    });
 
     // NEW: Catch clicks directly on the modal container itself
     modal?.addEventListener("click", (e) => {
         if (e.target === modal) {
+            // Block closing if recording or quiz is active
+            if (readingState.recording || state.currentAttemptId) {
+                return; // Ignore the click completely
+            }
             attemptClose();
         }
     });
 
     document.addEventListener("keydown", event => {
         if (event.key === "Escape" && modal && !modal.classList.contains("hidden")) {
+            // Block closing if recording or quiz is active
+            if (readingState.recording || state.currentAttemptId) {
+                return; // Ignore the keypress completely
+            }
             attemptClose();
         }
     });
@@ -502,7 +517,6 @@ function setupModal() {
 
     startButton?.addEventListener("click", function() {
         const action = this.dataset.action || "show-reading";
-        
         if (action === "show-reading") {
             showReadingContent();
         } else if (action === "start-reading") {
@@ -645,7 +659,8 @@ function showReadingContent() {
         submitted: false,
         results: null,
         activityId: null,
-        assessmentId: null
+        assessmentId: null,
+        sessionLocked: false  // Reset lock when starting new assignment
     });
 
     const modal = $("#assignmentModal");
@@ -867,6 +882,7 @@ function startRecording() {
         // Collect audio data every 1 second
         readingState.mediaRecorder.start(1000);
         readingState.recording = true;
+        readingState.sessionLocked = true;  // Lock the session
         readingState.timerInterval = setInterval(() => {
             readingState.seconds++;
             updateTimerDisplay();
@@ -1303,6 +1319,9 @@ function showQuizResults(result) {
     const modalBody = document.querySelector(".modal-body");
     const startButton = $("#modalStartButton");
 
+    // Clear the session lock after quiz is complete
+    readingState.sessionLocked = false;
+
     const score = result.score || 0;
     const total = result.total_questions || 0;
     const percentage = result.percentage || 0;
@@ -1336,7 +1355,12 @@ function showQuizResults(result) {
 
 function closeAssignmentModal(force = false) {
     // NEW: The ultimate guard clause. This catches ALL closure attempts.
-    if (!force && (state.currentActivityId || readingState.activityId)) {
+    if (!force && (state.currentActivityId || readingState.activityId || readingState.recording || state.currentAttemptId || readingState.sessionLocked)) {
+        // Block closing during recording or quiz without confirmation
+        if (readingState.recording || state.currentAttemptId || readingState.sessionLocked) {
+            return; // Simply return - no dialog, no closing
+        }
+        // Show confirmation for other active states
         const isSure = window.confirm("Are you sure you want to leave? Your current progress will be lost and the assignment will be marked as incomplete.");
         if (!isSure) {
             return; // Abort closing the modal
@@ -1349,14 +1373,13 @@ function closeAssignmentModal(force = false) {
     state.currentActivityId = null;
     state.currentAttemptId = null;
     readingState.activityId = null; // NEW: Ensure reading state ID is cleared out
-    
+
     const modalCard = document.querySelector(".modal-card");
     if (modalCard) modalCard.classList.remove("reading-modal");
     
     // Reset button handler
     const startButton = $("#modalStartButton");
     if (startButton) {
-        startButton.onclick = null;
         startButton.dataset.action = "show-reading";
         startButton.textContent = "Start Assignment →";
     }
