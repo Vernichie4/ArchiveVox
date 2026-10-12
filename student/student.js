@@ -1258,6 +1258,30 @@ async function submitQuiz() {
             }
         );
 
+        // --- NEW: Sync the quiz score to the reading assessment profile ---
+        if (readingState.activityId) {
+            try {
+                const syncResponse = await fetch(BASE_PATH + '/php/api/shared/assessment.php?action=update_comprehension', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        activity_id: readingState.activityId,
+                        comprehension_score: response.score
+                    })
+                });
+                
+                const syncData = await syncResponse.json();
+                
+                // If PHP crashes, it will now loudly complain in your F12 console
+                if (!syncResponse.ok || !syncData.success) {
+                    console.error("Backend failed to update reading level:", syncData.message);
+                }
+            } catch (err) {
+                console.error("Network error while syncing comprehension score:", err);
+            }
+        }
+        // ----------------------------------------------------------------
+
         showQuizResults(response);
 
     } catch (error) {

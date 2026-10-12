@@ -573,7 +573,7 @@ function handleUpdateComprehension(PDO $pdo): void {
     try {
         // Get the assessment result and reading time for this activity
         $stmt = $pdo->prepare('
-            SELECT ar.*, ra.reading_time_seconds
+            SELECT ar.* 
             FROM assessment_result ar
             JOIN reading_activity ra ON ar.activity_id = ra.activity_id
             WHERE ra.activity_id = :activity_id
@@ -589,14 +589,12 @@ function handleUpdateComprehension(PDO $pdo): void {
 
         // Calculate Part 2 score from comprehension (mapping per CRLA Grade 3)
         $comprehensionMapping = [
-            0 => 0,    // 0 correct answers → 0 points
-            1 => 3,    // 1 correct → 3 points
-            2 => 6,    // 2 correct → 6 points
-            3 => 9,    // 3 correct → 9 points
-            4 => 12,   // 4 correct → 12 points
-            5 => 15,   // 5 correct → 15 points
-            6 => 20,   // 6 correct → 20 points
-            7 => 25    // 7 correct → 25 points (max)
+            0 => 0,    // 0 correct → 0 points
+            1 => 5,    // 1 correct → 5 points
+            2 => 10,   // 2 correct → 10 points
+            3 => 15,   // 3 correct → 15 points
+            4 => 20,   // 4 correct → 20 points
+            5 => 25    // 5 correct → 25 points (max)
         ];
 
         $part2Score = $comprehensionMapping[$comprehensionScore] ?? 0;
@@ -604,7 +602,7 @@ function handleUpdateComprehension(PDO $pdo): void {
         // Recalculate reading level using accuracy + new comprehension score + reading time
         $accuracy = floatval($assessment['accuracy_percentage'] ?? 0);
         $readingTime = intval($assessment['reading_time_seconds'] ?? 0);
-        $readingLevel = determineCRLAReadingLevel($accuracy, $part2Score, $readingTime);
+        $crlaLevel = determineCRLAReadingLevel($accuracy, $part2Score, $readingTime);
         $observationLevel = determineObservationLevel(
             $assessment['substitutions'] ?? 0,
             $assessment['omissions'] ?? 0,
@@ -614,12 +612,11 @@ function handleUpdateComprehension(PDO $pdo): void {
             $assessment['expression_score'] ?? 5
         );
 
-        // Update assessment_result with comprehension score and recalculated reading level
+        // Update assessment_result with comprehension score and recalculated CRLA reading level
         $stmt = $pdo->prepare('
             UPDATE assessment_result
             SET comprehension_score = :comprehension_score,
-                part2_score = :part2_score,
-                reading_level = :reading_level,
+                final_reading_level = :final_reading_level,
                 observation_level = :observation_level,
                 updated_at = NOW()
             WHERE activity_id = :activity_id
@@ -627,8 +624,7 @@ function handleUpdateComprehension(PDO $pdo): void {
 
         $stmt->execute([
             ':comprehension_score' => $comprehensionScore,
-            ':part2_score' => $part2Score,
-            ':reading_level' => $readingLevel,
+            ':final_reading_level' => $crlaLevel,
             ':observation_level' => $observationLevel,
             ':activity_id' => $activityId
         ]);
@@ -638,7 +634,7 @@ function handleUpdateComprehension(PDO $pdo): void {
             'success' => true,
             'message' => 'Comprehension score saved and CRLA profile recalculated',
             'updated_reading_profile' => [
-                'reading_level' => $readingLevel,
+                'reading_level' => $crlaLevel,
                 'observation_level' => $observationLevel,
                 'accuracy' => $accuracy,
                 'wcpm' => floatval($assessment['wcpm'] ?? 0)
@@ -753,9 +749,8 @@ function calculateORF(string $transcribed, string $original, int $timeSeconds = 
         }
     }
     
-    // Phase 4 CRLA Level (If you are still calculating this elsewhere)
-    $part2Score = 0; 
-    $crlaLevel = determineCRLAReadingLevel($accuracy, $part2Score, $safeSeconds);
+    // Phase 4 CRLA Level shouldn't be calculated until the quiz is taken
+    $crlaLevel = 'Pending Quiz';
     
     return [
         'total_words' => $totalWords,
@@ -1226,11 +1221,16 @@ function calculateCRLAProfile(array $assessmentData): array {
     $part1Score = isset($assessmentData['part1_task1_score']) ? (int)$assessmentData['part1_task1_score'] : 0;
 
     // CRLA Part 2 Score (0-25) - based on comprehension questions answered correctly
-    $comprehensionCorrect = $assessmentData['comprehension_score'] ?? 0;
-    $part2Score = calculatePart2Score($comprehensionCorrect);
-
-    // Determine reading level based on CRLA Grade 3 Criteria (including 3-minute cap)
-    $readingLevel = determineCRLAReadingLevel($accuracy, $part2Score, $readingTimeSeconds);
+    if (!isset($assessmentData['comprehension_score'])) {
+        $comprehensionCorrect = 0;
+        $part2Score = 0;
+        $readingLevel = 'Pending Quiz';
+    } else {
+        $comprehensionCorrect = (int)$assessmentData['comprehension_score'];
+        $part2Score = calculatePart2Score($comprehensionCorrect);
+        // Determine reading level based on CRLA Grade 3 Criteria (including 3-minute cap)
+        $readingLevel = determineCRLAReadingLevel($accuracy, $part2Score, $readingTimeSeconds);
+    }
 
     // Determine observation level (fluency level 1-4)
     $observationLevel = determineObservationLevel(
