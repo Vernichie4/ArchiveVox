@@ -1186,7 +1186,7 @@ function normalizeWords(string $text): array {
     }
     
     // Remove punctuation but keep apostrophes for possessives
-    $text = preg_replace('/[^a-z0-9\s\']/', ' ', $text);
+    $text = preg_replace('/[^a-z0-9\s\']/i', ' ', $text);
     $text = strtolower(trim($text));
     
     // Split and filter
