@@ -474,12 +474,22 @@ function setupModal() {
     const overlay = modal?.querySelector(".modal-overlay");
     const startButton = $("#modalStartButton");
 
-    closeButton?.addEventListener("click", closeAssignmentModal);
-    overlay?.addEventListener("click", closeAssignmentModal);
+    const attemptClose = () => closeAssignmentModal(false);
+
+    // Listen for X button and explicit overlay clicks
+    closeButton?.addEventListener("click", attemptClose);
+    overlay?.addEventListener("click", attemptClose);
+
+    // NEW: Catch clicks directly on the modal container itself
+    modal?.addEventListener("click", (e) => {
+        if (e.target === modal) {
+            attemptClose();
+        }
+    });
 
     document.addEventListener("keydown", event => {
         if (event.key === "Escape" && modal && !modal.classList.contains("hidden")) {
-            closeAssignmentModal();
+            attemptClose();
         }
     });
 
@@ -492,28 +502,19 @@ function setupModal() {
 
     startButton?.addEventListener("click", function() {
         const action = this.dataset.action || "show-reading";
+        
         if (action === "show-reading") {
             showReadingContent();
         } else if (action === "start-reading") {
             startReadingActivity();
-        } else if (action === "start-quiz") {
-            startQuiz();
-        } else if (action === "submit-quiz") {
-            submitQuiz();
-        } else if (action === "close") {
-            closeAssignmentModal();
-        }
-
-        if (action === "submit-reading") {
+        } else if (action === "submit-reading") {
             submitReading();
-        } else if (action === "show-reading") {
-            showReadingContent();
         } else if (action === "start-quiz") {
             startQuiz();
         } else if (action === "submit-quiz") {
             submitQuiz();
         } else if (action === "close") {
-            closeAssignmentModal();
+            closeAssignmentModal(true); // Bypass warning on completion
         }
     });
 }
@@ -1299,23 +1300,32 @@ function showQuizResults(result) {
     startButton.dataset.action = "close";
     startButton.disabled = false;
 
-    // Override click to close modal
+    // NEW: Pass 'true' to force the modal closed without a warning prompt
     startButton.onclick = function() {
-        closeAssignmentModal();
+        closeAssignmentModal(true);
     };
 }
-
 
 /* ============================================================
    CLOSE MODAL
 ============================================================ */
 
-function closeAssignmentModal() {
+function closeAssignmentModal(force = false) {
+    // NEW: The ultimate guard clause. This catches ALL closure attempts.
+    if (!force && (state.currentActivityId || readingState.activityId)) {
+        const isSure = window.confirm("Are you sure you want to leave? Your current progress will be lost and the assignment will be marked as incomplete.");
+        if (!isSure) {
+            return; // Abort closing the modal
+        }
+    }
+
     $("#assignmentModal")?.classList.add("hidden");
     state.currentAssignment = null;
     state.currentAssignmentDetail = null;
     state.currentActivityId = null;
     state.currentAttemptId = null;
+    readingState.activityId = null; // NEW: Ensure reading state ID is cleared out
+    
     const modalCard = document.querySelector(".modal-card");
     if (modalCard) modalCard.classList.remove("reading-modal");
     
@@ -1335,7 +1345,7 @@ function closeAssignmentModal() {
         readingState.playbackUrl = null;
     }
 
-    // --- NEW: Automatically refresh the dashboard & progress tab! ---
+    // Automatically refresh the dashboard & progress tab!
     loadAssignments();
     loadCompletedAssignments();
 }

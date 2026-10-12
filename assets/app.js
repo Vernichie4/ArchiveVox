@@ -1720,22 +1720,50 @@ async function populateMaterialDropdown(select) {
     }
 }
 
+// Populate class dropdown
 async function populateClassDropdown() {
     const select = document.getElementById('assignment-class');
     if (!select) return;
 
     try {
         const data = await fetchAssignmentApi('/teacher/classes');
-        const classes = data.classes || [];
+        console.log("Raw Classes API Data:", data);
+
+        let classes = [];
+        if (Array.isArray(data)) {
+            classes = data;
+        } else if (data && Array.isArray(data.classes)) {
+            classes = data.classes;
+        } else if (data && data.data && Array.isArray(data.data)) {
+            classes = data.data;
+        } else if (data && data.data && Array.isArray(data.data.classes)) {
+            classes = data.data.classes;
+        }
+
         select.innerHTML = '<option value="">Select a class...</option>';
+        
+        if (classes.length === 0) {
+            console.warn("No classes were found after processing the API data.");
+        }
+
         classes.forEach(cls => {
             const option = document.createElement('option');
-            option.value = cls.class_id;
-            option.textContent = cls.display_name || `${cls.grade_level} - ${cls.section}`;
+            option.value = cls.class_id ?? cls.id; 
+            
+            const gradeText = cls.grade_level || "No Grade";
+            const sectionText = cls.section || "No Section";
+            
+            // FIXED: Formatted strictly on one line to ensure valid HTML rendering
+            option.textContent = cls.display_name || `${gradeText} - ${sectionText}`;
+            
             select.appendChild(option);
         });
+
     } catch (error) {
-        showToast('Failed to load classes: ' + error.message, 'error');
+        console.error("Class dropdown error:", error);
+        if (typeof showToast === 'function') {
+            showToast('Failed to load classes: ' + error.message, 'error');
+        }
         select.innerHTML = '<option value="">Error loading classes</option>';
     }
 }
@@ -1746,34 +1774,66 @@ async function populateAssignmentDropdowns() {
     const studentSelect = document.getElementById('assignment-students');
 
     try {
-        // Fetch materials
-        const materials = await fetchAssignmentApi('/materials');
-        materialSelect.innerHTML = '<option value="">Select a story...</option>';
-        (materials.materials || []).forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = m.title;
-            materialSelect.appendChild(opt);
-        });
+        // Fetch and normalize materials
+        const materialData = await fetchAssignmentApi('/materials');
+        console.log("Raw Materials API Data:", materialData);
+        
+        let materials = [];
+        if (Array.isArray(materialData)) {
+            materials = materialData;
+        } else if (materialData && Array.isArray(materialData.materials)) {
+            materials = materialData.materials;
+        } else if (materialData && materialData.data && Array.isArray(materialData.data)) {
+            materials = materialData.data;
+        }
 
-        // Fetch students (optional) – if you have a student list endpoint
-        // We'll reuse your existing PHP endpoint? Or use Python API.
-        // For now, we'll try to use the Python API if available, else fallback to PHP.
-        try {
-            const students = await fetchAssignmentApi('/students');
-            studentSelect.innerHTML = '';
-            (students.students || []).forEach(s => {
+        if (materialSelect) {
+            materialSelect.innerHTML = '<option value="">Select a story...</option>';
+            materials.forEach(m => {
                 const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = `${s.first_name} ${s.last_name}`;
-                studentSelect.appendChild(opt);
+                // Added fallbacks to handle variations in database column names
+                opt.value = m.id || m.material_id; 
+                opt.textContent = m.title || m.material_title; 
+                materialSelect.appendChild(opt);
             });
-        } catch (e) {
-            // If no student endpoint, keep the select empty
-            studentSelect.innerHTML = '<option value="">No students available</option>';
+        }
+
+        // Fetch and normalize students
+        if (studentSelect) {
+            try {
+                const studentData = await fetchAssignmentApi('/students');
+                console.log("Raw Students API Data:", studentData);
+                
+                let students = [];
+                if (Array.isArray(studentData)) {
+                    students = studentData;
+                } else if (studentData && Array.isArray(studentData.students)) {
+                    students = studentData.students;
+                } else if (studentData && studentData.data && Array.isArray(studentData.data)) {
+                    students = studentData.data;
+                }
+
+                studentSelect.innerHTML = '';
+                if (students.length === 0) {
+                    studentSelect.innerHTML = '<option value="">No students found</option>';
+                } else {
+                    students.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id || s.student_id;
+                        opt.textContent = `${s.first_name} ${s.last_name}`;
+                        studentSelect.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.warn("Student fetch failed (expected if endpoint does not exist):", e);
+                studentSelect.innerHTML = '<option value="">No students available</option>';
+            }
         }
     } catch (error) {
-        showToast('Error loading materials: ' + error.message, 'error');
+        console.error("Material dropdown error:", error);
+        if (typeof showToast === 'function') {
+            showToast('Error loading materials: ' + error.message, 'error');
+        }
     }
 }
 
