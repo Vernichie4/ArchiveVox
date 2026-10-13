@@ -1410,41 +1410,11 @@ function renderTeacherDashboard() {
 
 async function renderTeacherAssignments() {
     viewContainer.innerHTML = `
-        <!-- Standardized Page Header (Matching renderStudents layout) -->
-        <div class="page-header u-mb-16">
-            <div>
-                <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">My Assignments</h2>
-                <p class="subtitle" style="margin-top: 4px;">Manage reading tasks, materials, and deadlines for your classes</p>
+        <div class="assignments-shell">
+            <div class="assignments-toolbar">
+                <h2>📋 My Assignments</h2>
+                <button id="create-assignment-btn" class="btn-primary">+ New Assignment</button>
             </div>
-            <div class="page-header-right">
-                <button id="create-assignment-btn" class="btn-primary" style="background: #1e40af; display: flex; align-items: center; gap: 6px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    <span> New Assignment</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Search & Filter Toolbar (Matching renderStudents roster toolbar) -->
-        <div class="search-bar u-mb-16 u-row-between">
-            <div style="position: relative; max-width: 400px; width: 100%;">
-                <span style="position: absolute; left: 12px; top: 10px; color: #94a3b8;">🔍</span>
-                <input type="text" id="assignment-search-input" placeholder="Search assignments..." class="input-inline-fill" style="background: #fff; padding-left: 36px;">
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button id="assignment-filter-btn" class="btn-secondary" style="display: flex; align-items: center; gap: 6px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                    </svg>
-                    Filter
-                </button>
-            </div>
-        </div>
-
-        <!-- Main Content Panel -->
-        <div class="panel" style="padding: 16px; border-radius: 12px; background: #fff; overflow: hidden;">
             <div id="assignments-list" class="u-mt-16">
                 <p class="u-text-muted">Loading assignments...</p>
             </div>
@@ -1452,50 +1422,38 @@ async function renderTeacherAssignments() {
 
         <!-- Create/Edit Assignment Modal -->
         <div id="assignment-modal" class="modal hidden">
-            <div class="modal-content modal-600" style="background: #ffffff; border-radius: 12px; padding: 24px;">
-                <div class="modal-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <h3 id="assignment-modal-title" style="font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;">New Assignment</h3>
-                    <button class="close-modal" aria-label="Close modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">×</button>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="assignment-modal-title">New Assignment</h3>
+                    <button class="close-modal">×</button>
                 </div>
                 <form id="assignment-form">
                     <input type="hidden" id="assignment-id">
-                    
-                    <div class="form-group u-mb-16">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block;">Assignment Title *</label>
-                        <input type="text" id="assignment-title" required class="input-inline-fill" style="background: #fff; width: 100%;">
+                    <div class="form-group">
+                        <label>Assignment Title *</label>
+                        <input type="text" id="assignment-title" required>
                     </div>
-                    
-                    <div class="form-group u-mb-16">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block;">Instructions</label>
-                        <textarea id="assignment-instructions" rows="3" class="input-inline-fill" style="background: #fff; width: 100%; font-family: inherit;"></textarea>
+                    <div class="form-group">
+                        <label>Instructions</label>
+                        <textarea id="assignment-instructions" rows="3"></textarea>
                     </div>
-                    
-                    <!-- Form Grid for Class & Due Date -->
-                    <div class="form-grid u-mb-16" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        <div class="form-group">
-                            <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block;">Class *</label>
-                            <div class="select-wrapper">
-                                <select id="assignment-class" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff;">
-                                    <option value="">Select a class...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block;">Due Date</label>
-                            <input type="date" id="assignment-due" class="input-inline-fill" style="background: #fff; width: 100%;">
-                        </div>
+                    <div class="form-group">
+                        <label>Class *</label>
+                        <select id="assignment-class" required>
+                            <option value="">Select a class...</option>
+                        </select>
                     </div>
-                    
-                    <div class="form-group u-mb-16">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block;">Material *</label>
-                        <div class="select-wrapper">
-                            <select id="assignment-material-1" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff;"></select>
-                        </div>
+                    <div class="form-group">
+                        <label>Material *</label>
+                        <select id="assignment-material-1" required></select>
                     </div>
-                    
-                    <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-                        <button type="button" class="btn-secondary close-modal">Cancel</button>
-                        <button type="submit" id="assignment-save-btn" class="btn-primary" style="background: #1e40af;">Create</button>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="assignment-due">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" id="assignment-save-btn">Create</button>
+                        <button type="button" class="close-modal">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -1537,7 +1495,7 @@ async function renderTeacherAssignments() {
         btn.addEventListener('click', () => closeModal('assignment-modal'));
     });
 
-    // Form submission
+    //Form
     document.getElementById('assignment-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;

@@ -476,23 +476,46 @@ function setupModal() {
 
     const attemptClose = () => closeAssignmentModal(false);
 
-    // Listen for X button and explicit overlay clicks
+    // 1. Listen for the X button to close the modal
     closeButton?.addEventListener("click", attemptClose);
-    overlay?.addEventListener("click", attemptClose);
 
-    // NEW: Catch clicks directly on the modal container itself
-    modal?.addEventListener("click", (e) => {
-        if (e.target === modal) {
-            attemptClose();
+    // 2. Handle clicks on the static backdrop (overlay or modal container)
+    const handleStaticBackdrop = (e) => {
+        // Only trigger if clicking the dark background, not the modal content itself
+        if (e.target === modal || e.target === overlay) {
+            const modalCard = modal.querySelector(".modal-card");
+            if (modalCard) {
+                // Remove the class to allow the animation to restart on consecutive clicks
+                modalCard.classList.remove("shake-error");
+                
+                // Trigger a DOM reflow so the browser registers the class removal
+                void modalCard.offsetWidth; 
+                
+                // Add the class to trigger the shake animation
+                modalCard.classList.add("shake-error");
+            }
+        }
+    };
+
+    // Attach the static backdrop logic
+    overlay?.addEventListener("click", handleStaticBackdrop);
+    modal?.addEventListener("click", handleStaticBackdrop);
+
+    // Clean up the shake class once the animation finishes
+    modal?.addEventListener("animationend", (e) => {
+        if (e.target.classList.contains("modal-card")) {
+            e.target.classList.remove("shake-error");
         }
     });
 
+    // Handle Escape key to close
     document.addEventListener("keydown", event => {
         if (event.key === "Escape" && modal && !modal.classList.contains("hidden")) {
             attemptClose();
         }
     });
 
+    // Handle "Start Assignment" button clicks
     document.addEventListener("click", event => {
         const button = event.target.closest(".assignment-start-button");
         if (!button) return;
@@ -500,6 +523,7 @@ function setupModal() {
         openAssignmentModal(assignmentId);
     });
 
+    // Handle the primary action button inside the modal
     startButton?.addEventListener("click", function() {
         const action = this.dataset.action || "show-reading";
         

@@ -95,12 +95,7 @@ function loadUiSettings() {
         if (!raw) return;
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
-            // Allow all three valid states, fallback to 'default'
-            if (['small', 'default', 'large'].includes(parsed.fontSize)) {
-                uiSettings.fontSize = parsed.fontSize;
-            } else {
-                uiSettings.fontSize = 'default';
-            }
+            uiSettings.fontSize = parsed.fontSize === 'large' ? 'large' : 'default';
             uiSettings.micDeviceId = typeof parsed.micDeviceId === 'string' ? parsed.micDeviceId : '';
             uiSettings.audioOutputId = typeof parsed.audioOutputId === 'string' ? parsed.audioOutputId : '';
         }
@@ -118,7 +113,7 @@ function persistUiSettings() {
 }
 
 function applyFontSizeSetting() {
-    document.documentElement.dataset.fontScale = uiSettings.fontSize || 'default';
+    document.documentElement.dataset.fontScale = uiSettings.fontSize === 'large' ? 'large' : 'default';
 }
 
 function loadSidebarPreference() {
@@ -1412,80 +1407,50 @@ function renderTeacherDashboard() {
 
 async function renderTeacherAssignments() {
     viewContainer.innerHTML = `
-        <!-- Standardized Page Header -->
-        <div class="page-header">
-            <div class="page-title-wrap">
-                <h2 class="page-title">My Assignments</h2>
-                <p class="subtitle">Manage reading tasks, materials, and deadlines for your classes</p>
+        <div class="assignments-shell">
+            <div class="assignments-toolbar">
+                <h2>📋 My Assignments</h2>
+                <button id="create-assignment-btn" class="btn-primary">+ New Assignment</button>
             </div>
-            <div class="page-header-right">
-                <button id="create-assignment-btn" class="btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    <span>New Assignment</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Standardized Panel Container for Lists -->
-        <div class="panel u-mt-16">
-            <div id="assignments-list" class="list">
-                <div class="empty-state">
-                    <p class="u-text-muted">Loading assignments...</p>
-                </div>
+            <div id="assignments-list" class="u-mt-16">
+                <p class="u-text-muted">Loading assignments...</p>
             </div>
         </div>
 
         <!-- Create/Edit Assignment Modal -->
         <div id="assignment-modal" class="modal hidden">
-            <div class="modal-content modal-600">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h3 id="assignment-modal-title">New Assignment</h3>
-                    <button class="close-modal" aria-label="Close modal">&times;</button>
+                    <button class="close-modal">×</button>
                 </div>
                 <form id="assignment-form">
                     <input type="hidden" id="assignment-id">
-                    
                     <div class="form-group">
-                        <label for="assignment-title">Assignment Title *</label>
-                        <input type="text" id="assignment-title" required placeholder="e.g., Week 1 Reading Practice">
+                        <label>Assignment Title *</label>
+                        <input type="text" id="assignment-title" required>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="assignment-instructions">Instructions</label>
-                        <textarea id="assignment-instructions" rows="3" placeholder="Add specific instructions for the students..."></textarea>
+                        <label>Instructions</label>
+                        <textarea id="assignment-instructions" rows="3"></textarea>
                     </div>
-                    
-                    <!-- Side-by-side form grid for compact layout -->
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="assignment-class">Target Class *</label>
-                            <div class="select-wrapper">
-                                <select id="assignment-class" required>
-                                    <option value="">Select a class...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="assignment-due">Due Date</label>
-                            <input type="date" id="assignment-due">
-                        </div>
-                    </div>
-                    
                     <div class="form-group">
-                        <label for="assignment-material-1">Reading Material *</label>
-                        <div class="select-wrapper">
-                            <select id="assignment-material-1" required>
-                                <option value="">Select reading material...</option>
-                            </select>
-                        </div>
+                        <label>Class *</label>
+                        <select id="assignment-class" required>
+                            <option value="">Select a class...</option>
+                        </select>
                     </div>
-                    
+                    <div class="form-group">
+                        <label>Material *</label>
+                        <select id="assignment-material-1" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="assignment-due">
+                    </div>
                     <div class="modal-actions">
-                        <button type="button" class="btn-secondary close-modal">Cancel</button>
-                        <button type="submit" id="assignment-save-btn" class="btn-primary">Create Assignment</button>
+                        <button type="submit" id="assignment-save-btn">Create</button>
+                        <button type="button" class="close-modal">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -1500,7 +1465,7 @@ async function renderTeacherAssignments() {
         openAssignmentModal();
     });
 
-    // Delegate click for edit/delete buttons
+    // Delegate click for edit/delete buttons (since they are added dynamically)
     document.getElementById('assignments-list')?.addEventListener('click', async (e) => {
         const target = e.target.closest('button');
         if (!target) return;
@@ -1527,21 +1492,25 @@ async function renderTeacherAssignments() {
         btn.addEventListener('click', () => closeModal('assignment-modal'));
     });
 
-    // Form Submit
+    //Form
     document.getElementById('assignment-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
         const assignmentId = form.dataset.assignmentId;
 
+        // Common fields (always present)
         const title = document.getElementById('assignment-title').value.trim();
         const instructions = document.getElementById('assignment-instructions').value.trim();
         const due_date = document.getElementById('assignment-due').value || null;
 
+        // Start with base payload
         let payload = { title, instructions, due_date };
 
+        // Only include class_id and materials when creating a NEW assignment
         if (!assignmentId) {
             const class_id = parseInt(document.getElementById('assignment-class').value) || 0;
             
+            // Kept as an array to ensure it matches the API's expected format
             const materials = [
                 document.getElementById('assignment-material-1').value
             ].filter(id => id);
@@ -1558,6 +1527,7 @@ async function renderTeacherAssignments() {
             payload.class_id = class_id;
             payload.materials = materials;
         } else {
+            // Editing – only title, instructions, due_date are sent
             if (!title) {
                 showToast('Title is required.', 'error');
                 return;
@@ -1567,11 +1537,13 @@ async function renderTeacherAssignments() {
         try {
             let result;
             if (assignmentId) {
+                // PUT – update assignment
                 result = await fetchAssignmentApi(`/teacher/assignments/${assignmentId}`, {
                     method: 'PUT',
                     body: payload
                 });
             } else {
+                // POST – create new assignment
                 result = await fetchAssignmentApi('/teacher/assignments', {
                     method: 'POST',
                     body: payload
