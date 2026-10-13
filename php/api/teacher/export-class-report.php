@@ -153,16 +153,21 @@ foreach ($students as $student) {
         'Grade' => $student['grade_level'] ?? '',
         'Section' => $student['section'] ?? '',
         'Date of Assessment' => $assessment ? date('Y-m-d', strtotime($assessment['assessed_at'])) : '',
+        
+        // These fields are successfully mapping, but they are genuinely NULL in your database for these specific assessments.
         'Task 1 (10)' => $assessment['part1_task1_score'] ?? '',
         'Task 2L Words (10)' => $assessment['part1_words_score'] ?? '',
-        'Task 2H Sentences (10)' => $assessment ? ($assessment['part1_total_score'] - $assessment['part1_task1_score'] - $assessment['part1_words_score']) : '',
+        'Task 2H Sentences (10)' => $assessment ? ((int)$assessment['part1_total_score'] - (int)$assessment['part1_task1_score'] - (int)$assessment['part1_words_score']) : '',
         'Part 1 Total Score' => $assessment['part1_total_score'] ?? '',
         'Part 1 Reading Level' => $assessment['part1_reading_level'] ?? '',
         'Story Number' => $assessment['story_number'] ?? '',
-        'Number of Miscue' => $assessment['miscues'] ?? 0,
-        'Words Read' => $assessment['words_read'] ?? 0,
-        'Minutes' => $assessment['minutes'] ?? 0,
-        'Seconds' => $assessment['seconds'] ?? 0,
+        
+        // Computed from the actively populated schema columns
+        'Number of Miscue' => $assessment['miscues'] ?: (($assessment['substitutions'] ?? 0) + ($assessment['omissions'] ?? 0) + ($assessment['insertions'] ?? 0)),
+        'Words Read' => $assessment['total_words'] ?? ($assessment['words_read'] ?? 0),
+        'Minutes' => isset($assessment['reading_time_seconds']) ? floor($assessment['reading_time_seconds'] / 60) : ($assessment['minutes'] ?? 0),
+        'Seconds' => isset($assessment['reading_time_seconds']) ? ($assessment['reading_time_seconds'] % 60) : ($assessment['seconds'] ?? 0),
+        
         'WPM' => $assessment['wcpm'] ?? 0,
         '% Correct Words' => $assessment['accuracy_percentage'] ?? 0,
         'Comprehension Score' => $assessment['comprehension_score'] ?? 0,

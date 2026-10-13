@@ -204,6 +204,12 @@ if ($action === 'list') {
                 echo json_encode(['success' => false, 'message' => 'Invalid JSON data']);
                 break;
             }
+
+            // Protect against invalid LRNs during profile edits
+            if (isset($data['lrn']) && !preg_match('/^[0-9]{12}$/', $data['lrn'])) {
+                echo json_encode(['success' => false, 'message' => 'LRN must be exactly 12 digits']);
+                break;
+            }
             
             $studentId = $_GET['id'] ?? 0;
             if ($studentId <= 0) {
