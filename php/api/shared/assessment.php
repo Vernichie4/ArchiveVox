@@ -648,6 +648,21 @@ function handleUpdateComprehension(PDO $pdo): void {
     }
 }
 
+function localizePhonetics(string $word): string {
+    $word = strtolower($word);
+    
+    // Normalize common regional phonetic shifts
+    $replacements = [
+        'z'  => 'j',
+        'dy' => 'j',
+        'f'  => 'p',
+        'v'  => 'b',
+        'th' => 't'
+    ];
+    
+    return strtr($word, $replacements);
+}
+
 function calculateORF(string $transcribed, string $original, int $timeSeconds = 120): array {
     // Normalize with advanced options
     $transcribedWords = normalizeWords($transcribed);
@@ -702,8 +717,8 @@ function calculateORF(string $transcribed, string $original, int $timeSeconds = 
             continue;
         }
 
-        // Phonetic Matching for Homophones (Catches "Gim" vs "Jim")
-        if (metaphone($transWord) === metaphone($origWord)) {
+        // Phonetic Matching for Homophones and Regional Accents
+        if (metaphone(localizePhonetics($transWord)) === metaphone(localizePhonetics($origWord))) {
             $nearMisses++;
             $wordsCorrect++; // Count as correct for accuracy but note as a near miss
             continue;
@@ -711,9 +726,13 @@ function calculateORF(string $transcribed, string $original, int $timeSeconds = 
         
         // Check for near-match (Levenshtein distance <= 2 for words longer than 4 chars)
         $distance = levenshtein($transWord, $origWord);
-        if ($distance <= 2 && strlen($origWord) >= 4) {
+        $maxLength = max(strlen($transWord), strlen($origWord));
+        $similarity = $maxLength > 0 ? 1 - ($distance / $maxLength) : 0;
+
+        // Allow a match if similarity is 50% or higher, avoiding the strict length cutoff
+        if ($similarity >= 0.50) {
             $nearMisses++;
-            $wordsCorrect++; // Count as correct for accuracy but note as miscue
+            $wordsCorrect++; 
             continue;
         }
         
@@ -775,34 +794,86 @@ function calculateORF(string $transcribed, string $original, int $timeSeconds = 
 
 function isCommonSubstitution(string $word1, string $word2): bool {
     $commonSubstitutions = [
-        // Articles
+        // Articles & Common Function Words
         ['a', 'an'],
         ['a', 'the'],
-        ['an', 'the'],
-        
-        // Common function words
         ['and', 'an'],
-        ['and', 'in'],
-        ['and', 'on'],
-        ['for', 'from'],
+        ['in', 'on'],
         ['of', 'off'],
-        ['to', 'too'],
-        ['to', 'two'],
-        ['there', 'their'],
-        ['theyre', 'their'],
-        ['were', 'where'],
-        ['we\'re', 'were'],
+        
+        // "Th" sounds transcribed as "D" or "T" (Hard stops)
+        ['the', 'da'],
+        ['the', 'de'],
+        ['they', 'day'],
+        ['there', 'dare'],
+        ['that', 'dat'],
+        ['then', 'den'],
+        ['these', 'dis'],
+        ['those', 'dos'],
+        ['this', 'dis'],
+        ['three', 'tree'],
+        ['think', 'tink'],
+        ['with', 'wit'],
+        ['brother', 'brader'],
+        ['father', 'pader'],
+
+        // "F" transcribed as "P" (Labiodental to bilabial)
+        ['fast', 'past'],
+        ['four', 'pour'],
+        ['find', 'pine'],
+        ['fish', 'pish'],
+        ['family', 'pamily'],
+        ['food', 'pud'],
+
+        // "V" transcribed as "B"
+        ['very', 'berry'],
+        ['van', 'ban'],
+        ['vase', 'base'],
+        ['vote', 'boat'],
+
+        // "Sh" / "S" / "Ch" Sibilant shifts
+        ['she', 'see'],
+        ['shoe', 'sue'],
+        ['shoes', 'sues'],
+        ['chair', 'share'],
+
+        // Short Vowel shifts (I/E and O/U)
+        ['is', 'es'],
+        ['it', 'et'],
+        ['pig', 'peg'],
+        ['big', 'beg'],
+        ['dog', 'dug'],
+        ['ship', 'sheep'],
+        ['slip', 'sleep'],
+        ['color', 'kolor'],
+
+        // J / Z / Y shifts
+        ['jeep', 'zip'],
+        ['zoo', 'sue'],
+        ['yellow', 'jello'],
+        ['yes', 'jes'],
+
+        // Common AI Homophone Mix-ups (Standard ESL/Whisper artifacts)
+        ['our', 'are'],
+        ['their', 'there'],
+        ['they\'re', 'there'],
         ['your', 'you\'re'],
         ['its', 'it\'s'],
-        ['whose', 'who\'s'],
-        
-        // Short words that get mixed up
-        ['or', 'of'],
-        ['is', 'as'],
-        ['us', 'as'],
-        ['so', 'to'],
-    ];
-    
+        ['to', 'too'],
+        ['to', 'two'],
+        ['read', 'red'],
+        ['one', 'won'],
+        ['know', 'no'],
+        ['write', 'right'],
+        ['here', 'hear'],
+        ['see', 'sea'],
+        ['buy', 'by'],
+        ['for', 'four'],
+        ['ate', 'eight'],
+        ['knew', 'new'],
+        ['flower', 'flour'],
+        ['where', 'wear']
+    ];    
     $w1 = strtolower($word1);
     $w2 = strtolower($word2);
     
