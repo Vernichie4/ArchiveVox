@@ -327,7 +327,7 @@ function handleRecordAssessment(PDO $pdo): void {
     @set_time_limit(0);
     @ini_set('max_execution_time', '0');
 
-    $activityId = 0;$language = $_POST['language'] ?? 'auto';
+    $activityId = 0;
     $language = determineTranscriptionLanguage($_POST);
 
     // If the material is in Filipino/Tagalog, force Tagalog transcription
@@ -335,7 +335,6 @@ function handleRecordAssessment(PDO $pdo): void {
     if ($materialLanguage === 'tl' || $materialLanguage === 'fil' || $materialLanguage === 'Tagalog') {
         $language = 'tl';
     }
-
 
     try {
         if (empty($_FILES) || !isset($_FILES['audio'])) {
@@ -346,13 +345,8 @@ function handleRecordAssessment(PDO $pdo): void {
         $file = $_FILES['audio'];
         $studentId = (int)($_POST['student_id'] ?? 0);
         $materialId = (int)($_POST['material_id'] ?? 0);
-        $originalText = trim($_POST['original_text'] ?? '');
-        $durationSeconds = max(1, (int)($_POST['duration_seconds'] ?? 120));
-        $file = $_FILES['audio'];
-        $studentId = (int)($_POST['student_id'] ?? 0);
-        $materialId = (int)($_POST['material_id'] ?? 0);
         
-        // NEW: Capture the assignment_material_id sent from student.js
+        // Capture the assignment_material_id sent from student.js
         $assignmentMaterialId = isset($_POST['assignment_material_id']) ? (int)$_POST['assignment_material_id'] : null;
         
         $originalText = trim($_POST['original_text'] ?? '');
@@ -362,6 +356,36 @@ function handleRecordAssessment(PDO $pdo): void {
             echo json_encode(['success' => false, 'message' => 'Student and material are required']);
             return;
         }
+
+        // ==========================================
+        // NEW: ATTEMPT TRACKING LOGIC (Max 3 Tries)
+        // ==========================================
+        $currentAttempt = 1;
+        $isPractice = false;
+        
+        if ($assignmentMaterialId) {
+            // Count existing attempts for this specific assignment
+            $stmt = $pdo->prepare('
+                SELECT COUNT(*) FROM reading_activity 
+                WHERE student_id = :student_id 
+                AND assignment_material_id = :assignment_material_id 
+                AND activity_status IN ("Completed", "Practice Completed")
+            ');
+            $stmt->execute([
+                ':student_id' => $studentId,
+                ':assignment_material_id' => $assignmentMaterialId
+            ]);
+            $previousAttempts = (int)$stmt->fetchColumn();
+            
+            if ($previousAttempts >= 3) {
+                echo json_encode(['success' => false, 'message' => 'Maximum attempts (3) reached. This assignment is already finalized.']);
+                return;
+            }
+            
+            $currentAttempt = $previousAttempts + 1;
+            $isPractice = ($currentAttempt < 3);
+        }
+        // ==========================================
 
         if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
             echo json_encode(['success' => false, 'message' => 'Audio upload failed with code: ' . (int)$file['error']]);
@@ -385,7 +409,9 @@ function handleRecordAssessment(PDO $pdo): void {
         if ($safeName === '' || $safeName === null) {
             $safeName = 'reading.webm';
         }
-        $filename = time() . '_' . $studentId . '_' . $safeName;
+        
+        // Append attempt number to the filename for easy debugging
+        $filename = time() . '_attempt' . $currentAttempt . '_' . $studentId . '_' . $safeName;
         $filePath = $uploadDir . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $filePath)) {
@@ -402,7 +428,7 @@ function handleRecordAssessment(PDO $pdo): void {
         $stmt->execute([
             ':student_id' => $studentId,
             ':material_id' => $materialId,
-            ':assignment_material_id' => $assignmentMaterialId, // Pass the new ID here
+            ':assignment_material_id' => $assignmentMaterialId,
             ':audio_filename' => $filename,
             ':audio_path' => 'uploads/audio/' . $filename,
             ':duration_seconds' => $durationSeconds
@@ -420,14 +446,11 @@ function handleRecordAssessment(PDO $pdo): void {
 
         $transcribedText = trim((string)($transcription['text'] ?? ''));
         
-        // NEW GUARD: Abort if transcription is empty (prevents 0.0 ghost rows)
         if (empty($transcribedText)) {
             throw new Exception('Audio transcription resulted in empty text. Please ensure the microphone recorded clearly.');
         }
 
         $scores = calculateORF($transcribedText, $originalText, $durationSeconds);
-
-        // Enhance with CRLA scoring
         $crlaProfile = calculateCRLAProfile($scores);
 
         $stmt = $pdo->prepare(
@@ -456,21 +479,27 @@ function handleRecordAssessment(PDO $pdo): void {
             ':insertions' => $scores['insertions'],
             ':repetitions' => $scores['repetitions'],
             ':transcript' => $transcribedText,
-            ':reading_level' => $scores['reading_level'], // Phil-IRI for UI badges
+            ':reading_level' => $scores['reading_level'], 
             ':comprehension_score' => null,
-            ':final_reading_level' => $scores['crla_level'], // Phase 4 CRLA Standard
+            ':final_reading_level' => $scores['crla_level'], 
             ':observation_level' => $crlaProfile['observation_level'],
             ':transcription_language' => $language
         ]);
 
         $assessmentId = (int)$pdo->lastInsertId();
 
+        // NEW: Mark as Practice Completed or strictly Completed depending on attempt count
+        $finalStatus = $isPractice ? 'Practice Completed' : 'Completed';
+        
         $stmt = $pdo->prepare(
             "UPDATE reading_activity
-             SET activity_status = 'Completed', finished_at = NOW()
+             SET activity_status = :status, finished_at = NOW()
              WHERE activity_id = :activity_id"
         );
-        $stmt->execute([':activity_id' => $activityId]);
+        $stmt->execute([
+            ':status' => $finalStatus, 
+            ':activity_id' => $activityId
+        ]);
 
         $pdo->commit();
 
@@ -481,7 +510,9 @@ function handleRecordAssessment(PDO $pdo): void {
             'transcript' => $transcribedText,
             'scores' => $scores,
             'reading_profile' => $crlaProfile,
-            'message' => 'Assessment completed successfully with CRLA scoring'
+            'attempt_number' => $currentAttempt, // Passed to frontend
+            'is_practice' => $isPractice,        // Passed to frontend
+            'message' => $isPractice ? "Practice attempt $currentAttempt saved." : "Final assessment completed."
         ]);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
@@ -497,9 +528,7 @@ function handleRecordAssessment(PDO $pdo): void {
                 );
                 $stmt->execute([':activity_id' => $activityId]);
             }
-        } catch (Throwable $ignored) {
-            // Do not throw from recovery path; we'll return the original error below.
-        }
+        } catch (Throwable $ignored) {}
 
         echo json_encode([
             'success' => false,

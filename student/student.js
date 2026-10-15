@@ -92,15 +92,6 @@ function renderLoading(container) {
     `;
 }
 
-function renderEmptyAssignments(container, message) {
-    if (!container) return;
-    container.innerHTML = `
-        <div class="empty-state">
-            <p>${escapeHtml(message)}</p>
-        </div>
-    `;
-}
-
 /* ============================================================
    API HELPER
 ============================================================ */
@@ -1032,13 +1023,20 @@ function updateTimerDisplay() {
 // Sumbit Reading
 
 async function submitReading() {
-    // Force stop recording if student clicked submit while mic was active
+    // 1. Guard against rapid double-clicks
+    if (readingState.isSubmitting) return;
+
+    // 2. Pause playback audio if currently playing
+    if (readingState.playbackAudio) {
+        readingState.playbackAudio.pause();
+        readingState.playbackAudio = null;
+    }
+
+    // 3. Force stop recording if microphone is active
     if (readingState.recording) {
-        // NEW: Wait dynamically for the MediaRecorder to fire its stop event
         const waitForBlob = new Promise(resolve => {
-            if (readingState.mediaRecorder) {
+            if (readingState.mediaRecorder && readingState.mediaRecorder.state !== 'inactive') {
                 readingState.mediaRecorder.addEventListener('stop', () => {
-                    // A tiny 50ms tick to ensure the browser's internal blob generation completes
                     setTimeout(resolve, 50);
                 }, { once: true });
             } else {
@@ -1060,8 +1058,10 @@ async function submitReading() {
         return;
     }
 
+    // Lock submission state
+    readingState.isSubmitting = true;
+
     const material = state.currentAssignmentDetail.materials[0];
-    const assignmentId = state.currentAssignment.id || state.currentAssignment.assignment_id;
     const formData = new FormData();
     formData.append('audio', readingState.audioBlob, 'reading.webm');
     formData.append('student_id', STUDENT_ID);
@@ -1070,10 +1070,14 @@ async function submitReading() {
     formData.append('duration_seconds', String(Math.max(1, readingState.seconds)));
     formData.append('original_text', material.ocr_text || '');
 
-    const submitBtn = $("#modalStartButton");
+    // Pure DOM selector fallback
+    const submitBtn = document.getElementById('submit-reading-btn') || document.getElementById('modalStartButton');
     const statusEl = document.getElementById('recording-status');
-    submitBtn.disabled = true;
-    submitBtn.textContent = "⏳ Processing...";
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "⏳ Processing...";
+    }
     if (statusEl) statusEl.textContent = "Submitting and analyzing audio...";
 
     try {
@@ -1090,14 +1094,24 @@ async function submitReading() {
 
         readingState.results = data;
         readingState.activityId = data.activity_id;
+        readingState.attemptNumber = data.attempt_number || 1;
+        readingState.isPractice = data.is_practice ?? false;
         readingState.submitted = true;
+
         showReadingResults(data);
 
     } catch (error) {
+        console.error('Submission error:', error);
         if (statusEl) statusEl.textContent = 'Submission failed.';
         showError('Error: ' + error.message);
-        submitBtn.disabled = false;
-        submitBtn.textContent = "📤 Submit Reading";
+        
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "📤 Submit Reading";
+        }
+    } finally {
+        // Always unlock state
+        readingState.isSubmitting = false;
     }
 }
 
@@ -1113,8 +1127,38 @@ function showReadingResults(results) {
     const accuracy = profile.accuracy_percentage || 0;
     const level = profile.reading_level || assessment.reading_level || 'Pending';
 
+    // 1. Extract practice & attempt tracking data
+    const isPractice = results.is_practice ?? false;
+    const attemptNum = results.attempt_number || 1;
+    const attemptsLeft = Math.max(0, 3 - attemptNum);
+
+    // 2. Build practice vs final banner
+    const bannerHTML = isPractice ? `
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #1e40af; text-align: left;">
+            <strong style="font-size: 14px;">🎯 Practice Attempt ${attemptNum} of 3 Complete</strong>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #3b82f6;">This was a practice run to help you prepare. Your score was not sent for final grading yet.</p>
+        </div>
+    ` : `
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #166534; text-align: left;">
+            <strong style="font-size: 14px;">✅ Final Assessment Recorded</strong>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #15803d;">Great job! Attempt ${attemptNum} of 3 has been submitted to your teacher for official grading.</p>
+        </div>
+    `;
+
+    // 3. Render Retry Button if attempts remain
+    const retryButtonHTML = isPractice ? `
+        <button type="button" class="btn-secondary" onclick="retryAttempt()" style="margin-top: 16px; width: 100%; height: 42px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            🔄 Try Again (${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} left)
+        </button>
+    ` : '';
+
+    const statusMessage = isPractice 
+        ? `🎯 Practice run scored. You can try recording again or proceed to the quiz.`
+        : `✅ Reading recorded and scored. You may now proceed to the quiz.`;
+
     modalBody.innerHTML = `
         <div class="reading-results">
+            ${bannerHTML}
             <h3>📊 Reading Assessment Results</h3>
             <div class="result-grid">
                 <div class="result-item">
@@ -1134,7 +1178,8 @@ function showReadingResults(results) {
                     <span class="result-value">${Math.floor(readingState.seconds / 60)}:${String(readingState.seconds % 60).padStart(2, '0')}</span>
                 </div>
             </div>
-            <p class="result-message">✅ Reading recorded and scored. You may now proceed to the quiz.</p>
+            <p class="result-message">${statusMessage}</p>
+            ${retryButtonHTML}
         </div>
     `;
 
@@ -1142,6 +1187,35 @@ function showReadingResults(results) {
     startButton.textContent = "📝 Take Quiz";
     startButton.dataset.action = "start-quiz";
     startButton.disabled = false;
+}
+
+function retryAttempt() {
+    // 1. Clean up active audio streams & URLs
+    if (readingState.playbackAudio) {
+        readingState.playbackAudio.pause();
+        readingState.playbackAudio = null;
+    }
+    if (readingState.playbackUrl) {
+        URL.revokeObjectURL(readingState.playbackUrl);
+        readingState.playbackUrl = null;
+    }
+
+    // 2. Reset recording memory
+    readingState.audioBlob = null;
+    readingState.audioChunks = [];
+    readingState.seconds = 0;
+    readingState.submitted = false;
+    readingState.results = null;
+
+    // 3. Re-render the reading screen for the next attempt
+    showReadingContent();
+
+    // 4. Update the status message to show current attempt number
+    const statusEl = document.getElementById('recording-status');
+    if (statusEl) {
+        const nextAttempt = (readingState.attemptNumber || 1) + 1;
+        statusEl.textContent = `Ready for Attempt ${nextAttempt} of 3. Click "Start Recording" when ready.`;
+    }
 }
 
 /* ============================================================
@@ -1652,15 +1726,6 @@ async function viewActivityDetails(activityId) {
    NAVIGATION
 ============================================================ */
 
-function setupNavigation() {
-    $all(".nav-item").forEach(button => {
-        button.addEventListener("click", () => {
-            const view = button.dataset.view;
-            if (view) switchView(view);
-        });
-    });
-}
-
 function setupViewButtons() {
     $all("[data-view-target]").forEach(button => {
         button.addEventListener("click", () => {
@@ -1721,16 +1786,6 @@ function setupMobileMenu() {
    LOADING / EMPTY STATES
 ============================================================ */
 
-function renderLoading(container) {
-    if (!container) return;
-    container.innerHTML = `
-        <div class="loading-state">
-            <div class="spinner"></div>
-            <p>Loading...</p>
-        </div>
-    `;
-}
-
 function renderEmptyAssignments(container, message) {
     if (!container) return;
     container.innerHTML = `
@@ -1745,15 +1800,6 @@ function renderEmptyAssignments(container, message) {
 /* ============================================================
    MESSAGES
 ============================================================ */
-
-function showError(message) {
-    const element = $("#errorMessage");
-    if (!element) return;
-    element.textContent = message;
-    element.classList.remove("hidden");
-    clearTimeout(showError.timeout);
-    showError.timeout = setTimeout(() => element.classList.add("hidden"), 6000);
-}
 
 function showInfo(message) {
     const element = $("#errorMessage");
