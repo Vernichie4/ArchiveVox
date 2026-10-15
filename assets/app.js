@@ -3723,16 +3723,52 @@ function stopAssessmentRecording(silent = false) {
 
 function playAssessmentRecording() {
     if (!assessmentState.audioBlob) return;
+    
+    const btn = document.getElementById('play-record-btn');
+
+    // 1. If audio exists and is playing, clicking again stops it
+    if (assessmentState.playbackAudio && !assessmentState.playbackAudio.paused) {
+        assessmentState.playbackAudio.pause();
+        assessmentState.playbackAudio.currentTime = 0;
+        if (btn) btn.innerHTML = '  Playback';
+        return;
+    }
+
+    // 2. Clean up the previous URL mapping
     if (assessmentState.playbackUrl) {
         URL.revokeObjectURL(assessmentState.playbackUrl);
     }
+
+    // 3. Create a fresh Audio instance and map it to the state
     assessmentState.playbackUrl = URL.createObjectURL(assessmentState.audioBlob);
-    const audio = new Audio(assessmentState.playbackUrl);
-    applyAudioOutputPreference(audio);
-    audio.play();
+    assessmentState.playbackAudio = new Audio(assessmentState.playbackUrl);
+    applyAudioOutputPreference(assessmentState.playbackAudio);
+
+    // 4. Reset button text when the audio naturally finishes
+    assessmentState.playbackAudio.onended = () => {
+        if (btn) btn.innerHTML = '  Playback';
+    };
+
+    // 5. Safely play the audio and catch rapid-click promise interruptions
+    if (btn) btn.innerHTML = '  Stop Playback';
+    assessmentState.playbackAudio.play().catch(error => {
+        console.warn('Playback interrupted:', error);
+        if (btn) btn.innerHTML = '  Playback';
+    });
 }
 
 function clearAssessmentRecording() {
+    // Stop and destroy active audio
+    if (assessmentState.playbackAudio) {
+        assessmentState.playbackAudio.pause();
+        assessmentState.playbackAudio.removeAttribute('src');
+        assessmentState.playbackAudio = null;
+    }
+    if (assessmentState.playbackUrl) {
+        URL.revokeObjectURL(assessmentState.playbackUrl);
+        assessmentState.playbackUrl = null;
+    }
+
     assessmentState.audioBlob = null;
     assessmentState.audioChunks = [];
     assessmentState.seconds = 0;
@@ -3743,7 +3779,10 @@ function clearAssessmentRecording() {
     const submitBtn = document.getElementById('submit-assessment-btn');
     const statusEl = document.getElementById('recording-status');
 
-    if (playBtn) playBtn.disabled = true;
+    if (playBtn) {
+        playBtn.disabled = true;
+        playBtn.innerHTML = '  Playback';
+    }
     if (clearBtn) clearBtn.disabled = true;
     if (submitBtn) submitBtn.disabled = true;
     if (statusEl) statusEl.textContent = 'Recording cleared.';
@@ -4381,6 +4420,11 @@ function resetAssessmentState() {
     if (assessmentState.playbackUrl) {
         URL.revokeObjectURL(assessmentState.playbackUrl);
         assessmentState.playbackUrl = null;
+    }
+
+    if (assessmentState.playbackAudio) {
+        assessmentState.playbackAudio.pause();
+        assessmentState.playbackAudio = null;
     }
 
     assessmentState.step = 1;
