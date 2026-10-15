@@ -940,21 +940,86 @@ function stopRecording() {
 
 function playRecording() {
     if (!readingState.audioBlob) return;
-    if (readingState.playbackUrl) URL.revokeObjectURL(readingState.playbackUrl);
+
+    const btn = document.getElementById('play-record-btn');
+
+    // 1. Guard: If audio exists and is playing, ignore extra clicks
+    if (readingState.playbackAudio && !readingState.playbackAudio.paused) {
+        return;
+    }
+
+    // 2. Disable button to block rapid clicking
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Playing...';
+    }
+
+    // 3. Clean up the previous URL mapping
+    if (readingState.playbackUrl) {
+        URL.revokeObjectURL(readingState.playbackUrl);
+    }
+
+    // 4. Create a fresh Audio instance and attach it to readingState
     readingState.playbackUrl = URL.createObjectURL(readingState.audioBlob);
-    const audio = new Audio(readingState.playbackUrl);
-    audio.play();
+    readingState.playbackAudio = new Audio(readingState.playbackUrl);
+
+    // 5. Re-enable button when audio naturally finishes
+    readingState.playbackAudio.onended = () => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '▶️ Playback';
+        }
+    };
+
+    // 6. Handle errors so the button doesn't get permanently stuck
+    readingState.playbackAudio.onerror = (error) => {
+        console.error('Audio playback error:', error);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '▶️ Playback';
+        }
+    };
+
+    // 7. Safely play the audio
+    readingState.playbackAudio.play().catch(error => {
+        console.warn('Playback failed or was interrupted:', error);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '▶️ Playback';
+        }
+    });
 }
 
 function clearRecording() {
+    // Stop the audio if it is currently playing
+    if (readingState.playbackAudio) {
+        readingState.playbackAudio.pause();
+        readingState.playbackAudio = null;
+    }
+    if (readingState.playbackUrl) {
+        URL.revokeObjectURL(readingState.playbackUrl);
+        readingState.playbackUrl = null;
+    }
+
     readingState.audioBlob = null;
     readingState.audioChunks = [];
     readingState.seconds = 0;
     updateTimerDisplay();
-    document.getElementById('play-record-btn').disabled = true;
-    document.getElementById('clear-record-btn').disabled = true;
-    document.getElementById('submit-reading-btn').disabled = true;
-    document.getElementById('recording-status').textContent = 'Recording cleared.';
+
+    const playBtn = document.getElementById('play-record-btn');
+    if (playBtn) {
+        playBtn.disabled = true;
+        playBtn.innerHTML = '▶️ Playback';
+    }
+    
+    const clearBtn = document.getElementById('clear-record-btn');
+    if (clearBtn) clearBtn.disabled = true;
+    
+    const submitBtn = document.getElementById('submit-reading-btn');
+    if (submitBtn) submitBtn.disabled = true;
+    
+    const statusEl = document.getElementById('recording-status');
+    if (statusEl) statusEl.textContent = 'Recording cleared.';
 }
 
 function updateTimerDisplay() {
@@ -1388,6 +1453,13 @@ function closeAssignmentModal(force = false) {
     if (readingState.recording) {
         stopRecording();
     }
+    
+    // Kill the active audio stream
+    if (readingState.playbackAudio) {
+        readingState.playbackAudio.pause();
+        readingState.playbackAudio = null;
+    }
+    
     if (readingState.playbackUrl) {
         URL.revokeObjectURL(readingState.playbackUrl);
         readingState.playbackUrl = null;

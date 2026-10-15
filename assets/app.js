@@ -3721,73 +3721,6 @@ function stopAssessmentRecording(silent = false) {
     }
 }
 
-function playAssessmentRecording() {
-    if (!assessmentState.audioBlob) return;
-    
-    const btn = document.getElementById('play-record-btn');
-
-    // 1. If audio exists and is playing, clicking again stops it
-    if (assessmentState.playbackAudio && !assessmentState.playbackAudio.paused) {
-        assessmentState.playbackAudio.pause();
-        assessmentState.playbackAudio.currentTime = 0;
-        if (btn) btn.innerHTML = '  Playback';
-        return;
-    }
-
-    // 2. Clean up the previous URL mapping
-    if (assessmentState.playbackUrl) {
-        URL.revokeObjectURL(assessmentState.playbackUrl);
-    }
-
-    // 3. Create a fresh Audio instance and map it to the state
-    assessmentState.playbackUrl = URL.createObjectURL(assessmentState.audioBlob);
-    assessmentState.playbackAudio = new Audio(assessmentState.playbackUrl);
-    applyAudioOutputPreference(assessmentState.playbackAudio);
-
-    // 4. Reset button text when the audio naturally finishes
-    assessmentState.playbackAudio.onended = () => {
-        if (btn) btn.innerHTML = '  Playback';
-    };
-
-    // 5. Safely play the audio and catch rapid-click promise interruptions
-    if (btn) btn.innerHTML = '  Stop Playback';
-    assessmentState.playbackAudio.play().catch(error => {
-        console.warn('Playback interrupted:', error);
-        if (btn) btn.innerHTML = '  Playback';
-    });
-}
-
-function clearAssessmentRecording() {
-    // Stop and destroy active audio
-    if (assessmentState.playbackAudio) {
-        assessmentState.playbackAudio.pause();
-        assessmentState.playbackAudio.removeAttribute('src');
-        assessmentState.playbackAudio = null;
-    }
-    if (assessmentState.playbackUrl) {
-        URL.revokeObjectURL(assessmentState.playbackUrl);
-        assessmentState.playbackUrl = null;
-    }
-
-    assessmentState.audioBlob = null;
-    assessmentState.audioChunks = [];
-    assessmentState.seconds = 0;
-    updateAssessmentTimer();
-
-    const playBtn = document.getElementById('play-record-btn');
-    const clearBtn = document.getElementById('clear-record-btn');
-    const submitBtn = document.getElementById('submit-assessment-btn');
-    const statusEl = document.getElementById('recording-status');
-
-    if (playBtn) {
-        playBtn.disabled = true;
-        playBtn.innerHTML = '  Playback';
-    }
-    if (clearBtn) clearBtn.disabled = true;
-    if (submitBtn) submitBtn.disabled = true;
-    if (statusEl) statusEl.textContent = 'Recording cleared.';
-}
-
 function updateAssessmentTimer() {
     const mins = String(Math.floor(assessmentState.seconds / 60)).padStart(2, '0');
     const secs = String(assessmentState.seconds % 60).padStart(2, '0');
@@ -4413,30 +4346,6 @@ async function submitAssessment() {
         alert('Assessment error: ' + error.message);
         if (submitBtn) submitBtn.disabled = false;
     }
-}
-
-function resetAssessmentState() {
-    stopAssessmentRecording(true);
-    if (assessmentState.playbackUrl) {
-        URL.revokeObjectURL(assessmentState.playbackUrl);
-        assessmentState.playbackUrl = null;
-    }
-
-    if (assessmentState.playbackAudio) {
-        assessmentState.playbackAudio.pause();
-        assessmentState.playbackAudio = null;
-    }
-
-    assessmentState.step = 1;
-    assessmentState.student = null;
-    assessmentState.material = null;
-    assessmentState.audioBlob = null;
-    assessmentState.recording = false;
-    assessmentState.mediaRecorder = null;
-    assessmentState.audioChunks = [];
-    assessmentState.results = null;
-    assessmentState.seconds = 0;
-    delete assessmentState.crlaData;
 }
 
 function cleanupAssessmentOnLeave() {
