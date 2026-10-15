@@ -2745,7 +2745,7 @@ function getLibraryModalsHTML() {
                         <div class="ocr-result-preview"><p id="ocr-text-preview" class="u-m-0 u-pre-wrap"></p></div>
                     </div>
                     <div class="modal-actions">
-                        <button type="submit" class="btn-primary">Save Material</button>
+                        <button type="submit" class="btn-primary" id="save-material-btn">Save Material</button>
                         <button type="button" class="btn-secondary close-modal">Cancel</button>
                     </div>
                 </form>
@@ -2910,32 +2910,73 @@ function setupUploadDropZone() {
 
 async function handleMaterialUpload(e) {
     e.preventDefault();
+
     const form = e.target;
-    const formData = new FormData(form);
+    const submitBtn = document.getElementById('save-material-btn') || form.querySelector('button[type="submit"]');
+
+    // 1. Strict Guard: Block execution if request is already in progress
+    if (form.dataset.submitting === 'true' || (submitBtn && submitBtn.disabled)) {
+        return;
+    }
+
+    // 2. Lock form state and update button UI
+    form.dataset.submitting = 'true';
+    const originalBtnText = submitBtn ? submitBtn.textContent : 'Save Material';
     
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Processing OCR & Saving...';
+    }
+
     try {
-        const response = await fetch('php/api/shared/reading-materials.php', {
+        const formData = new FormData(form);
+
+        // API Endpoint (Adjust path if needed to match your directory structure)
+        const response = await fetch(BASE_PATH + '/php/api/shared/materials.php', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'
         });
-        
+
         const data = await response.json();
-        
-        if (data.success) {
-            alert('✅ Material uploaded successfully!');
-            closeModal('upload-modal');
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to save reading material.');
+        }
+
+        // 3. Success handling: Reset UI and close modal
+        form.reset();
+        const ocrBox = document.getElementById('ocr-result');
+        if (ocrBox) ocrBox.classList.add('hidden');
+
+        if (typeof requestCloseModal === 'function') {
+            await requestCloseModal('upload-modal');
+        } else {
+            document.getElementById('upload-modal')?.classList.add('hidden');
+        }
+
+        // Refresh materials list view
+        if (typeof loadMaterials === 'function') {
             await loadMaterials();
-            if (state.activeView === 'materials') {
+            if (typeof state !== 'undefined' && state.activeView === 'materials' && typeof renderMaterials === 'function') {
                 renderMaterials();
             }
-            form.reset();
-            document.getElementById('ocr-result').classList.add('hidden');
-        } else {
-            alert('' + data.message);
         }
+
     } catch (error) {
-        alert('Error: ' + error.message);
+        console.error('Material upload error:', error);
+        if (typeof showError === 'function') {
+            showError(error.message || 'An error occurred while uploading.');
+        } else {
+            alert(error.message || 'Upload failed.');
+        }
+    } finally {
+        // 4. Always unlock form state upon completion or failure
+        delete form.dataset.submitting;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+        }
     }
 }
 
