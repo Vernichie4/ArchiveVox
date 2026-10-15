@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies for PHP extensions only
+# Install system dependencies for PHP extensions and Tesseract OCR
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    tesseract-ocr-fil \
     && rm -rf /var/lib/apt/lists/*
 
 # Install required PHP extensions
