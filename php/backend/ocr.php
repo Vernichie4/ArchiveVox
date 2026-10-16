@@ -1,12 +1,29 @@
 <?php
 
 function getTesseractExecutable(): string {
-    $candidates = [
-        'D:\\Program Files\\Tesseract-OCR\\tesseract.exe',  // ← Your Tesseract is here
-        'C:\\Program Files\\Tesseract-OCR\\tesseract.exe',
-        getenv('TESSERACT_PATH') ?: '',
-        'tesseract.exe',
-    ];
+    // Check if running on Windows or Linux
+    $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+    
+    $candidates = [];
+    
+    if ($isWindows) {
+        // Windows paths
+        $candidates = [
+            'D:\\Program Files\\Tesseract-OCR\\tesseract.exe',
+            'C:\\Program Files\\Tesseract-OCR\\tesseract.exe',
+            'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe',
+            getenv('TESSERACT_PATH') ?: '',
+            'tesseract.exe',
+        ];
+    } else {
+        // Linux paths (Railway)
+        $candidates = [
+            '/usr/bin/tesseract',
+            '/usr/local/bin/tesseract',
+            getenv('TESSERACT_PATH') ?: '',
+            'tesseract',
+        ];
+    }
 
     foreach ($candidates as $candidate) {
         if ($candidate !== '' && is_file($candidate)) {
@@ -14,9 +31,11 @@ function getTesseractExecutable(): string {
         }
     }
 
+    // Try which/where command
     $output = [];
     $exitCode = 0;
-    exec('where tesseract 2>nul', $output, $exitCode);
+    $command = $isWindows ? 'where tesseract 2>nul' : 'which tesseract 2>/dev/null';
+    exec($command, $output, $exitCode);
     if ($exitCode === 0 && !empty($output[0])) {
         return trim($output[0]);
     }
