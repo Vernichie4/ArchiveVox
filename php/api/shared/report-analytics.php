@@ -129,6 +129,175 @@ try {
     }
 
     // ============================================================
+    // ASSESSMENT SUMMARY (English / Filipino + date filters)
+    // ============================================================
+    elseif ($action === 'assessment-summary') {
+        if (!in_array(strtolower($user['role']), ['principal', 'admin'], true)) {
+            sendJson(['success' => false, 'message' => 'Access denied'], 403);
+        }
+
+        $language = trim((string)($_GET['language'] ?? ''));
+        if (!in_array($language, ['', 'English', 'Filipino'], true)) {
+            sendJson(['success' => false, 'message' => 'Invalid language filter.'], 400);
+        }
+
+        $period = trim((string)($_GET['period'] ?? 'month'));
+        $allowedPeriods = ['day', 'week', 'month', 'range'];
+        if (!in_array($period, $allowedPeriods, true)) {
+            sendJson(['success' => false, 'message' => 'Invalid date period.'], 400);
+        }
+
+        // Use Manila local calendar dates for the school reports.
+        $timezone = new DateTimeZone('Asia/Manila');
+        $today = new DateTimeImmutable('today', $timezone);
+        $startDate = null;
+        $endDate = null;
+
+        if ($period === 'day') {
+            $startDate = $today;
+            $endDate = $today;
+        } elseif ($period === 'week') {
+            $startDate = $today->modify('monday this week');
+            $endDate = $startDate->modify('+6 days');
+        } elseif ($period === 'month') {
+            $startDate = $today->modify('first day of this month');
+            $endDate = $today->modify('last day of this month');
+        } else {
+            $fromInput = trim((string)($_GET['from_date'] ?? ''));
+            $toInput = trim((string)($_GET['to_date'] ?? ''));
+            $fromParsed = DateTimeImmutable::createFromFormat('!Y-m-d', $fromInput, $timezone);
+            $toParsed = DateTimeImmutable::createFromFormat('!Y-m-d', $toInput, $timezone);
+            $fromErrors = DateTimeImmutable::getLastErrors();
+            $toErrors = DateTimeImmutable::getLastErrors();
+
+            $fromValid = $fromParsed && ($fromErrors === false || ($fromErrors['warning_count'] === 0 && $fromErrors['error_count'] === 0)) && $fromParsed->format('Y-m-d') === $fromInput;
+            $toValid = $toParsed && ($toErrors === false || ($toErrors['warning_count'] === 0 && $toErrors['error_count'] === 0)) && $toParsed->format('Y-m-d') === $toInput;
+
+            if (!$fromValid || !$toValid || $fromParsed > $toParsed) {
+                sendJson(['success' => false, 'message' => 'For a date range, provide valid from/to dates with From not later than To.'], 400);
+            }
+
+            $startDate = $fromParsed;
+            $endDate = $toParsed;
+        }
+
+        $fromDate = $startDate->format('Y-m-d');
+        $toDate = $endDate->format('Y-m-d');
+
+        $languageSql = '';
+        $linkedParams = [
+            ':from_date' => $fromDate,
+            ':to_date' => $toDate
+        ];
+        if ($language !== '') {
+            $languageSql = ' AND rm.language = :language';
+            $linkedParams[':language'] = $language;
+        }
+
+        // Only assessments with a valid activity, active student, and known material
+        // can be reliably classified by language. Orphaned rows are reported separately.
+        $linkedWhere = 'WHERE s.is_active = 1
+            AND DATE(ar.assessed_at) BETWEEN :from_date AND :to_date' . $languageSql;
+
+        $stmt = $pdo->prepare("
+            SELECT
+                COUNT(DISTINCT ar.assessment_id) AS matched_assessments,
+                COUNT(DISTINCT s.student_id) AS students_assessed,
+                ROUND(AVG(ar.wcpm), 1) AS avg_wcpm,
+                ROUND(AVG(ar.accuracy_percentage), 1) AS avg_accuracy,
+                ROUND(AVG(ar.fluency_score), 1) AS avg_fluency
+            FROM assessment_result ar
+            JOIN reading_activity ra ON ra.activity_id = ar.activity_id
+            JOIN student s ON s.student_id = ra.student_id
+            JOIN reading_material rm ON rm.material_id = ra.material_id
+            $linkedWhere
+        ");
+        $stmt->execute($linkedParams);
+        $summary = $stmt->fetch() ?: [];
+
+        $stmt = $pdo->prepare("
+            SELECT
+                rm.language,
+                COUNT(DISTINCT ar.assessment_id) AS assessment_count,
+                COUNT(DISTINCT s.student_id) AS student_count,
+                ROUND(AVG(ar.wcpm), 1) AS avg_wcpm,
+                ROUND(AVG(ar.accuracy_percentage), 1) AS avg_accuracy
+            FROM assessment_result ar
+            JOIN reading_activity ra ON ra.activity_id = ar.activity_id
+            JOIN student s ON s.student_id = ra.student_id
+            JOIN reading_material rm ON rm.material_id = ra.material_id
+            $linkedWhere
+            GROUP BY rm.language
+            ORDER BY rm.language
+        ");
+        $stmt->execute($linkedParams);
+        $languageBreakdown = $stmt->fetchAll();
+
+        $stmt = $pdo->prepare("
+            SELECT
+                COALESCE(c.grade_level, sc.grade_level, 'Unassigned') AS grade_level,
+                rm.language,
+                COUNT(DISTINCT ar.assessment_id) AS assessment_count,
+                COUNT(DISTINCT s.student_id) AS student_count,
+                ROUND(AVG(ar.wcpm), 1) AS avg_wcpm,
+                ROUND(AVG(ar.accuracy_percentage), 1) AS avg_accuracy
+            FROM assessment_result ar
+            JOIN reading_activity ra ON ra.activity_id = ar.activity_id
+            JOIN student s ON s.student_id = ra.student_id
+            JOIN reading_material rm ON rm.material_id = ra.material_id
+            LEFT JOIN class c ON c.class_id = s.class_id
+            LEFT JOIN student_category sc ON sc.category_id = s.category_id
+            $linkedWhere
+            GROUP BY COALESCE(c.grade_level, sc.grade_level, 'Unassigned'), rm.language
+            ORDER BY grade_level, rm.language
+        ");
+        $stmt->execute($linkedParams);
+        $gradeBreakdown = $stmt->fetchAll();
+
+        // This count deliberately ignores the language filter: orphaned records have no
+        // reliable activity/material relationship, so their language cannot be inferred.
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) AS unlinked_assessments
+            FROM assessment_result ar
+            LEFT JOIN reading_activity ra ON ra.activity_id = ar.activity_id
+            WHERE ra.activity_id IS NULL
+              AND DATE(ar.assessed_at) BETWEEN :from_date AND :to_date
+        ");
+        $stmt->execute([
+            ':from_date' => $fromDate,
+            ':to_date' => $toDate
+        ]);
+        $unlinked = $stmt->fetch();
+
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) AS stored_assessments
+            FROM assessment_result
+            WHERE DATE(assessed_at) BETWEEN :from_date AND :to_date
+        ");
+        $stmt->execute([
+            ':from_date' => $fromDate,
+            ':to_date' => $toDate
+        ]);
+        $stored = $stmt->fetch();
+
+        sendJson([
+            'success' => true,
+            'filters' => [
+                'language' => $language === '' ? 'All' : $language,
+                'period' => $period,
+                'from_date' => $fromDate,
+                'to_date' => $toDate
+            ],
+            'summary' => $summary,
+            'stored_assessments' => (int)($stored['stored_assessments'] ?? 0),
+            'unlinked_assessments' => (int)($unlinked['unlinked_assessments'] ?? 0),
+            'language_breakdown' => $languageBreakdown,
+            'grade_breakdown' => $gradeBreakdown,
+            'generated_at' => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    // ============================================================
     // MATERIAL USAGE REPORT
     // ============================================================
     elseif ($action === 'material-usage') {
