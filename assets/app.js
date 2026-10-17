@@ -5747,7 +5747,7 @@ function displayReport(reportType, data) {
                 <div class="panel">
                     <p class="u-text-muted-xs">Stored Assessment Records</p>
                     <div class="stat-number">${number(data.stored_assessments)}</div>
-                    <p class="u-text-muted-xs">All records in the selected date period</p>
+                    <p class="u-text-muted-xs">All languages; records dated in the selected period</p>
                 </div>
                 <div class="panel">
                     <p class="u-text-muted-xs">Classified Assessments</p>
@@ -5757,7 +5757,7 @@ function displayReport(reportType, data) {
                 <div class="panel status-callout warning">
                     <p class="u-text-muted-xs">No Matching Reading Activity</p>
                     <div class="stat-number">${number(data.unlinked_assessments)}</div>
-                    <p class="u-text-muted-xs">Excluded from English and Filipino breakdowns</p>
+                    <p class="u-text-muted-xs">All languages; excluded from English and Filipino breakdowns</p>
                 </div>
             </div>
 
