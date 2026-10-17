@@ -106,12 +106,11 @@ try {
         $stmt = $pdo->query('
             SELECT 
                 COUNT(DISTINCT s.student_id) as total_students,
-                COUNT(DISTINCT rm.material_id) as total_materials,
+                (SELECT COUNT(*) FROM reading_material WHERE status = "Active") as total_materials,
                 COUNT(ar.assessment_id) as total_assessments,
                 AVG(ar.wcpm) as overall_wcpm,
                 AVG(ar.accuracy_percentage) as overall_accuracy
             FROM student s
-            LEFT JOIN reading_material rm ON rm.status = "Active"
             LEFT JOIN reading_activity ra ON s.student_id = ra.student_id
             LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
             WHERE s.is_active = 1
