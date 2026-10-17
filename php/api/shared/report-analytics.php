@@ -165,9 +165,12 @@ try {
         } else {
             $fromInput = trim((string)($_GET['from_date'] ?? ''));
             $toInput = trim((string)($_GET['to_date'] ?? ''));
+
+            // Capture parser warnings immediately after each parse; getLastErrors()
+            // describes the most recent parse operation.
             $fromParsed = DateTimeImmutable::createFromFormat('!Y-m-d', $fromInput, $timezone);
-            $toParsed = DateTimeImmutable::createFromFormat('!Y-m-d', $toInput, $timezone);
             $fromErrors = DateTimeImmutable::getLastErrors();
+            $toParsed = DateTimeImmutable::createFromFormat('!Y-m-d', $toInput, $timezone);
             $toErrors = DateTimeImmutable::getLastErrors();
 
             $fromValid = $fromParsed && ($fromErrors === false || ($fromErrors['warning_count'] === 0 && $fromErrors['error_count'] === 0)) && $fromParsed->format('Y-m-d') === $fromInput;
