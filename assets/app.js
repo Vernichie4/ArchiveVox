@@ -5249,12 +5249,55 @@ async function populateExportClassDropdown() {
 
 function renderReports() {
     const role = String(state.user?.role || '').toLowerCase();
+    const canViewAssessmentSummary = role === 'principal' || role === 'admin';
+    const assessmentSummaryButton = canViewAssessmentSummary
+        ? '<button id="report-assessment-summary" class="btn-primary">Assessment Summary</button>'
+        : '';
+    const assessmentFiltersPanel = canViewAssessmentSummary ? `
+        <div class="panel u-mt-16">
+            <h3 class="u-m-0">Reading Assessment Filters</h3>
+            <p class="u-text-muted-xs u-mt-4">Language totals use assessments linked to an active student, reading activity, and reading material. Records without a matching reading activity are shown separately and are not assigned a language.</p>
+            <div class="grid three u-mt-12">
+                <div class="form-group">
+                    <label for="assessment-language-filter">Language</label>
+                    <select id="assessment-language-filter">
+                        <option value="">All Languages</option>
+                        <option value="English">English</option>
+                        <option value="Filipino">Filipino</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="assessment-period-filter">Date Period</label>
+                    <select id="assessment-period-filter">
+                        <option value="day">Day (today)</option>
+                        <option value="week">Week (Monday–Sunday)</option>
+                        <option value="month" selected>Month (calendar month)</option>
+                        <option value="range">Custom Date Range</option>
+                    </select>
+                </div>
+                <div class="form-group" id="assessment-range-fields" style="display:none; grid-column:1 / -1;">
+                    <div class="grid two">
+                        <div class="form-group">
+                            <label for="assessment-from-date">From</label>
+                            <input type="date" id="assessment-from-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="assessment-to-date">To</label>
+                            <input type="date" id="assessment-to-date">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="apply-assessment-filters" type="button" class="btn-primary u-mt-8">Apply Filters</button>
+        </div>
+    ` : '';
 
     // Unified report view with export class report button
     viewContainer.innerHTML = `
         <div class="reports-shell">
             <div class="reports-toolbar">
                 <div class="u-row-wrap u-gap-8">
+                    ${assessmentSummaryButton}
                     <button id="report-school-wide" class="btn-primary">School Overview</button>
                     <button id="report-by-grade" class="btn-secondary">By Grade Level</button>
                     <button id="report-materials" class="btn-secondary">Material Usage</button>
@@ -5262,6 +5305,8 @@ function renderReports() {
                     <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
                 </div>
             </div>
+
+            ${assessmentFiltersPanel}
 
             <div id="report-content" class="u-mt-16">
                 <div class="panel">
@@ -5327,6 +5372,26 @@ function renderReports() {
     document.getElementById('report-by-grade')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
     document.getElementById('report-materials')?.addEventListener('click', () => loadAndDisplayReport('material-usage'));
     document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderReports());
+
+    if (canViewAssessmentSummary) {
+        const periodSelect = document.getElementById('assessment-period-filter');
+        const rangeFields = document.getElementById('assessment-range-fields');
+        periodSelect?.addEventListener('change', () => {
+            if (rangeFields) rangeFields.style.display = periodSelect.value === 'range' ? 'block' : 'none';
+        });
+        document.getElementById('apply-assessment-filters')?.addEventListener('click', () => loadAndDisplayReport('assessment-summary'));
+        document.getElementById('report-assessment-summary')?.addEventListener('click', () => loadAndDisplayReport('assessment-summary'));
+
+        // Initialize local calendar dates without converting through UTC.
+        const now = new Date();
+        const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const fromInput = document.getElementById('assessment-from-date');
+        const toInput = document.getElementById('assessment-to-date');
+        if (fromInput) fromInput.value = localToday;
+        if (toInput) toInput.value = localToday;
+
+        loadAndDisplayReport('assessment-summary');
+    }
 
 // Export button
     document.getElementById('export-class-report-btn')?.addEventListener('click', () => {
@@ -5570,10 +5635,10 @@ async function renderStudentDetail(studentId) {
 function renderPrincipalReports() {
     viewContainer.innerHTML = `
         <div class="reports-shell">
+
             <div class="reports-toolbar">
                 <div class="u-row-wrap u-gap-8">
-                    <button id="report-assessment-summary" class="btn-primary">Assessment Summary</button>
-                    <button id="report-school-wide" class="btn-secondary">School Overview</button>
+                    <button id="report-school-wide" class="btn-primary">School Overview</button>
                     <button id="report-by-grade" class="btn-secondary">By Grade Level</button>
                     <button id="report-materials" class="btn-secondary">Material Usage</button>
                     <button id="export-assessments-btn" class="btn-export">Export CSV</button>
@@ -5581,82 +5646,19 @@ function renderPrincipalReports() {
                 </div>
             </div>
 
-            <div class="panel u-mt-16">
-                <h3 class="u-m-0">Reading Assessment Filters</h3>
-                <p class="u-text-muted-xs u-mt-4">Language totals include assessments linked to an active student, reading activity, and reading material. Unlinked assessment records are shown separately and are not assigned a language.</p>
-                <div class="grid three u-mt-12">
-                    <div class="form-group">
-                        <label for="assessment-language-filter">Language</label>
-                        <select id="assessment-language-filter">
-                            <option value="">All Languages</option>
-                            <option value="English">English</option>
-                            <option value="Filipino">Filipino</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="assessment-period-filter">Date Period</label>
-                        <select id="assessment-period-filter">
-                            <option value="day">Day (today)</option>
-                            <option value="week">Week (Monday–Sunday)</option>
-                            <option value="month" selected>Month (calendar month)</option>
-                            <option value="range">Custom Date Range</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="assessment-range-fields" style="display:none; grid-column:1 / -1;">
-                        <div class="grid two">
-                            <div class="form-group">
-                                <label for="assessment-from-date">From</label>
-                                <input type="date" id="assessment-from-date">
-                            </div>
-                            <div class="form-group">
-                                <label for="assessment-to-date">To</label>
-                                <input type="date" id="assessment-to-date">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button id="apply-assessment-filters" type="button" class="btn-primary u-mt-8">Apply Filters</button>
-            </div>
-
             <div id="report-content" class="u-mt-16">
                 <div class="panel">
-                    <p class="u-text-muted">Loading assessment summary...</p>
+                    <p class="u-text-muted">Select a report type to view</p>
                 </div>
             </div>
         </div>
     `;
 
-    const periodSelect = document.getElementById('assessment-period-filter');
-    const rangeFields = document.getElementById('assessment-range-fields');
-    const toggleDateRange = () => {
-        if (periodSelect && rangeFields) {
-            rangeFields.style.display = periodSelect.value === 'range' ? 'block' : 'none';
-        }
-    };
-    periodSelect?.addEventListener('change', toggleDateRange);
-    document.getElementById('apply-assessment-filters')?.addEventListener('click', () => loadAndDisplayReport('assessment-summary'));
-    document.getElementById('report-assessment-summary')?.addEventListener('click', () => loadAndDisplayReport('assessment-summary'));
     document.getElementById('report-school-wide')?.addEventListener('click', () => loadAndDisplayReport('school-wide'));
     document.getElementById('report-by-grade')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
     document.getElementById('report-materials')?.addEventListener('click', () => loadAndDisplayReport('material-usage'));
     document.getElementById('export-assessments-btn')?.addEventListener('click', () => exportAssessmentResults());
-    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => {
-        if (document.getElementById('assessment-period-filter')) {
-            loadAndDisplayReport('assessment-summary');
-        } else {
-            renderPrincipalReports();
-        }
-    });
-
-    // Initialize a local calendar date without converting through UTC.
-    const now = new Date();
-    const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const fromInput = document.getElementById('assessment-from-date');
-    const toInput = document.getElementById('assessment-to-date');
-    if (fromInput) fromInput.value = localToday;
-    if (toInput) toInput.value = localToday;
-
-    loadAndDisplayReport('assessment-summary');
+    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderPrincipalReports());
 }
 
 function renderTeacherReports() {
