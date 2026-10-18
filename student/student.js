@@ -836,6 +836,16 @@ async function startReadingActivity() {
         );
 
         state.currentActivityId = response.activity_id;
+
+        // Store attempt information
+        state.currentAttemptNumber = response.attempt_number;
+        state.currentAttemptType = response.attempt_type;
+        state.attemptsRemaining = response.attempts_remaining;
+
+        // Show attempt information to student
+        const attemptInfo = `Attempt ${response.attempt_number} of 3 (${response.attempt_type}) - ${response.attempts_remaining} attempts remaining`;
+        showInfo(attemptInfo);
+
         showQuizStartScreen();
 
     } catch (error) {
@@ -1294,6 +1304,15 @@ async function startQuiz() {
 
         state.currentAttemptId = response.attempt_id;
         state.currentQuizId = response.quiz_id;
+
+        // Store attempt information
+        state.currentAttemptNumber = response.attempt_number;
+        state.currentAttemptType = response.attempt_type;
+        state.attemptsRemaining = response.attempts_remaining;
+
+        // Show attempt information to student
+        const attemptInfo = `Attempt ${response.attempt_number} of 3 (${response.attempt_type}) - ${response.attempts_remaining} attempts remaining`;
+        showInfo(attemptInfo);
 
         // Use questions from the API response
         const questions = response.questions || [];

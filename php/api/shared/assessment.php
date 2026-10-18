@@ -421,9 +421,17 @@ function handleRecordAssessment(PDO $pdo): void {
 
         $pdo->beginTransaction();
 
+        // Calculate attempt number for this student/material (for teacher assessments)
+        // Use MAX(attempt_number) + 1 to get the next attempt, defaulting to 1 if no records exist
+        $stmt = $pdo->prepare("SELECT COALESCE(MAX(attempt_number), 0) as max_attempt FROM reading_activity WHERE student_id = ? AND material_id = ?");
+        $stmt->execute([$studentId, $materialId]);
+        $max_attempt = $stmt->fetchColumn();
+        $next_attempt_number = $max_attempt + 1;
+        $attempt_type = ($next_attempt_number === 3) ? 'final' : 'practice';
+
         $stmt = $pdo->prepare(
-            "INSERT INTO reading_activity (student_id, material_id, assignment_material_id, started_at, audio_filename, audio_path, duration_seconds, activity_status)
-             VALUES (:student_id, :material_id, :assignment_material_id, NOW(), :audio_filename, :audio_path, :duration_seconds, 'Processing')"
+            "INSERT INTO reading_activity (student_id, material_id, assignment_material_id, started_at, audio_filename, audio_path, duration_seconds, activity_status, attempt_number, attempt_type)
+             VALUES (:student_id, :material_id, :assignment_material_id, NOW(), :audio_filename, :audio_path, :duration_seconds, 'Processing', :attempt_number, :attempt_type)"
         );
         $stmt->execute([
             ':student_id' => $studentId,
@@ -431,7 +439,9 @@ function handleRecordAssessment(PDO $pdo): void {
             ':assignment_material_id' => $assignmentMaterialId,
             ':audio_filename' => $filename,
             ':audio_path' => 'uploads/audio/' . $filename,
-            ':duration_seconds' => $durationSeconds
+            ':duration_seconds' => $durationSeconds,
+            ':attempt_number' => $next_attempt_number,
+            ':attempt_type' => $attempt_type
         ]);
         $activityId = (int)$pdo->lastInsertId();
 
@@ -488,16 +498,13 @@ function handleRecordAssessment(PDO $pdo): void {
 
         $assessmentId = (int)$pdo->lastInsertId();
 
-        // NEW: Mark as Practice Completed or strictly Completed depending on attempt count
-        $finalStatus = $isPractice ? 'Practice Completed' : 'Completed';
-        
+        // Mark as Completed (attempt_type field distinguishes practice vs final)
         $stmt = $pdo->prepare(
             "UPDATE reading_activity
-             SET activity_status = :status, finished_at = NOW()
+             SET activity_status = 'Completed', finished_at = NOW()
              WHERE activity_id = :activity_id"
         );
         $stmt->execute([
-            ':status' => $finalStatus, 
             ':activity_id' => $activityId
         ]);
 

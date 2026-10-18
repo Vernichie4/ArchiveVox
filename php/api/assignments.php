@@ -596,13 +596,13 @@ if ($method === 'GET' && $uri === '/api/health') {
     $assignment_id = (int)$matches[1];
     $teacher_id = $_GET['teacher_id'] ?? null;
     if (!$teacher_id) error("teacher_id is required.");
-    
+
     $pdo = get_db();
     try {
         $stmt = $pdo->prepare("SELECT ra.assignment_id, ra.title, ra.class_id FROM reading_assignment ra WHERE ra.assignment_id = ? AND ra.teacher_id = ? LIMIT 1");
         $stmt->execute([$assignment_id, $teacher_id]);
         if (!$stmt->fetch()) error("Assignment not found or not owned by this teacher.", 404);
-        
+
         $stmt = $pdo->prepare("
             SELECT s.student_id, s.lrn, s.first_name, s.last_name, c.grade_level, c.section,
                    ra.assignment_id, ra.title AS assignment_title,
@@ -634,6 +634,96 @@ if ($method === 'GET' && $uri === '/api/health') {
         $pdo = null;
     }
 
+} elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'teacher/student-attempts') {
+    $assignment_id = (int)($_GET['assignment_id'] ?? 0);
+    $student_id = (int)($_GET['student_id'] ?? 0);
+    $teacher_id = $_GET['teacher_id'] ?? null;
+    if (!$teacher_id) error("teacher_id is required.");
+    if (!$assignment_id) error("assignment_id is required.");
+    if (!$student_id) error("student_id is required.");
+
+    $pdo = get_db();
+    try {
+        // Verify teacher owns this assignment
+        $stmt = $pdo->prepare("SELECT ra.assignment_id, ra.title FROM reading_assignment ra WHERE ra.assignment_id = ? AND ra.teacher_id = ? LIMIT 1");
+        $stmt->execute([$assignment_id, $teacher_id]);
+        $assignment = $stmt->fetch();
+        if (!$assignment) error("Assignment not found or not owned by this teacher.", 404);
+
+        // Get materials for this assignment
+        $materials = get_assignment_materials($pdo, $assignment_id);
+
+        // Get student's reading activities with attempt info - all materials combined
+        $material_ids = array_column($materials, 'assignment_material_id');
+        if ($material_ids) {
+            $placeholders = implode(',', array_fill(0, count($material_ids), '?'));
+            $rStmt = $pdo->prepare("
+                SELECT ra.assignment_material_id, ra.activity_id, ra.activity_status, ra.attempt_number, ra.attempt_type,
+                       ar.accuracy_percentage, ar.wcpm
+                FROM reading_activity ra
+                LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
+                WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders)
+                ORDER BY ra.attempt_number
+            ");
+            $rStmt->execute(array_merge([$student_id], $material_ids));
+            $reading_results = $rStmt->fetchAll();
+
+            // Get student's quiz attempts with attempt info - all materials combined
+            $qStmt = $pdo->prepare("
+                SELECT qa.assignment_material_id, qa.attempt_id, qa.status, qa.score, qa.total_questions, qa.percentage, qa.attempt_number, qa.attempt_type
+                FROM quiz_attempt qa
+                WHERE qa.student_id = ? AND qa.assignment_material_id IN ($placeholders)
+                ORDER BY qa.attempt_number
+            ");
+            $qStmt->execute(array_merge([$student_id], $material_ids));
+            $quiz_results = $qStmt->fetchAll();
+        }
+
+        // Group attempts by attempt_number across all materials
+        $attempts_by_number = [];
+
+        // Add reading attempts grouped by attempt_number
+        foreach ($reading_results as $ra) {
+            $attempt_num = $ra['attempt_number'] ?? 1;
+            if (!isset($attempts_by_number[$attempt_num])) {
+                $attempts_by_number[$attempt_num] = [
+                    'attempt_number' => $attempt_num,
+                    'attempt_type' => $ra['attempt_type'] ?? 'practice',
+                    'reading_attempts' => [],
+                    'quiz_attempts' => []
+                ];
+            }
+            $attempts_by_number[$attempt_num]['reading_attempts'][] = $ra;
+        }
+
+        // Add quiz attempts grouped by attempt_number
+        foreach ($quiz_results as $qa) {
+            $attempt_num = $qa['attempt_number'] ?? 1;
+            if (!isset($attempts_by_number[$attempt_num])) {
+                $attempts_by_number[$attempt_num] = [
+                    'attempt_number' => $attempt_num,
+                    'attempt_type' => $qa['attempt_type'] ?? 'practice',
+                    'reading_attempts' => [],
+                    'quiz_attempts' => []
+                ];
+            }
+            $attempts_by_number[$attempt_num]['quiz_attempts'][] = $qa;
+        }
+
+        // Sort by attempt number
+        ksort($attempts_by_number);
+        $grouped_attempts = array_values($attempts_by_number);
+
+        success([
+            'assignment_id' => $assignment_id,
+            'assignment_title' => $assignment['title'],
+            'student_id' => $student_id,
+            'attempts' => $grouped_attempts
+        ]);
+    } finally {
+        $pdo = null;
+    }
+
 } elseif ($method === 'GET' && preg_match('#^/api/student/assignments/(\d+)$#', $uri, $matches)) {
     $assignment_id = (int)$matches[1];
     $student_id = $_GET['student_id'] ?? null;
@@ -651,7 +741,7 @@ if ($method === 'GET' && $uri === '/api/health') {
         if ($material_ids) {
             $placeholders = implode(',', array_fill(0, count($material_ids), '?'));
             $rStmt = $pdo->prepare("
-                SELECT ra.assignment_material_id, ra.activity_id, ra.activity_status
+                SELECT ra.assignment_material_id, ra.activity_id, ra.activity_status, ra.attempt_number, ra.attempt_type
                 FROM reading_activity ra
                 WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed'
             ");
@@ -663,7 +753,7 @@ if ($method === 'GET' && $uri === '/api/health') {
 
             // Get student's completed quiz attempts for this assignment
             $qStmt = $pdo->prepare("
-                SELECT qa.assignment_material_id, qa.attempt_id, qa.status, qa.score, qa.total_questions, qa.percentage
+                SELECT qa.assignment_material_id, qa.attempt_id, qa.status, qa.score, qa.total_questions, qa.percentage, qa.attempt_number, qa.attempt_type
                 FROM quiz_attempt qa
                 WHERE qa.student_id = ? AND qa.assignment_material_id IN ($placeholders) AND qa.status = 'completed'
             ");
@@ -680,8 +770,10 @@ if ($method === 'GET' && $uri === '/api/health') {
             $assignment_material_id = $mat['assignment_material_id'];
             if (isset($reading_results[$assignment_material_id])) {
                 $mat['reading_result'] = [
-                    'activity_id' => $reading_results[$assignment_material_id],
-                    'activity_status' => 'Completed'
+                    'activity_id' => $reading_results[$assignment_material_id]['activity_id'],
+                    'activity_status' => 'Completed',
+                    'attempt_number' => $reading_results[$assignment_material_id]['attempt_number'],
+                    'attempt_type' => $reading_results[$assignment_material_id]['attempt_type']
                 ];
             }
 
@@ -716,18 +808,40 @@ if ($method === 'GET' && $uri === '/api/health') {
         if (!$assignment_material) throw new Exception("This material is not part of this assignment.", 403);
         
         $material_id = $assignment_material['material_id'];
-        
-        $stmt = $pdo->prepare("SELECT MAX(attempt_number) AS max_attempt FROM reading_activity WHERE student_id = ? AND material_id = ?");
-        $stmt->execute([$student_id, $material_id]);
-        $row = $stmt->fetch();
-        $next_attempt = ($row['max_attempt'] ?? 0) + 1;
-        
-        $stmt = $pdo->prepare("INSERT INTO reading_activity (student_id, material_id, assignment_material_id, activity_date, started_at, attempt_number, activity_status) VALUES (?, ?, ?, CURDATE(), NOW(), ?, 'In Progress')");
-        $stmt->execute([$student_id, $material_id, $assignment_material_id, $next_attempt]);
+
+        // Check existing attempts for this student across ALL materials in this assignment
+        $stmt = $pdo->prepare("SELECT COALESCE(MAX(attempt_number), 0) as max_attempt FROM reading_activity WHERE student_id = ? AND assignment_material_id IN (SELECT assignment_material_id FROM reading_assignment_material WHERE assignment_id = ?)");
+        $stmt->execute([$student_id, $assignment_id]);
+        $max_attempt = $stmt->fetchColumn();
+
+        // Enforce 3-attempt limit
+        if ($max_attempt >= 3) {
+            throw new Exception("You have reached the maximum of 3 attempts for this assignment.", 400);
+        }
+
+        // Check for in_progress attempt on this specific material
+        $stmt = $pdo->prepare("SELECT activity_id FROM reading_activity WHERE student_id = ? AND assignment_material_id = ? AND activity_status = 'Processing' LIMIT 1");
+        $stmt->execute([$student_id, $assignment_material_id]);
+        $existing = $stmt->fetch();
+        if ($existing) throw new Exception("You already have a reading activity in progress for this material.", 400);
+
+        // Calculate next attempt number and type
+        $next_attempt_number = $max_attempt + 1;
+        $attempt_type = ($next_attempt_number === 3) ? 'final' : 'practice';
+
+        $stmt = $pdo->prepare("INSERT INTO reading_activity (student_id, material_id, assignment_material_id, activity_date, started_at, attempt_number, activity_status, attempt_type) VALUES (?, ?, ?, CURDATE(), NOW(), ?, 'Processing', ?)");
+        $stmt->execute([$student_id, $material_id, $assignment_material_id, $next_attempt_number, $attempt_type]);
         $activity_id = $pdo->lastInsertId();
-        
+
         $pdo->commit();
-        success(['activity_id' => $activity_id, 'assignment_id' => $assignment_id, 'material_id' => $material_id, 'attempt_number' => $next_attempt]);
+        success([
+            'activity_id' => $activity_id,
+            'assignment_id' => $assignment_id,
+            'material_id' => $material_id,
+            'attempt_number' => $next_attempt_number,
+            'attempt_type' => $attempt_type,
+            'attempts_remaining' => 3 - $next_attempt_number
+        ]);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         error($e->getMessage(), $e->getCode() ?: 500);
@@ -755,25 +869,47 @@ if ($method === 'GET' && $uri === '/api/health') {
         if (!$assignment_material) throw new Exception("This material is not part of this assignment.", 403);
         
         $material_id = $assignment_material['material_id'];
-        
+
         $stmt = $pdo->prepare("SELECT quiz_id FROM quiz WHERE material_id = ? LIMIT 1");
         $stmt->execute([$material_id]);
         $quiz = $stmt->fetch();
         if (!$quiz) throw new Exception("No quiz found for this material.", 404);
-        
+
+        // Check existing attempts for this student across ALL materials in this assignment
+        $stmt = $pdo->prepare("SELECT COALESCE(MAX(attempt_number), 0) as max_attempt FROM quiz_attempt WHERE student_id = ? AND assignment_material_id IN (SELECT assignment_material_id FROM reading_assignment_material WHERE assignment_id = ?)");
+        $stmt->execute([$student_id, $assignment_id]);
+        $max_attempt = $stmt->fetchColumn();
+
+        // Enforce 3-attempt limit
+        if ($max_attempt >= 3) {
+            throw new Exception("You have reached the maximum of 3 attempts for this assignment.", 400);
+        }
+
+        // Check for in_progress attempt on this specific material
         $stmt = $pdo->prepare("SELECT attempt_id FROM quiz_attempt WHERE student_id = ? AND assignment_material_id = ? AND status = 'in_progress' LIMIT 1");
         $stmt->execute([$student_id, $assignment_material_id]);
         $existing = $stmt->fetch();
         if ($existing) throw new Exception("You already have a quiz in progress for this material.", 400);
-        
-        $stmt = $pdo->prepare("INSERT INTO quiz_attempt (quiz_id, student_id, assignment_material_id, activity_id, score, total_questions, percentage, started_at, status) VALUES (?, ?, ?, NULL, 0, 0, 0, NOW(), 'in_progress')");
-        $stmt->execute([$quiz['quiz_id'], $student_id, $assignment_material_id]);
+
+        // Calculate next attempt number and type
+        $next_attempt_number = $max_attempt + 1;
+        $attempt_type = ($next_attempt_number === 3) ? 'final' : 'practice';
+
+        $stmt = $pdo->prepare("INSERT INTO quiz_attempt (quiz_id, student_id, assignment_material_id, activity_id, score, total_questions, percentage, started_at, status, attempt_number, attempt_type) VALUES (?, ?, ?, NULL, 0, 0, 0, NOW(), 'in_progress', ?, ?)");
+        $stmt->execute([$quiz['quiz_id'], $student_id, $assignment_material_id, $next_attempt_number, $attempt_type]);
         $attempt_id = $pdo->lastInsertId();
         
         $questions = get_quiz_questions($pdo, $quiz['quiz_id']);
-        
+
         $pdo->commit();
-        success(['attempt_id' => $attempt_id, 'quiz_id' => $quiz['quiz_id'], 'questions' => $questions]);
+        success([
+            'attempt_id' => $attempt_id,
+            'quiz_id' => $quiz['quiz_id'],
+            'questions' => $questions,
+            'attempt_number' => $next_attempt_number,
+            'attempt_type' => $attempt_type,
+            'attempts_remaining' => 3 - $next_attempt_number
+        ]);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         error($e->getMessage(), $e->getCode() ?: 500);
