@@ -4774,7 +4774,10 @@ async function renderStudentDetail(studentId) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> dffc727 (three attempts for assignment)
 async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) {
     try {
         // Get teacher_id from logged-in user
