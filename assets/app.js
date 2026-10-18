@@ -5249,12 +5249,55 @@ async function populateExportClassDropdown() {
 
 function renderReports() {
     const role = String(state.user?.role || '').toLowerCase();
+    const canViewAssessmentSummary = role === 'principal' || role === 'admin';
+    const assessmentSummaryButton = canViewAssessmentSummary
+        ? '<button id="report-assessment-summary" class="btn-primary">Assessment Summary</button>'
+        : '';
+    const assessmentFiltersPanel = canViewAssessmentSummary ? `
+        <div class="panel u-mt-16">
+            <h3 class="u-m-0">Reading Assessment Filters</h3>
+            <p class="u-text-muted-xs u-mt-4">Language totals use assessments linked to an active student, reading activity, and reading material. Records without a matching reading activity are shown separately and are not assigned a language.</p>
+            <div class="grid three u-mt-12">
+                <div class="form-group">
+                    <label for="assessment-language-filter">Language</label>
+                    <select id="assessment-language-filter">
+                        <option value="">All Languages</option>
+                        <option value="English">English</option>
+                        <option value="Filipino">Filipino</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="assessment-period-filter">Date Period</label>
+                    <select id="assessment-period-filter">
+                        <option value="day">Day (today)</option>
+                        <option value="week">Week (Monday–Sunday)</option>
+                        <option value="month" selected>Month (calendar month)</option>
+                        <option value="range">Custom Date Range</option>
+                    </select>
+                </div>
+                <div class="form-group" id="assessment-range-fields" style="display:none; grid-column:1 / -1;">
+                    <div class="grid two">
+                        <div class="form-group">
+                            <label for="assessment-from-date">From</label>
+                            <input type="date" id="assessment-from-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="assessment-to-date">To</label>
+                            <input type="date" id="assessment-to-date">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="apply-assessment-filters" type="button" class="btn-primary u-mt-8">Apply Filters</button>
+        </div>
+    ` : '';
 
     // Unified report view with export class report button
     viewContainer.innerHTML = `
         <div class="reports-shell">
             <div class="reports-toolbar">
                 <div class="u-row-wrap u-gap-8">
+                    ${assessmentSummaryButton}
                     <button id="report-school-wide" class="btn-primary">School Overview</button>
                     <button id="report-by-grade" class="btn-secondary">By Grade Level</button>
                     <button id="report-materials" class="btn-secondary">Material Usage</button>
@@ -5262,6 +5305,8 @@ function renderReports() {
                     <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
                 </div>
             </div>
+
+            ${assessmentFiltersPanel}
 
             <div id="report-content" class="u-mt-16">
                 <div class="panel">
@@ -5327,6 +5372,26 @@ function renderReports() {
     document.getElementById('report-by-grade')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
     document.getElementById('report-materials')?.addEventListener('click', () => loadAndDisplayReport('material-usage'));
     document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderReports());
+
+    if (canViewAssessmentSummary) {
+        const periodSelect = document.getElementById('assessment-period-filter');
+        const rangeFields = document.getElementById('assessment-range-fields');
+        periodSelect?.addEventListener('change', () => {
+            if (rangeFields) rangeFields.style.display = periodSelect.value === 'range' ? 'block' : 'none';
+        });
+        document.getElementById('apply-assessment-filters')?.addEventListener('click', () => loadAndDisplayReport('assessment-summary'));
+        document.getElementById('report-assessment-summary')?.addEventListener('click', () => loadAndDisplayReport('assessment-summary'));
+
+        // Initialize local calendar dates without converting through UTC.
+        const now = new Date();
+        const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const fromInput = document.getElementById('assessment-from-date');
+        const toInput = document.getElementById('assessment-to-date');
+        if (fromInput) fromInput.value = localToday;
+        if (toInput) toInput.value = localToday;
+
+        loadAndDisplayReport('assessment-summary');
+    }
 
 // Export button
     document.getElementById('export-class-report-btn')?.addEventListener('click', () => {
@@ -5719,8 +5784,28 @@ async function loadAndDisplayReport(reportType) {
     contentDiv.innerHTML = '<div class="panel"><p class="u-text-muted u-text-center">Loading report...</p></div>';
 
     try {
-        const data = await fetchJson(`php/api/shared/report-analytics.php?action=${encodeURIComponent(reportType)}`);
-        
+        let reportUrl = `php/api/shared/report-analytics.php?action=${encodeURIComponent(reportType)}`;
+        if (reportType === 'assessment-summary') {
+            const params = new URLSearchParams();
+            params.set('action', 'assessment-summary');
+            params.set('language', document.getElementById('assessment-language-filter')?.value || '');
+            params.set('period', document.getElementById('assessment-period-filter')?.value || 'month');
+
+            if (params.get('period') === 'range') {
+                const fromDate = document.getElementById('assessment-from-date')?.value || '';
+                const toDate = document.getElementById('assessment-to-date')?.value || '';
+                if (!fromDate || !toDate) {
+                    contentDiv.innerHTML = '<div class="panel"><p class="u-text-danger">Please select both a start date and an end date.</p></div>';
+                    return;
+                }
+                params.set('from_date', fromDate);
+                params.set('to_date', toDate);
+            }
+            reportUrl = `php/api/shared/report-analytics.php?${params.toString()}`;
+        }
+
+        const data = await fetchJson(reportUrl);
+
         if (data.success) {
             state.reportData = data;
             displayReport(reportType, data);
@@ -5736,7 +5821,91 @@ function displayReport(reportType, data) {
     const contentDiv = document.getElementById('report-content');
     if (!contentDiv) return;
 
-    if (reportType === 'school-wide') {
+    if (reportType === 'assessment-summary') {
+        const summary = data.summary || {};
+        const byLanguage = data.language_breakdown || [];
+        const byGrade = data.grade_breakdown || [];
+        const number = value => Number(value || 0).toLocaleString();
+        const oneDecimal = value => Number(value || 0).toFixed(1);
+        const languageLabel = data.filters?.language || 'All';
+        const dateLabel = data.filters ? `${data.filters.from_date} to ${data.filters.to_date}` : '';
+
+        contentDiv.innerHTML = `
+            <div class="panel">
+                <h3 class="u-m-0">Reading Assessment Summary</h3>
+                <p class="u-text-muted-xs u-mt-4">Language: ${escapeAssessmentHtml(languageLabel)} · Dates: ${escapeAssessmentHtml(dateLabel)}</p>
+            </div>
+
+            <div class="grid three u-mt-12">
+                <div class="panel">
+                    <p class="u-text-muted-xs">Stored Assessment Records</p>
+                    <div class="stat-number">${number(data.stored_assessments)}</div>
+                    <p class="u-text-muted-xs">All languages; records dated in the selected period</p>
+                </div>
+                <div class="panel">
+                    <p class="u-text-muted-xs">Classified Assessments</p>
+                    <div class="stat-number">${number(summary.matched_assessments)}</div>
+                    <p class="u-text-muted-xs">Linked to an active student and known reading material</p>
+                </div>
+                <div class="panel status-callout warning">
+                    <p class="u-text-muted-xs">No Matching Reading Activity</p>
+                    <div class="stat-number">${number(data.unlinked_assessments)}</div>
+                    <p class="u-text-muted-xs">All languages; excluded from English and Filipino breakdowns</p>
+                </div>
+            </div>
+
+            <div class="grid two u-mt-12">
+                <div class="panel">
+                    <h3>Overall Performance</h3>
+                    <div class="list-row-sm">Students assessed: <strong>${number(summary.students_assessed)}</strong></div>
+                    <div class="list-row-sm">Average WCPM: <strong>${oneDecimal(summary.avg_wcpm)}</strong></div>
+                    <div class="list-row-sm">Average accuracy: <strong>${oneDecimal(summary.avg_accuracy)}%</strong></div>
+                    <div class="list-row-sm">Average fluency score: <strong>${oneDecimal(summary.avg_fluency)}</strong></div>
+                </div>
+                <div class="panel">
+                    <h3>By Language</h3>
+                    <div class="u-scroll-x">
+                        <table class="table-clean">
+                            <thead><tr><th>Language</th><th>Assessments</th><th>Students</th><th>Avg WCPM</th><th>Avg Accuracy</th></tr></thead>
+                            <tbody>
+                                ${byLanguage.length ? byLanguage.map(row => `
+                                    <tr class="table-row">
+                                        <td>${escapeAssessmentHtml(row.language)}</td>
+                                        <td>${number(row.assessment_count)}</td>
+                                        <td>${number(row.student_count)}</td>
+                                        <td>${oneDecimal(row.avg_wcpm)}</td>
+                                        <td>${oneDecimal(row.avg_accuracy)}%</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="5" class="u-text-muted">No classified assessments for this filter.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel u-mt-12">
+                <h3>By Grade Level and Language</h3>
+                <div class="u-scroll-x">
+                    <table class="table-clean">
+                        <thead><tr><th>Grade</th><th>Language</th><th>Assessments</th><th>Students</th><th>Avg WCPM</th><th>Avg Accuracy</th></tr></thead>
+                        <tbody>
+                            ${byGrade.length ? byGrade.map(row => `
+                                <tr class="table-row">
+                                    <td>${escapeAssessmentHtml(row.grade_level)}</td>
+                                    <td>${escapeAssessmentHtml(row.language)}</td>
+                                    <td>${number(row.assessment_count)}</td>
+                                    <td>${number(row.student_count)}</td>
+                                    <td>${oneDecimal(row.avg_wcpm)}</td>
+                                    <td>${oneDecimal(row.avg_accuracy)}%</td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="6" class="u-text-muted">No grade-level data for this filter.</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <p class="u-text-muted-xs">Language breakdowns use the reading material language. Records without a matching reading activity are left unclassified; the report does not guess their language.</p>
+        `;
+    } else if (reportType === 'school-wide') {
         const gradeStats = data.grade_statistics || [];
         const topPerformers = data.top_performers || [];
         const intervention = data.intervention_needed || [];
