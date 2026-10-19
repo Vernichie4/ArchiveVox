@@ -572,28 +572,6 @@ async function fetchTeacherId() {
 }
 
 // ============================================================
-// HELPER: Teacher ID Resolver
-// ============================================================
-async function fetchTeacherId() {
-    // If it's already stored in state, return it immediately
-    if (state.user?.teacher_id) {
-        return state.user.teacher_id;
-    }
-
-    try {
-        // Fallback check if the session endpoint provides it
-        const data = await fetchJson(BASE_PATH + '/php/api/auth/session.php');
-        if (data.success && data.user?.teacher_id) {
-            state.user = data.user; // sync state
-            return data.user.teacher_id;
-        }
-    } catch (error) {
-        console.warn('Could not resolve teacher ID:', error);
-    }
-    return null;
-}
-
-// ============================================================
 // ASSIGNMENT API (PHP)
 // ============================================================
 
