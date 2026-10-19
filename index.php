@@ -113,6 +113,7 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
 
     <script src="assets/chart.js"></script>
+    <script src="teacher/teacher-dashboard.js"></script>
     <script src="assets/app.js"></script>
 </body>
 </html>
