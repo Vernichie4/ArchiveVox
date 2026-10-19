@@ -572,6 +572,28 @@ async function fetchTeacherId() {
 }
 
 // ============================================================
+// HELPER: Teacher ID Resolver
+// ============================================================
+async function fetchTeacherId() {
+    // If it's already stored in state, return it immediately
+    if (state.user?.teacher_id) {
+        return state.user.teacher_id;
+    }
+
+    try {
+        // Fallback check if the session endpoint provides it
+        const data = await fetchJson(BASE_PATH + '/php/api/auth/session.php');
+        if (data.success && data.user?.teacher_id) {
+            state.user = data.user; // sync state
+            return data.user.teacher_id;
+        }
+    } catch (error) {
+        console.warn('Could not resolve teacher ID:', error);
+    }
+    return null;
+}
+
+// ============================================================
 // ASSIGNMENT API (PHP)
 // ============================================================
 
@@ -1113,10 +1135,14 @@ function renderView() {
     const role = String(state.user?.role || '').toLowerCase();
 
     // Add the missing dashboard routing block here!
+    // Add the missing dashboard routing block here!
     if (state.activeView === 'dashboard') {
         if (role === 'teacher') {
             renderTeacherDashboard(); // This triggers your new file!
+            renderTeacherDashboard(); // This triggers your new file!
         } else {
+            // We will add Principal/Admin here later
+            renderDefaultDashboard(); 
             // We will add Principal/Admin here later
             renderDefaultDashboard(); 
         }
@@ -1158,9 +1184,13 @@ function renderView() {
     if (state.activeView === 'teacher-detail') {
         renderTeacherDetail(state.selectedTeacherId);
         return;
+        renderTeacherDetail(state.selectedTeacherId);
+        return;
     }
 
     if (state.activeView === 'assignments') {
+        renderTeacherAssignments();
+        return;
         renderTeacherAssignments();
         return;
     }
@@ -1176,6 +1206,8 @@ function renderView() {
     }
 
     if (state.activeView === 'assignment-detail') {
+        renderAssignmentDetail(state.selectedAssignmentId);
+        return;
         renderAssignmentDetail(state.selectedAssignmentId);
         return;
     }
@@ -4583,10 +4615,14 @@ async function editTeacher(teacherId) {
 
 // ============================================================
 // 6. REPORTING & ANALYTICS
+// 6. REPORTING & ANALYTICS
 // ============================================================
 
 function renderReports() {
     viewContainer.innerHTML = `
+        <div class="panel">
+            <h3>Reports (Under Construction)</h3>
+            <p class="u-text-muted">A new reporting system is being built here.</p>
         <div class="panel">
             <h3>Reports (Under Construction)</h3>
             <p class="u-text-muted">A new reporting system is being built here.</p>
