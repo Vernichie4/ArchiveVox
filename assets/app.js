@@ -4736,8 +4736,8 @@ async function renderStudentDetail(studentId) {
                                         }
 
                                         return `
-                                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                                            <td style="padding: 16px 12px;"><strong>${escapeAssessmentHtml(a.title)}</strong></td>
+                                        <tr style="border-bottom: 1px solid #f1f5f9; cursor: pointer;" onclick="showAssignmentAttempts(${studentId}, ${a.assignment_id || a.id}, '${escapeAssessmentHtml(a.title)}')">
+                                            <td style="padding: 16px 12px;"><strong>${escapeAssessmentHtml(a.title)}</strong> <span style="color: #3b82f6; font-size: 12px;">↓ View Attempts</span></td>
                                             <td style="padding: 16px 12px; color: #64748b; font-size: 14px;">${a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No Due Date'}</td>
                                             <td style="padding: 16px 12px;">${readHtml}</td>
                                             <td style="padding: 16px 12px;">${quizHtml}</td>
@@ -4773,6 +4773,372 @@ async function renderStudentDetail(studentId) {
     }
 }
 
+<<<<<<< HEAD
+=======
+async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) {
+    try {
+        // Get teacher_id from logged-in user
+        const teacherId = state.user?.teacher_id;
+        if (!teacherId) {
+            alert('Teacher ID not found. Please ensure you are logged in as a teacher.');
+            return;
+        }
+
+        const response = await fetchJson(`php/api/assignments.php?action=teacher/student-attempts&assignment_id=${assignmentId}&student_id=${studentId}&teacher_id=${teacherId}`);
+
+        // Backend now returns grouped attempts directly
+        const allAttempts = response.attempts || [];
+
+        // Sort by attempt number
+        allAttempts.sort((a, b) => a.attempt_number - b.attempt_number);
+
+        // Create modal HTML - merged view like main assignment tab
+        const modalHtml = `
+            <div id="assignmentAttemptsModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                <div style="background: white; border-radius: 12px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">${escapeAssessmentHtml(assignmentTitle)} - All Attempts</h2>
+                        <button onclick="document.getElementById('assignmentAttemptsModal').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+                    </div>
+                    ${allAttempts.length === 0 ? '<p style="color: #64748b;">No attempts recorded yet.</p>' : `
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                    <th style="padding: 12px; text-align: left;">Attempt #</th>
+                                    <th style="padding: 12px; text-align: left;">Reading Metrics</th>
+                                    <th style="padding: 12px; text-align: left;">Quiz Score</th>
+                                    <th style="padding: 12px; text-align: left;">Attempt Type</th>
+                                    <th style="padding: 12px; text-align: left;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${allAttempts.map(attempt => {
+                                    const attemptTypeBadge = attempt.attempt_type === 'final'
+                                        ? `<span style="background: #dc2626; color: #1e293b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Final Score (#${attempt.attempt_number})</span>`
+                                        : `<span style="background: #64748b; color: #1e293b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Practice (#${attempt.attempt_number})</span>`;
+
+                                    // Reading metrics - use the latest/most recent reading attempt
+                                    let readHtml = '<span style="color: #94a3b8; font-size: 13px;">-</span>';
+                                    if (attempt.reading_attempts && attempt.reading_attempts.length > 0) {
+                                        const ra = attempt.reading_attempts[attempt.reading_attempts.length - 1]; // Latest reading
+                                        const acc = ra.accuracy_percentage ? Math.round(ra.accuracy_percentage) : 0;
+                                        const wcpm = ra.wcpm ? Math.round(ra.wcpm) : 0;
+                                        readHtml = `<strong style="color: #059669;">${acc}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${wcpm} WCPM</span>`;
+                                    }
+
+                                    // Quiz score - use the latest/most recent quiz attempt
+                                    let quizHtml = '<span style="color: #94a3b8; font-size: 13px;">-</span>';
+                                    if (attempt.quiz_attempts && attempt.quiz_attempts.length > 0) {
+                                        const qa = attempt.quiz_attempts[attempt.quiz_attempts.length - 1]; // Latest quiz
+                                        const perc = Math.round(qa.percentage);
+                                        const color = perc >= 80 ? '#059669' : (perc >= 60 ? '#d97706' : '#dc2626');
+                                        quizHtml = `<strong style="color: ${color}; font-size: 15px;">${qa.score}/${qa.total_questions}</strong><br><span style="font-size: 12px; color: #475569;">${perc}%</span>`;
+                                    }
+
+                                    // Status - use the most recent status
+                                    const allStatuses = [...(attempt.reading_attempts || []), ...(attempt.quiz_attempts || [])].map(r => r.activity_status || r.status);
+                                    const latestStatus = allStatuses.length > 0 ? allStatuses[allStatuses.length - 1] : 'Completed';
+
+                                    return `
+                                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                                            <td style="padding: 16px 12px; font-weight: 600;">${attempt.attempt_number}</td>
+                                            <td style="padding: 16px 12px;">${readHtml}</td>
+                                            <td style="padding: 16px 12px;">${quizHtml}</td>
+                                            <td style="padding: 16px 12px;">${attemptTypeBadge}</td>
+                                            <td style="padding: 16px 12px;">
+                                                <span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">${latestStatus}</span>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    `}
+                </div>
+            </div>
+        `;
+
+        // Add modal to DOM
+        const modalDiv = document.createElement('div');
+        modalDiv.innerHTML = modalHtml;
+        document.body.appendChild(modalDiv);
+    } catch (error) {
+        console.error('Error loading assignment attempts:', error);
+        alert('Failed to load assignment attempts: ' + error.message);
+    }
+}
+
+function renderPrincipalReports() {
+    viewContainer.innerHTML = `
+        <div class="reports-shell">
+
+            <div class="reports-toolbar">
+                <div class="u-row-wrap u-gap-8">
+                    <button id="report-school-wide" class="btn-primary">School Overview</button>
+                    <button id="report-by-grade" class="btn-secondary">By Grade Level</button>
+                    <button id="report-materials" class="btn-secondary">Material Usage</button>
+                    <button id="export-assessments-btn" class="btn-export">Export CSV</button>
+                    <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div id="report-content" class="u-mt-16">
+                <div class="panel">
+                    <p class="u-text-muted">Select a report type to view</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('report-school-wide')?.addEventListener('click', () => loadAndDisplayReport('school-wide'));
+    document.getElementById('report-by-grade')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
+    document.getElementById('report-materials')?.addEventListener('click', () => loadAndDisplayReport('material-usage'));
+    document.getElementById('export-assessments-btn')?.addEventListener('click', () => exportAssessmentResults());
+    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderPrincipalReports());
+}
+
+function renderTeacherReports() {
+    viewContainer.innerHTML = `
+        <div class="reports-shell">
+
+            <div class="reports-toolbar">
+                <div class="u-row-wrap u-gap-8">
+                    <button id="report-class-performance" class="btn-primary">Class Performance</button>
+                    <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div id="report-content" class="u-mt-16">
+                <div class="panel">
+                    <p class="u-text-muted">Click above to view your class performance report</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('report-class-performance')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
+    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderTeacherReports());
+}
+
+async function loadAndDisplayReport(reportType) {
+    const contentDiv = document.getElementById('report-content');
+    if (!contentDiv) return;
+
+    contentDiv.innerHTML = '<div class="panel"><p class="u-text-muted u-text-center">Loading report...</p></div>';
+
+    try {
+        const data = await fetchJson(`php/api/shared/report-analytics.php?action=${encodeURIComponent(reportType)}`);
+        
+        if (data.success) {
+            state.reportData = data;
+            displayReport(reportType, data);
+        } else {
+            contentDiv.innerHTML = `<div class="panel"><p class="u-text-danger">${data.message}</p></div>`;
+        }
+    } catch (error) {
+        contentDiv.innerHTML = `<div class="panel"><p class="u-text-danger">Error loading report: ${error.message}</p></div>`;
+    }
+}
+
+function displayReport(reportType, data) {
+    const contentDiv = document.getElementById('report-content');
+    if (!contentDiv) return;
+
+    if (reportType === 'school-wide') {
+        const gradeStats = data.grade_statistics || [];
+        const topPerformers = data.top_performers || [];
+        const intervention = data.intervention_needed || [];
+
+        contentDiv.innerHTML = `
+            <div class="report-grid-3">
+                <!-- Grade Statistics -->
+                <div class="panel">
+                    <h3>By Grade Level</h3>
+                    <div class="u-max-h-400 u-scroll-y">
+                        ${gradeStats.length ? gradeStats.map(stat => `
+                            <div class="list-row-sm">
+                                <p class="u-m-0 u-fw-600">${stat.grade_level}</p>
+                                <div class="u-text-muted-xs u-mt-4">
+                                    Students: ${stat.student_count} | Avg WCPM: ${Number(stat.avg_wcpm || 0).toFixed(1)}
+                                </div>
+                            </div>
+                        `).join('') : '<p class="u-text-muted">No data</p>'}
+                    </div>
+                </div>
+
+                <!-- Top Performers -->
+                <div class="panel">
+                    <h3>Top Performers</h3>
+                    <div class="u-max-h-400 u-scroll-y">
+                        ${topPerformers.length ? topPerformers.map(student => `
+                            <div class="list-row-sm">
+                                <p class="u-m-0 u-fw-600">${student.first_name} ${student.last_name}</p>
+                                <div class="u-text-muted-xs u-mt-4">
+                                    Grade: ${student.grade_level} | Avg WCPM: ${Number(student.avg_wcpm || 0).toFixed(1)}
+                                </div>
+                            </div>
+                        `).join('') : '<p class="u-text-muted">No data</p>'}
+                    </div>
+                </div>
+
+                <!-- Intervention Needed -->
+                <div class="panel status-callout warning report-warning-panel">
+                    <h3>Needs Intervention</h3>
+                    <div class="u-max-h-400 u-scroll-y">
+                        ${intervention.length ? intervention.map(student => `
+                            <div class="list-row-soft">
+                                <p class="u-m-0 u-fw-600">${student.first_name} ${student.last_name}</p>
+                                <div class="u-text-danger-xs u-mt-4">
+                                    Grade: ${student.grade_level} | Avg WCPM: ${Number(student.avg_wcpm || 0).toFixed(1)}
+                                </div>
+                            </div>
+                        `).join('') : '<p class="u-text-muted">No data</p>'}
+                    </div>
+                </div>
+            </div>
+        `;
+    } else if (reportType === 'material-usage') {
+        const materials = data.materials || [];
+        contentDiv.innerHTML = `
+            <div class="panel">
+                <h3>Material Usage Report</h3>
+                <table class="table-clean">
+                    <thead>
+                        <tr class="table-head-accent">
+                            <th class="u-cell-12 u-ta-left">Title</th>
+                            <th class="u-cell-12 u-ta-center">Grade</th>
+                            <th class="u-cell-12 u-ta-center">Usage</th>
+                            <th class="u-cell-12 u-ta-center">Avg WCPM</th>
+                            <th class="u-cell-12 u-ta-center">Avg Accuracy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${materials.length ? materials.map(mat => `
+                            <tr class="table-row">
+                                <td class="u-cell-12"><strong>${mat.title || 'Untitled'}</strong></td>
+                                <td class="u-cell-12 u-ta-center">${mat.grade_level}</td>
+                                <td class="u-cell-12 u-ta-center">${mat.usage_count || 0}</td>
+                                <td class="u-cell-12 u-ta-center">${Number(mat.avg_wcpm || 0).toFixed(1)}</td>
+                                <td class="u-cell-12 u-ta-center">${Number(mat.avg_accuracy || 0).toFixed(1)}%</td>
+                            </tr>
+                        `).join('') : '<tr><td colspan="5" class="u-cell-20 u-ta-center u-text-muted">No data</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else if (reportType === 'class-performance') {
+        const students = data.students || [];
+        contentDiv.innerHTML = `
+            <div class="panel">
+                <h3>Class Performance Report</h3>
+                <table class="table-clean">
+                    <thead>
+                        <tr class="table-head-accent">
+                            <th class="u-cell-12 u-ta-left">Student Name</th>
+                            <th class="u-cell-12 u-ta-center">Grade</th>
+                            <th class="u-cell-12 u-ta-center">Assessments</th>
+                            <th class="u-cell-12 u-ta-center">Avg WCPM</th>
+                            <th class="u-cell-12 u-ta-center">Avg Accuracy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.length ? students.map(student => `
+                            <tr class="table-row">
+                                <td class="u-cell-12"><strong>${student.first_name} ${student.last_name}</strong></td>
+                                <td class="u-cell-12 u-ta-center">${student.grade_level}</td>
+                                <td class="u-cell-12 u-ta-center">${student.assessment_count || 0}</td>
+                                <td class="u-cell-12 u-ta-center">${Number(student.avg_wcpm || 0).toFixed(1)}</td>
+                                <td class="u-cell-12 u-ta-center">${Number(student.avg_accuracy || 0).toFixed(1)}%</td>
+                            </tr>
+                        `).join('') : '<tr><td colspan="5" class="u-cell-20 u-ta-center u-text-muted">No data</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+
+
+// ============================================================
+// 9. DATA LOADING - Dashboard, Materials, Assessments
+// ============================================================
+
+async function loadDashboardData() {
+    const user = state.user;
+    if (!user) return;
+    const role = String(user.role || '').toLowerCase();
+    
+    try {
+        let data;
+        if (role === 'teacher') {
+            data = await fetchJson('php/api/shared/reports.php?action=teacher');
+        } else if (role === 'principal' || role === 'admin') {
+            data = await fetchJson('php/api/shared/reports.php?action=principal');
+        } else {
+            return;
+        }
+        
+        if (data.success && data.dashboard) {
+            // Merge with existing dashboard state to preserve any fields
+            state.dashboard = {
+                ...state.dashboard,
+                ...data.dashboard
+            };
+            
+            // Ensure we have valid numbers for stats
+            state.dashboard.my_students = Number(state.dashboard.my_students || 0);
+            state.dashboard.class_avg_wcpm = Number(state.dashboard.class_avg_wcpm || 0);
+            state.dashboard.my_assessments = Number(state.dashboard.my_assessments || 0);
+            state.dashboard.students_below = Number(state.dashboard.students_below || 0);
+            
+            // Ensure arrays are valid
+            state.dashboard.recent_assessments = Array.isArray(state.dashboard.recent_assessments) ? state.dashboard.recent_assessments : [];
+            state.dashboard.class_performance = Array.isArray(state.dashboard.class_performance) ? state.dashboard.class_performance : [];
+            state.dashboard.recent_students = Array.isArray(state.dashboard.recent_students) ? state.dashboard.recent_students : [];
+            
+            if (state.activeView === 'dashboard') {
+                renderView();
+            }
+        } else {
+            // If no data from API, use defaults but show a warning
+            console.warn('No dashboard data received from API');
+            state.dashboard = {
+                ...state.dashboard,
+                my_students: 0,
+                class_avg_wcpm: 0,
+                my_assessments: 0,
+                students_below: 0,
+                recent_assessments: [],
+                class_performance: [],
+                recent_students: []
+            };
+        }
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        // Don't show alert to user, just use defaults
+        state.dashboard = {
+            ...state.dashboard,
+            my_students: 0,
+            class_avg_wcpm: 0,
+            my_assessments: 0,
+            students_below: 0,
+            recent_assessments: [],
+            class_performance: [],
+            recent_students: []
+        };
+    }
+}
+
+// ============================================================
+// 9. DATA LOADING (Continued)
+// ============================================================
+
+async function loadDashboard() {
+    await loadDashboardData();
+}
+
+>>>>>>> dffc72703a8c85b8beca14b3ac105c0335ecc13b
 // ============================================================
 // 8. STUDENT MANAGEMENT - List, Search, CRUD, Import
 // ============================================================

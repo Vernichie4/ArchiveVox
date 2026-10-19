@@ -304,12 +304,19 @@ class WhisperService
         // Save transcription to database
         try {
             $stmt = $pdo->prepare('
-                UPDATE reading_activity 
-                SET transcript = :transcript, 
+                UPDATE reading_activity
+                SET transcript = :transcript,
                     language = :language,
-                    activity_status = "Completed"
+                    activity_status = :activity_status
                 WHERE activity_id = :activity_id
             ');
+
+            $stmt->execute([
+                ':transcript' => $result['text'],
+                ':language' => $result['language'] ?? 'unknown',
+                ':activity_status' => 'Completed',
+                ':activity_id' => $activityId
+            ]);
             
             $stmt->execute([
                 ':transcript' => $result['text'],
