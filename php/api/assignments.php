@@ -1185,6 +1185,126 @@ if ($method === 'GET' && $uri === '/api/health') {
         $pdo = null;
     }
 
+    } elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'teacher/class-materials-report') {
+    $teacher_id = $_GET['teacher_id'] ?? null;
+    $class_id = $_GET['class_id'] ?? null;
+    
+    if (!$teacher_id || !$class_id) error("teacher_id and class_id are required.");
+
+    $pdo = get_db();
+    try {
+        // 1. Verify ownership
+        if (!teacher_owns_class($pdo, $teacher_id, $class_id)) {
+            error("Access denied or class not found.", 403);
+        }
+
+        // 2. Get distinct materials assigned to this class
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT rm.material_id, rm.title, rm.language, rm.grade_level,
+                   (SELECT COUNT(student_id) FROM student WHERE class_id = ? AND is_active = 1) AS total_assigned
+            FROM reading_material rm
+            INNER JOIN reading_assignment_material ram ON ram.material_id = rm.material_id
+            INNER JOIN reading_assignment ra ON ra.assignment_id = ram.assignment_id
+            WHERE ra.class_id = ? AND ra.teacher_id = ? AND ra.status != 'deleted'
+            ORDER BY rm.title ASC
+        ");
+        $stmt->execute([$class_id, $class_id, $teacher_id]);
+        $materials = $stmt->fetchAll();
+
+        // 3. Process aggregates per material
+        foreach ($materials as &$m) {
+            $mat_id = $m['material_id'];
+
+            // Get max reading stats per student for this specific material
+            $rStmt = $pdo->prepare("
+                SELECT MAX(ar.accuracy_percentage) AS best_acc, MAX(ar.wcpm) AS best_wcpm
+                FROM reading_activity ract
+                INNER JOIN assessment_result ar ON ar.activity_id = ract.activity_id
+                INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ract.assignment_material_id
+                INNER JOIN reading_assignment ra ON ra.assignment_id = ram.assignment_id
+                WHERE ram.material_id = ? AND ra.class_id = ? AND ract.activity_status = 'Completed'
+                GROUP BY ract.student_id
+            ");
+            $rStmt->execute([$mat_id, $class_id]);
+            $reading_stats = $rStmt->fetchAll();
+
+            // Get max quiz stats per student for this specific material
+            $qStmt = $pdo->prepare("
+                SELECT MAX(qa.percentage) AS best_comp
+                FROM quiz_attempt qa
+                INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = qa.assignment_material_id
+                INNER JOIN reading_assignment ra ON ra.assignment_id = ram.assignment_id
+                WHERE ram.material_id = ? AND ra.class_id = ? AND qa.status = 'completed'
+                GROUP BY qa.student_id
+            ");
+            $qStmt->execute([$mat_id, $class_id]);
+            $quiz_stats = $qStmt->fetchAll();
+
+            // Calculate averages (safely dividing to avoid NaN)
+            $completed_count = count($reading_stats);
+            $quiz_completed_count = count($quiz_stats);
+
+            $m['total_completed'] = $completed_count;
+            $m['avg_accuracy'] = $completed_count > 0 ? array_sum(array_column($reading_stats, 'best_acc')) / $completed_count : 0;
+            $m['avg_wcpm'] = $completed_count > 0 ? array_sum(array_column($reading_stats, 'best_wcpm')) / $completed_count : 0;
+            $m['avg_comprehension'] = $quiz_completed_count > 0 ? array_sum(array_column($quiz_stats, 'best_comp')) / $quiz_completed_count : 0;
+        }
+
+        success(['materialReports' => $materials]);
+    } catch (Exception $e) {
+        error("Failed to load material reports: " . $e->getMessage(), 500);
+    } finally {
+        $pdo = null;
+    }
+
+    } elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'teacher/material-breakdown') {
+    $teacher_id = $_GET['teacher_id'] ?? null;
+    $class_id = $_GET['class_id'] ?? null;
+    $material_id = $_GET['material_id'] ?? null;
+
+    if (!$teacher_id || !$class_id || !$material_id) error("teacher_id, class_id, and material_id are required.");
+
+    $pdo = get_db();
+    try {
+        if (!teacher_owns_class($pdo, $teacher_id, $class_id)) error("Access denied.", 403);
+
+        // 1. Get Material Info
+        $stmt = $pdo->prepare("SELECT title, language, grade_level FROM reading_material WHERE material_id = ?");
+        $stmt->execute([$material_id]);
+        $material = $stmt->fetch();
+        if (!$material) error("Material not found.", 404);
+
+        // 2. Get Student Breakdown for this material
+        $stmt = $pdo->prepare("
+            SELECT s.student_id, s.first_name, s.last_name, s.lrn,
+                   MAX(ar.accuracy_percentage) AS best_acc,
+                   MAX(ar.wcpm) AS best_wcpm,
+                   MAX(qa.percentage) AS best_comp,
+                   MAX(qa.score) AS best_score,
+                   MAX(qa.total_questions) AS quiz_total
+            FROM student s
+            LEFT JOIN reading_assignment ra ON ra.class_id = s.class_id AND ra.teacher_id = ? AND ra.status != 'deleted'
+            LEFT JOIN reading_assignment_material ram ON ram.assignment_id = ra.assignment_id AND ram.material_id = ?
+            LEFT JOIN reading_activity ract ON ract.student_id = s.student_id AND ract.assignment_material_id = ram.assignment_material_id AND ract.activity_status = 'Completed'
+            LEFT JOIN assessment_result ar ON ar.activity_id = ract.activity_id
+            LEFT JOIN quiz_attempt qa ON qa.student_id = s.student_id AND qa.assignment_material_id = ram.assignment_material_id AND qa.status = 'completed'
+            WHERE s.class_id = ? AND s.is_active = 1
+            GROUP BY s.student_id, s.first_name, s.last_name, s.lrn
+            ORDER BY s.last_name, s.first_name
+        ");
+        $stmt->execute([$teacher_id, $material_id, $class_id]);
+        $students = $stmt->fetchAll();
+
+        success([
+            'material' => $material,
+            'breakdown' => $students
+        ]);
+    } catch (Exception $e) {
+        error("Failed to load breakdown: " . $e->getMessage(), 500);
+    } finally {
+        $pdo = null;
+    }
+
 } else {
     // Fallback error for unmatched routes
     error("API endpoint not found.", 404);
