@@ -64,16 +64,25 @@ try {
         
         // Recent Assessments
         $stmt = $pdo->query("
-            SELECT 
+            SELECT
                 CONCAT(s.first_name, ' ', s.last_name) AS student_name,
-                m.title AS material_title,
+                ra2.title AS material_title,
+                m.language AS language,
                 ar.accuracy_percentage,
                 ar.assessed_at
-            FROM assessment_result ar 
-            JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
-            JOIN student s ON ra.student_id = s.student_id 
-            LEFT JOIN reading_material m ON ra.material_id = m.material_id
-            WHERE 1=1 $langFilterM
+            FROM assessment_result ar
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+            JOIN student s ON ra.student_id = s.student_id
+            JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+            JOIN reading_assignment ra2 ON ram.assignment_id = ra2.assignment_id
+            JOIN reading_material m ON ra.material_id = m.material_id
+            WHERE ra2.status = 'assigned'
+            AND ra2.teacher_id = $teacherId
+            AND ra2.title IS NOT NULL
+            AND ra2.title != ''
+            AND ra.assignment_material_id IS NOT NULL
+            AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            $langFilterM
             ORDER BY ar.assessed_at DESC LIMIT 5
         ");
         $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -177,16 +186,21 @@ try {
 
             // Recent Assessments
             $stmt = $pdo->query("
-                SELECT 
+                SELECT
                     CONCAT(s.first_name, ' ', s.last_name) AS student_name,
-                    m.title AS material_title,
+                    ra2.title AS material_title,
+                    m.language AS language,
                     ar.accuracy_percentage,
                     ar.assessed_at
-                FROM assessment_result ar 
-                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
-                JOIN student s ON ra.student_id = s.student_id 
-                LEFT JOIN reading_material m ON ra.material_id = m.material_id
-                WHERE s.teacher_id = $teacherId 
+                FROM assessment_result ar
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                JOIN student s ON ra.student_id = s.student_id
+                JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+                JOIN reading_assignment ra2 ON ram.assignment_id = ra2.assignment_id
+                JOIN reading_material m ON ra.material_id = m.material_id
+                WHERE s.teacher_id = $teacherId
+                AND ra2.status = 'assigned'
+                AND ra.assignment_material_id IS NOT NULL
                 $langFilterM
                 $dateFilterSql
                 ORDER BY ar.assessed_at DESC LIMIT 5

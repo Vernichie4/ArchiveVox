@@ -488,16 +488,16 @@ function handleRecordAssessment(PDO $pdo): void {
 
         $assessmentId = (int)$pdo->lastInsertId();
 
-        // NEW: Mark as Practice Completed or strictly Completed depending on attempt count
-        $finalStatus = $isPractice ? 'Practice Completed' : 'Completed';
-        
+        // Mark as Completed (attempt type is tracked in attempt_type field)
+        $finalStatus = 'Completed';
+
         $stmt = $pdo->prepare(
             "UPDATE reading_activity
              SET activity_status = :status, finished_at = NOW()
              WHERE activity_id = :activity_id"
         );
         $stmt->execute([
-            ':status' => $finalStatus, 
+            ':status' => $finalStatus,
             ':activity_id' => $activityId
         ]);
 

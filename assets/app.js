@@ -1228,45 +1228,21 @@ function renderTeacherDashboard() {
                 </div>
             </div>
 
-            <!-- TWO COLUMN LAYOUT: Search Panel & Recent Assessments -->
+            <!-- TWO COLUMN LAYOUT: Recent Assessments Split by Language -->
             <div class="grid two">
-                <!-- PRESERVED Left Panel: Search Student -->
-                <div class="panel">
-                    <p class="u-text-muted u-mt-0">Search by LRN or student name</p>
-                    <div class="u-inline-form-row">
-                        <input type="text" id="student-id-input" placeholder="Enter LRN or name" class="input-inline-fill">
-                        <button id="search-student-btn" class="btn-primary btn-inline">
-                            <span class="icon-search" aria-hidden="true">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"/>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                </svg>
-                            </span>
-                            Search
-                        </button>
-                    </div>
-                    <div id="student-search-result" class="panel search-result-panel hidden">
-                        <div><strong id="found-student-name"></strong></div>
-                        <div class="u-text-muted-sm u-mt-4">
-                            Grade: <span id="found-student-grade">-</span> | Section: <span id="found-student-section">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- NEW POLISHED Right Panel: Recent Assessments -->
+                <!-- Left Panel: Tagalog Assessments -->
                 <div class="recent-assessments-panel">
                     <div class="panel-header u-mb-0" style="padding-bottom: 8px;">
-                        <h3 class="panel-heading" style="margin:0;">Recent Assessments</h3>
-                        ${recent.length > 0 ? `<button class="btn-secondary btn-sm view-all-btn" data-view="reports" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
+                        <h3 class="panel-heading" style="margin:0;">Tagalog Assessments</h3>
+                        ${recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog').length > 0 ? `<button class="btn-secondary btn-sm view-all-modal-btn" data-language="tagalog" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
                     </div>
                     <div class="recent-list">
-                        ${recent.length ? recent.slice(0, 4).map(item => {
-                            // Extract initials from student name
+                        ${recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog').length ? recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog').slice(0, 4).map(item => {
                             const initials = (item.student_name || 'S').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                             const acc = Number(item.accuracy_percentage || 0);
                             const accColor = acc >= 80 ? 'text-green' : (acc >= 60 ? 'text-orange' : 'text-red');
                             const dateStr = item.assessed_at ? new Date(item.assessed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-                            
+
                             return `
                             <div class="recent-item">
                                 <div class="avatar">${initials}</div>
@@ -1280,7 +1256,60 @@ function renderTeacherDashboard() {
                                 </div>
                             </div>
                             `;
-                        }).join('') : `<p class="u-text-muted u-text-center u-py-20">No assessments yet.</p>`}
+                        }).join('') : `<p class="u-text-muted u-text-center u-py-20">No Tagalog assessments yet.</p>`}
+                    </div>
+                </div>
+
+                <!-- Right Panel: English Assessments -->
+                <div class="recent-assessments-panel">
+                    <div class="panel-header u-mb-0" style="padding-bottom: 8px;">
+                        <h3 class="panel-heading" style="margin:0;">English Assessments</h3>
+                        ${recent.filter(item => (item.language || '').toLowerCase() === 'english').length > 0 ? `<button class="btn-secondary btn-sm view-all-modal-btn" data-language="english" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
+                    </div>
+                    <div class="recent-list">
+                        ${recent.filter(item => (item.language || '').toLowerCase() === 'english').length ? recent.filter(item => (item.language || '').toLowerCase() === 'english').slice(0, 4).map(item => {
+                            const initials = (item.student_name || 'S').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                            const acc = Number(item.accuracy_percentage || 0);
+                            const accColor = acc >= 80 ? 'text-green' : (acc >= 60 ? 'text-orange' : 'text-red');
+                            const dateStr = item.assessed_at ? new Date(item.assessed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+                            return `
+                            <div class="recent-item">
+                                <div class="avatar">${initials}</div>
+                                <div class="item-info">
+                                    <div class="item-name">${escapeAssessmentHtml(item.student_name || 'Student')}</div>
+                                    <div class="item-mat">${escapeAssessmentHtml(item.material_title || 'Material')}</div>
+                                </div>
+                                <div class="item-metrics">
+                                    <div class="item-acc ${accColor}">${acc.toFixed(0)}%</div>
+                                    <div class="item-date">${dateStr}</div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('') : `<p class="u-text-muted u-text-center u-py-20">No English assessments yet.</p>`}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Panel (Moved Below Recent Assessments) -->
+            <div class="panel u-mt-16">
+                <p class="u-text-muted u-mt-0">Search by LRN or student name</p>
+                <div class="u-inline-form-row">
+                    <input type="text" id="student-id-input" placeholder="Enter LRN or name" class="input-inline-fill">
+                    <button id="search-student-btn" class="btn-primary btn-inline">
+                        <span class="icon-search" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </span>
+                        Search
+                    </button>
+                </div>
+                <div id="student-search-result" class="panel search-result-panel hidden">
+                    <div><strong id="found-student-name"></strong></div>
+                    <div class="u-text-muted-sm u-mt-4">
+                        Grade: <span id="found-student-grade">-</span> | Section: <span id="found-student-section">-</span>
                     </div>
                 </div>
             </div>
@@ -1382,6 +1411,17 @@ function renderTeacherDashboard() {
                 `}
             </div>
         </div>
+
+        <!-- View All Assessments Modal -->
+        <div id="view-all-assessments-modal" class="modal hidden">
+            <div class="modal-content modal-wide modal-scroll-80">
+                <div class="modal-header">
+                    <h3 id="view-all-assessments-title">All Assessments</h3>
+                    <button class="close-modal">x</button>
+                </div>
+                <div id="view-all-assessments-content"></div>
+            </div>
+        </div>
     `;
 
     // 1. PRESERVED EXISTING EVENT LISTENERS
@@ -1389,6 +1429,16 @@ function renderTeacherDashboard() {
     document.getElementById('start-assessment-btn')?.addEventListener('click', startAssessment);
     document.getElementById('view-all-students-btn')?.addEventListener('click', () => setActiveView('students'));
     document.querySelector('.view-all-btn')?.addEventListener('click', () => setActiveView('reports'));
+
+    // View All Assessments Modal buttons
+    document.querySelectorAll('.view-all-modal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const language = btn.dataset.language;
+            openViewAllAssessmentsModal(language);
+        });
+    });
+
     // Allow pressing "Enter" in the search box
     document.getElementById('student-id-input')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchStudent();
@@ -1406,6 +1456,65 @@ function renderTeacherDashboard() {
             initClassPerformanceChart(classPerf);
         }, 200);
     }
+
+    // Modal Close buttons
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const modal = btn.closest('.modal');
+            if (modal?.id) await requestCloseModal(modal.id);
+        });
+    });
+}
+
+async function openViewAllAssessmentsModal(language) {
+    const dashboard = state.dashboard || {};
+    const recent = Array.isArray(dashboard.recent_assessments) ? dashboard.recent_assessments : [];
+
+    const filtered = language === 'tagalog'
+        ? recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog')
+        : recent.filter(item => (item.language || '').toLowerCase() === 'english');
+
+    const contentEl = document.getElementById('view-all-assessments-content');
+    const titleEl = document.getElementById('view-all-assessments-title');
+
+    if (titleEl) {
+        titleEl.textContent = language === 'tagalog' ? 'All Tagalog Assessments' : 'All English Assessments';
+    }
+
+    if (contentEl) {
+        contentEl.innerHTML = `
+            <div class="u-max-h-500 u-scroll-y">
+                <table class="table-clean table-sm">
+                    <thead>
+                        <tr>
+                            <th class="u-ta-left">Student</th>
+                            <th class="u-ta-left">Assignment</th>
+                            <th class="u-ta-center">Date</th>
+                            <th class="u-ta-center">Accuracy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filtered.length ? filtered.map(item => {
+                            const acc = Number(item.accuracy_percentage || 0);
+                            const accColor = acc >= 80 ? '#10b981' : (acc >= 60 ? '#f59e0b' : '#ef4444');
+                            const dateStr = item.assessed_at ? new Date(item.assessed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+                            return `
+                            <tr>
+                                <td class="u-ta-left"><strong>${escapeAssessmentHtml(item.student_name || 'Student')}</strong></td>
+                                <td class="u-ta-left">${escapeAssessmentHtml(item.material_title || 'N/A')}</td>
+                                <td class="u-ta-center">${dateStr}</td>
+                                <td class="u-ta-center" style="color: ${accColor}; font-weight: 700;">${acc.toFixed(1)}%</td>
+                            </tr>
+                            `;
+                        }).join('') : `<tr><td colspan="4" class="u-text-center u-py-20">No assessments found.</td></tr>`}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    showModal('view-all-assessments-modal');
 }
 
 async function renderTeacherAssignments() {
@@ -2676,11 +2785,11 @@ function renderMaterials() {
     document.getElementById('refresh-materials-btn')?.addEventListener('click', async () => {
         await loadMaterials(); if (state.activeView === 'materials') renderMaterials();
     });
-    
+
     // Filter events
     document.getElementById('filter-language')?.addEventListener('change', applyMaterialFilters);
     document.getElementById('search-material')?.addEventListener('input', applyMaterialFilters);
-    
+
     // Upload form and Dropzone
     document.getElementById('upload-material-form')?.addEventListener('submit', handleMaterialUpload);
     setupUploadDropZone();

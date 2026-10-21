@@ -100,6 +100,18 @@ function deleteReadingMaterial(int $materialId): array {
 
                 // Delete reading activities for each assignment material
                 foreach ($assignmentMaterials as $amId) {
+                    // Get activity IDs for this assignment material
+                    $actStmt = $pdo->prepare('SELECT activity_id FROM reading_activity WHERE assignment_material_id = :assignment_material_id');
+                    $actStmt->execute([':assignment_material_id' => $amId]);
+                    $activityIds = $actStmt->fetchAll(PDO::FETCH_COLUMN);
+
+                    // Delete assessment results for these activities
+                    foreach ($activityIds as $activityId) {
+                        $arStmt = $pdo->prepare('DELETE FROM assessment_result WHERE activity_id = :activity_id');
+                        $arStmt->execute([':activity_id' => $activityId]);
+                    }
+
+                    // Delete reading activities
                     $raStmt = $pdo->prepare('DELETE FROM reading_activity WHERE assignment_material_id = :assignment_material_id');
                     $raStmt->execute([':assignment_material_id' => $amId]);
                 }

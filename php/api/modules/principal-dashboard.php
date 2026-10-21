@@ -83,11 +83,12 @@ try {
                 $accuracyTrend = round($currentAccuracy - $previousAccuracy, 1);
 
         $stmt = $pdo->prepare('
-            SELECT 
+            SELECT
                 CONCAT(s.first_name, " ", s.last_name) as student_name,
                 s.first_name,
                 s.last_name,
-                rm.title as material_title,
+                ra2.title as material_title,
+                rm.language as language,
                 ar.accuracy_percentage,
                 ar.fluency_score,
                 ar.wcpm,
@@ -95,7 +96,10 @@ try {
             FROM assessment_result ar
             JOIN reading_activity ra ON ar.activity_id = ra.activity_id
             JOIN student s ON ra.student_id = s.student_id
+            JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+            JOIN reading_assignment ra2 ON ram.assignment_id = ra2.assignment_id
             JOIN reading_material rm ON ra.material_id = rm.material_id
+            WHERE ra.assignment_material_id IS NOT NULL
             ORDER BY ar.assessed_at DESC
             LIMIT 4
         ');
