@@ -2742,7 +2742,7 @@ function getLibraryModalsHTML() {
                     </div>
                     <div id="ocr-result" class="hidden ocr-result-box">
                         <h4 class="u-m-0">OCR Result</h4><p id="ocr-message" class="u-my-4"></p>
-                        <div class="ocr-result-preview"><p id="ocr-text-preview" class="u-m-0 u-pre-wrap"></p></div>
+                        <div class="ocr-result-preview"><textarea id="ocr-text-preview" name="ocr_text" rows="10" class="u-m-0 u-pre-wrap" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: inherit; resize: vertical;"></textarea></div>
                     </div>
                     <div class="modal-actions">
                         <button type="submit" class="btn-primary" id="save-material-btn">Save Material</button>
@@ -2871,7 +2871,7 @@ function setupUploadDropZone() {
 
             resultDiv.classList.remove('hidden');
             messageEl.textContent = '⏳ Processing OCR...';
-            previewEl.textContent = 'Please wait...';
+            previewEl.value = 'Please wait...';
 
             try {
                 const response = await fetch('php/api/shared/reading-materials.php?action=preview-ocr', {
@@ -2883,22 +2883,14 @@ function setupUploadDropZone() {
 
                 if (data.success && data.ocr_text) {
                     messageEl.textContent = '' + data.ocr_message;
-                    previewEl.textContent = data.ocr_text;
-
-                    const titleInput = document.querySelector('input[name="title"]');
-                    if (titleInput && !titleInput.value) {
-                        const firstLine = data.ocr_text.split('\n')[0].trim();
-                        if (firstLine && firstLine.length > 3) {
-                            titleInput.value = firstLine.substring(0, 100);
-                        }
-                    }
+                    previewEl.value = data.ocr_text;
                 } else {
                     messageEl.innerHTML = '<span class="icon-error" aria-hidden="true"><svg>...</svg></span>' + (data.ocr_message || 'OCR could not extract text from this image.');
-                    previewEl.textContent = 'No text extracted. Please enter the text manually.';
+                    previewEl.value = 'No text extracted. Please enter the text manually.';
                 }
             } catch (error) {
                 messageEl.textContent = 'Error: ' + error.message;
-                previewEl.textContent = 'OCR service error. Please enter the text manually.';
+                previewEl.value = 'OCR service error. Please enter the text manually.';
             }
         }
     });
