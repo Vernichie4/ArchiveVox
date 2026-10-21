@@ -83,10 +83,70 @@ function deleteReadingMaterial(int $materialId): array {
     }
 
     try {
+        $pdo->beginTransaction();
+
+        // Check if material is used in any assignments
+        $checkStmt = $pdo->prepare('SELECT assignment_id FROM reading_assignment_material WHERE material_id = :material_id');
+        $checkStmt->execute([':material_id' => $materialId]);
+        $assignments = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($assignments) {
+            // For each assignment, delete all related data
+            foreach ($assignments as $assignmentId) {
+                // Get all assignment materials for this assignment
+                $matStmt = $pdo->prepare('SELECT assignment_material_id FROM reading_assignment_material WHERE assignment_id = :assignment_id');
+                $matStmt->execute([':assignment_id' => $assignmentId]);
+                $assignmentMaterials = $matStmt->fetchAll(PDO::FETCH_COLUMN);
+
+                // Delete reading activities for each assignment material
+                foreach ($assignmentMaterials as $amId) {
+                    $raStmt = $pdo->prepare('DELETE FROM reading_activity WHERE assignment_material_id = :assignment_material_id');
+                    $raStmt->execute([':assignment_material_id' => $amId]);
+                }
+
+                // Delete assignment materials
+                $delMatStmt = $pdo->prepare('DELETE FROM reading_assignment_material WHERE assignment_id = :assignment_id');
+                $delMatStmt->execute([':assignment_id' => $assignmentId]);
+
+                // Delete the assignment
+                $assignStmt = $pdo->prepare('DELETE FROM reading_assignment WHERE assignment_id = :assignment_id');
+                $assignStmt->execute([':assignment_id' => $assignmentId]);
+            }
+        }
+
+        // Delete quizzes that reference this material (quiz table has material_id, not assignment_material_id)
+        $quizStmt = $pdo->prepare('SELECT quiz_id FROM quiz WHERE material_id = :material_id');
+        $quizStmt->execute([':material_id' => $materialId]);
+        $quizIds = $quizStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($quizIds as $quizId) {
+            // Delete quiz answers
+            $ansStmt = $pdo->prepare('DELETE FROM quiz_answer WHERE question_id IN (SELECT question_id FROM quiz_question WHERE quiz_id = :quiz_id)');
+            $ansStmt->execute([':quiz_id' => $quizId]);
+
+            // Delete quiz questions
+            $qStmt = $pdo->prepare('DELETE FROM quiz_question WHERE quiz_id = :quiz_id');
+            $qStmt->execute([':quiz_id' => $quizId]);
+
+            // Delete quiz attempts
+            $qaStmt = $pdo->prepare('DELETE FROM quiz_attempt WHERE quiz_id = :quiz_id');
+            $qaStmt->execute([':quiz_id' => $quizId]);
+        }
+
+        // Delete the material (this will cascade delete quizzes due to FK constraint)
         $stmt = $pdo->prepare('DELETE FROM reading_material WHERE material_id = :material_id');
         $stmt->execute([':material_id' => $materialId]);
-        return ['success' => true, 'message' => 'Material deleted successfully'];
+
+        $pdo->commit();
+
+        $message = 'Material deleted successfully';
+        if ($assignments) {
+            $message .= " along with " . count($assignments) . " assignment(s) that used it.";
+        }
+
+        return ['success' => true, 'message' => $message];
     } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
         return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
     }
 }

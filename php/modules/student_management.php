@@ -217,12 +217,71 @@ function editStudent(int $studentId, array $data): array {
 
 function archiveStudent(int $studentId): array {
     global $pdo;
-    
+
     try {
         $stmt = $pdo->prepare('UPDATE student SET is_active = 0, archived_at = CURRENT_TIMESTAMP WHERE student_id = :student_id');
         $stmt->execute([':student_id' => $studentId]);
         return ['success' => true, 'message' => 'Student archived successfully'];
     } catch (PDOException $e) {
+        return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
+    }
+}
+
+function deleteStudent(int $studentId): array {
+    global $pdo;
+
+    try {
+        $pdo->beginTransaction();
+
+        // Get all reading activities for this student
+        $stmt = $pdo->prepare('SELECT activity_id FROM reading_activity WHERE student_id = :student_id');
+        $stmt->execute([':student_id' => $studentId]);
+        $activityIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Delete quiz answers for each activity
+        foreach ($activityIds as $activityId) {
+            // Get quiz attempts for this activity
+            $qaStmt = $pdo->prepare('SELECT attempt_id FROM quiz_attempt WHERE activity_id = :activity_id');
+            $qaStmt->execute([':activity_id' => $activityId]);
+            $attemptIds = $qaStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            foreach ($attemptIds as $attemptId) {
+                // Delete quiz answers
+                $ansStmt = $pdo->prepare('DELETE FROM quiz_answer WHERE attempt_id = :attempt_id');
+                $ansStmt->execute([':attempt_id' => $attemptId]);
+            }
+
+            // Delete quiz attempts
+            $delQaStmt = $pdo->prepare('DELETE FROM quiz_attempt WHERE activity_id = :activity_id');
+            $delQaStmt->execute([':activity_id' => $activityId]);
+
+            // Delete assessment results
+            $arStmt = $pdo->prepare('DELETE FROM assessment_result WHERE activity_id = :activity_id');
+            $arStmt->execute([':activity_id' => $activityId]);
+        }
+
+        // Delete reading activities
+        $delRaStmt = $pdo->prepare('DELETE FROM reading_activity WHERE student_id = :student_id');
+        $delRaStmt->execute([':student_id' => $studentId]);
+
+        // Delete user account
+        $stmt = $pdo->prepare('SELECT user_id FROM student WHERE student_id = :student_id');
+        $stmt->execute([':student_id' => $studentId]);
+        $student = $stmt->fetch();
+
+        if ($student && $student['user_id']) {
+            $delUserStmt = $pdo->prepare('DELETE FROM user WHERE user_id = :user_id');
+            $delUserStmt->execute([':user_id' => $student['user_id']]);
+        }
+
+        // Delete student
+        $delStmt = $pdo->prepare('DELETE FROM student WHERE student_id = :student_id');
+        $delStmt->execute([':student_id' => $studentId]);
+
+        $pdo->commit();
+        return ['success' => true, 'message' => 'Student deleted successfully'];
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
         return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
     }
 }

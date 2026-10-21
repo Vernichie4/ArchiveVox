@@ -2932,7 +2932,7 @@ async function handleMaterialUpload(e) {
         const formData = new FormData(form);
 
         // API Endpoint (Adjust path if needed to match your directory structure)
-        const response = await fetch(BASE_PATH + '/php/api/shared/materials.php', {
+        const response = await fetch(BASE_PATH + '/php/api/shared/reading-materials.php', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'
@@ -3158,6 +3158,9 @@ async function viewMaterial(materialId) {
                 const titleField = document.getElementById('material-edit-title');
                 const ocrField = document.getElementById('material-edit-ocr');
 
+                const statusValue = String(document.getElementById('material-edit-status')?.value || '').trim();
+                const validStatus = statusValue === 'Active' || statusValue === 'Archived' ? statusValue : 'Active';
+
                 const payload = {
                     title: String(titleField?.value || '').trim(),
                     description: String(document.getElementById('material-edit-description')?.value || '').trim(),
@@ -3165,7 +3168,7 @@ async function viewMaterial(materialId) {
                     language: String(document.getElementById('material-edit-language')?.value || '').trim(),
                     material_type: String(document.getElementById('material-edit-type')?.value || '').trim(),
                     difficulty: String(document.getElementById('material-edit-difficulty')?.value || '').trim(),
-                    status: String(document.getElementById('material-edit-status')?.value || '').trim(), // Note: Disabled field removed from view, default to Active
+                    status: validStatus,
                     ocr_text: String(ocrField?.value || '').trim(),
                     total_words: String(ocrField?.value || '').trim().split(/\s+/).filter(word => word.length > 0).length
                 };
@@ -6157,12 +6160,13 @@ function renderStudents() {
                                 <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">LAST ASSESSED</th>
                                 <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">ACCURACY</th>
                                 <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">PROGRESS</th>
+                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${filteredStudents.length === 0 ? `
                                 <tr>
-                                    <td colspan="8" style="padding: 40px; text-align: center; color: #64748b;">
+                                    <td colspan="9" style="padding: 40px; text-align: center; color: #64748b;">
                                         No students match this filter. <a href="#" onclick="state.studentFilter = 'all'; renderStudents(); return false;" style="color: var(--primary);">Clear filter</a>
                                     </td>
                                 </tr>
@@ -6220,22 +6224,25 @@ function renderStudents() {
                                 }
 
                                 return `
-                                <tr class="table-row" style="background: #fff; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
+                                <tr class="table-row" style="background: #fff; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
                                     <td style="padding: 16px 20px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 13px;">${student.lrn || `STU-${student.student_id.toString().padStart(3, '0')}`}</td>
-                                    <td style="padding: 16px 20px;">
+                                    <td style="padding: 16px 20px;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
                                         <div style="display: flex; align-items: center; gap: 12px;">
                                             <div style="width: 32px; height: 32px; border-radius: 50%; background: ${avatarBg}; color:${avatarCol}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${firstI}${lastI}</div>
                                             <strong style="color: #0f172a; font-weight: 600;">${student.first_name} ${student.last_name}</strong>
                                         </div>
                                     </td>
-                                    <td style="padding: 16px 20px; color: #475569;">${student.grade_level}</td>
-                                    <td style="padding: 16px 20px; color: #94a3b8;">${student.section || '-'}</td>
-                                    <td style="padding: 16px 20px; text-align: center;">
+                                    <td style="padding: 16px 20px; color: #475569;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">${student.grade_level}</td>
+                                    <td style="padding: 16px 20px; color: #94a3b8;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">${student.section || '-'}</td>
+                                    <td style="padding: 16px 20px; text-align: center;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
                                         <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; ${badgeStyle}">${lvl}</span>
                                     </td>
-                                    <td style="padding: 16px 20px; color: #64748b;">${student.last_assessed ? new Date(student.last_assessed).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : '-'}</td>
-                                    <td style="padding: 16px 20px; text-align: center; color: ${rawAcc > 0 ? accColor : '#94a3b8'}; font-weight: 700;">${rawAcc > 0 ? acc + '%' : '-'}</td>
-                                    <td style="padding: 16px 20px;">${rawAcc > 0 ? progHtml : '-'}</td>
+                                    <td style="padding: 16px 20px; color: #64748b;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">${student.last_assessed ? new Date(student.last_assessed).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : '-'}</td>
+                                    <td style="padding: 16px 20px; text-align: center; color: ${rawAcc > 0 ? accColor : '#94a3b8'}; font-weight: 700;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">${rawAcc > 0 ? acc + '%' : '-'}</td>
+                                    <td style="padding: 16px 20px;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">${rawAcc > 0 ? progHtml : '-'}</td>
+                                    <td style="padding: 16px 20px; text-align: center;">
+                                        <button type="button" onclick="event.stopPropagation(); deleteStudent(${student.student_id}, '${escapeAssessmentHtml(student.first_name)} ${escapeAssessmentHtml(student.last_name)}');" style="background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">Delete</button>
+                                    </td>
                                 </tr>
                                 `;
                             }).join('')}
@@ -6257,6 +6264,31 @@ function renderStudents() {
             menu.classList.add('hidden');
         }
     }, { once: true });
+}
+
+async function deleteStudent(studentId, studentName) {
+    const shouldDelete = await showConfirm(`Are you sure you want to delete ${studentName}? This will also delete all their assignments, assessments, and quiz attempts.`, {
+        title: 'Delete Student',
+        confirmLabel: 'Delete',
+        confirmTone: 'danger'
+    });
+    if (!shouldDelete) return;
+
+    try {
+        const result = await fetchJson(`php/api/shared/students.php?id=${encodeURIComponent(studentId)}`, {
+            method: 'DELETE'
+        });
+
+        if (result.success) {
+            showToast('Student deleted successfully', 'success');
+            await loadStudents();
+            renderStudents();
+        } else {
+            showToast('Error: ' + result.message, 'error');
+        }
+    } catch (error) {
+        showToast('Error: ' + error.message, 'error');
+    }
 }
 
 // ============================================================

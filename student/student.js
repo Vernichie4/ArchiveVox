@@ -372,11 +372,31 @@ function createAssignmentCard(assignment) {
     const materialsCount = Array.isArray(assignment.materials) ? assignment.materials.length : 0;
     const progress = Math.max(0, Math.min(100, Number(assignment.progress || 0)));
 
+    // Calculate attempts from materials
+    let attemptsUsed = 0;
+    let isLocked = false;
+    if (assignment.materials && Array.isArray(assignment.materials)) {
+        // Count all reading and quiz attempts across all materials
+        assignment.materials.forEach(material => {
+            if (material.reading_attempts && Array.isArray(material.reading_attempts)) {
+                attemptsUsed = Math.max(attemptsUsed, material.reading_attempts.length);
+            }
+            if (material.quiz_attempts && Array.isArray(material.quiz_attempts)) {
+                attemptsUsed = Math.max(attemptsUsed, material.quiz_attempts.length);
+            }
+        });
+    }
+    const attemptsRemaining = 3 - attemptsUsed;
+    isLocked = attemptsRemaining <= 0;
+
     return `
         <article class="assignment-card" data-assignment-id="${escapeHtml(assignment.id)}">
             <div class="assignment-card-top">
                 <div class="assignment-book-icon">📖</div>
-                <span class="status-badge ${status.className}">${escapeHtml(status.label)}</span>
+                <div class="status-info">
+                    <span class="status-badge ${status.className}">${escapeHtml(status.label)}</span>
+                    <span class="attempts-badge">${attemptsUsed}/3 attempts</span>
+                </div>
             </div>
             <div class="assignment-card-content">
                 <p class="assignment-type">READING ASSIGNMENT</p>
@@ -398,8 +418,9 @@ function createAssignmentCard(assignment) {
             </div>
             <div class="assignment-card-footer">
                 <button type="button" class="primary-button assignment-start-button"
-                        data-assignment-id="${escapeHtml(assignment.id)}">
-                    ${assignment.completed ? "View Assignment" : "Start Assignment"} →
+                        data-assignment-id="${escapeHtml(assignment.id)}"
+                        ${isLocked ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                    ${isLocked ? "🔒 Locked (3 attempts reached)" : (assignment.completed ? "View Assignment" : "Start Assignment")} →
                 </button>
             </div>
         </article>
@@ -517,7 +538,12 @@ function setupModal() {
     // Handle the primary action button inside the modal
     startButton?.addEventListener("click", function() {
         const action = this.dataset.action || "show-reading";
-        
+
+        if (action === "locked") {
+            showError("You have reached the maximum of 3 attempts for this assignment.");
+            return;
+        }
+
         if (action === "show-reading") {
             showReadingContent();
         } else if (action === "start-reading") {
@@ -558,6 +584,19 @@ async function openAssignmentModal(assignmentId) {
         // Store the detailed data (API returns { assignment: {...} })
         state.currentAssignmentDetail = data.assignment;
 
+        // Calculate total attempts across all materials
+        let totalAttempts = 0;
+        if (data.assignment.materials && Array.isArray(data.assignment.materials)) {
+            data.assignment.materials.forEach(material => {
+                if (material.reading_attempts && Array.isArray(material.reading_attempts)) {
+                    totalAttempts = Math.max(totalAttempts, material.reading_attempts.length);
+                }
+                if (material.quiz_attempts && Array.isArray(material.quiz_attempts)) {
+                    totalAttempts = Math.max(totalAttempts, material.quiz_attempts.length);
+                }
+            });
+        }
+
         // Normalize using the detail data
         const normalized = normalizeAssignment({
             ...listAssignment,
@@ -589,8 +628,21 @@ async function openAssignmentModal(assignmentId) {
 
         renderModalMaterials(normalized.materials);
 
-        startButton.textContent = "Start Assignment →";
-        startButton.dataset.action = "show-reading";
+        // Check if locked (3 attempts reached)
+        const isLocked = totalAttempts >= 3;
+        if (isLocked) {
+            startButton.textContent = "🔒 Locked (3 attempts reached)";
+            startButton.disabled = true;
+            startButton.style.opacity = "0.5";
+            startButton.style.cursor = "not-allowed";
+            startButton.dataset.action = "locked";
+        } else {
+            startButton.textContent = "Start Assignment →";
+            startButton.dataset.action = "show-reading";
+            startButton.disabled = false;
+            startButton.style.opacity = "1";
+            startButton.style.cursor = "pointer";
+        }
 
         modal.classList.remove("hidden");
 

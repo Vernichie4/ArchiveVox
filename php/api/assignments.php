@@ -303,21 +303,38 @@ if ($method === 'GET' && $uri === '/api/health') {
     if ($material_ids) {
         $placeholders = implode(',', array_fill(0, count($material_ids), '?'));
 
-        $qStmt = $pdo->prepare("SELECT attempt_id, assignment_material_id, status, score, total_questions, percentage FROM quiz_attempt WHERE student_id = ? AND assignment_material_id IN ($placeholders) AND status = 'completed' ORDER BY attempt_id DESC");
+        // Get all quiz attempts with attempt number and type
+        $qStmt = $pdo->prepare("SELECT attempt_id, assignment_material_id, status, score, total_questions, percentage, attempt_number, attempt_type FROM quiz_attempt WHERE student_id = ? AND assignment_material_id IN ($placeholders) ORDER BY attempt_number");
         $qStmt->execute(array_merge([$student_id], $material_ids));
         $quiz_dict = [];
-        foreach ($qStmt->fetchAll() as $qa) $quiz_dict[$qa['assignment_material_id']] ??= $qa;
+        foreach ($qStmt->fetchAll() as $qa) {
+            $mid = $qa['assignment_material_id'];
+            if (!isset($quiz_dict[$mid])) {
+                $quiz_dict[$mid] = [];
+            }
+            $quiz_dict[$mid][] = $qa;
+        }
 
-        $rStmt = $pdo->prepare("SELECT ra.activity_id, ra.assignment_material_id, ra.activity_status, ar.accuracy_percentage, ar.wcpm FROM reading_activity ra LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed' ORDER BY ra.activity_id DESC");
+        // Get all reading activities with attempt number and type
+        $rStmt = $pdo->prepare("SELECT ra.activity_id, ra.assignment_material_id, ra.activity_status, ra.attempt_number, ra.attempt_type, ar.accuracy_percentage, ar.wcpm FROM reading_activity ra LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) ORDER BY ra.attempt_number");
         $rStmt->execute(array_merge([$student_id], $material_ids));
         $reading_dict = [];
-        foreach ($rStmt->fetchAll() as $rr) $reading_dict[$rr['assignment_material_id']] ??= $rr;
+        foreach ($rStmt->fetchAll() as $rr) {
+            $mid = $rr['assignment_material_id'];
+            if (!isset($reading_dict[$mid])) {
+                $reading_dict[$mid] = [];
+            }
+            $reading_dict[$mid][] = $rr;
+        }
 
         // Attach completion data directly to assignment materials
         foreach ($assignments as &$assignment) {
             foreach ($assignment['materials'] as &$mat) {
-                $mat['quiz_attempt'] = $quiz_dict[$mat['assignment_material_id']] ?? null;
-                $mat['reading_result'] = $reading_dict[$mat['assignment_material_id']] ?? null;
+                $mat['quiz_attempts'] = $quiz_dict[$mat['assignment_material_id']] ?? [];
+                $mat['reading_attempts'] = $reading_dict[$mat['assignment_material_id']] ?? [];
+                // Also attach the most recent for backward compatibility
+                $mat['quiz_attempt'] = !empty($mat['quiz_attempts']) ? $mat['quiz_attempts'][count($mat['quiz_attempts']) - 1] : null;
+                $mat['reading_result'] = !empty($mat['reading_attempts']) ? $mat['reading_attempts'][count($mat['reading_attempts']) - 1] : null;
             }
         }
     }
@@ -743,22 +760,35 @@ if ($method === 'GET' && $uri === '/api/health') {
             $rStmt = $pdo->prepare("
                 SELECT ra.assignment_material_id, ra.activity_id, ra.activity_status, ra.attempt_number, ra.attempt_type
                 FROM reading_activity ra
-                WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders) AND ra.activity_status = 'Completed'
+                WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders)
+                ORDER BY ra.attempt_number
             ");
             $rStmt->execute(array_merge([$student_id], $material_ids));
             $reading_results = [];
             foreach ($rStmt->fetchAll() as $row) {
-                $reading_results[$row['assignment_material_id']] = $row;
+                $assignment_material_id = $row['assignment_material_id'];
+                if (!isset($reading_results[$assignment_material_id])) {
+                    $reading_results[$assignment_material_id] = [];
+                }
+                $reading_results[$assignment_material_id][] = $row;
             }
 
-            // Get student's completed quiz attempts for this assignment
+            // Get student's quiz attempts for this assignment (all statuses)
             $qStmt = $pdo->prepare("
                 SELECT qa.assignment_material_id, qa.attempt_id, qa.status, qa.score, qa.total_questions, qa.percentage, qa.attempt_number, qa.attempt_type
                 FROM quiz_attempt qa
-                WHERE qa.student_id = ? AND qa.assignment_material_id IN ($placeholders) AND qa.status = 'completed'
+                WHERE qa.student_id = ? AND qa.assignment_material_id IN ($placeholders)
+                ORDER BY qa.attempt_number
             ");
             $qStmt->execute(array_merge([$student_id], $material_ids));
-            $quiz_results = $qStmt->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC); // assignment_material_id => array of attempts
+            $quiz_results = [];
+            foreach ($qStmt->fetchAll() as $row) {
+                $assignment_material_id = $row['assignment_material_id'];
+                if (!isset($quiz_results[$assignment_material_id])) {
+                    $quiz_results[$assignment_material_id] = [];
+                }
+                $quiz_results[$assignment_material_id][] = $row;
+            }
         }
 
         foreach ($materials as &$mat) {
@@ -769,17 +799,23 @@ if ($method === 'GET' && $uri === '/api/health') {
             // Attach reading activity result if exists
             $assignment_material_id = $mat['assignment_material_id'];
             if (isset($reading_results[$assignment_material_id])) {
+                $mat['reading_attempts'] = $reading_results[$assignment_material_id];
+                // Also attach the most recent for backward compatibility
+                $latest = $reading_results[$assignment_material_id][count($reading_results[$assignment_material_id]) - 1];
                 $mat['reading_result'] = [
-                    'activity_id' => $reading_results[$assignment_material_id]['activity_id'],
-                    'activity_status' => 'Completed',
-                    'attempt_number' => $reading_results[$assignment_material_id]['attempt_number'],
-                    'attempt_type' => $reading_results[$assignment_material_id]['attempt_type']
+                    'activity_id' => $latest['activity_id'],
+                    'activity_status' => $latest['activity_status'],
+                    'attempt_number' => $latest['attempt_number'],
+                    'attempt_type' => $latest['attempt_type']
                 ];
             }
 
             // Attach quiz attempt if exists
             if (isset($quiz_results[$assignment_material_id])) {
-                $mat['quiz_attempt'] = $quiz_results[$assignment_material_id][0]; // Take the most recent
+                $mat['quiz_attempts'] = $quiz_results[$assignment_material_id];
+                // Also attach the most recent for backward compatibility
+                $latest = $quiz_results[$assignment_material_id][count($quiz_results[$assignment_material_id]) - 1];
+                $mat['quiz_attempt'] = $latest;
             }
         }
         $assignment['materials'] = $materials;

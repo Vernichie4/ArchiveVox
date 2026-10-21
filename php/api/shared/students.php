@@ -227,8 +227,8 @@ if ($action === 'list') {
                 echo json_encode(['success' => false, 'message' => 'Student ID required']);
                 break;
             }
-            
-            $result = archiveStudent($studentId);
+
+            $result = deleteStudent($studentId);
             echo json_encode($result);
             break;
 

@@ -3,12 +3,14 @@
 function getTesseractExecutable(): string {
     // Check if running on Windows or Linux
     $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-    
+
     $candidates = [];
-    
+
     if ($isWindows) {
-        // Windows paths
+        // First check project folder (for local installation)
+        $projectDir = dirname(__DIR__, 2); // Go up from php/backend to project root
         $candidates = [
+            $projectDir . '\\tesseract\\tesseract.exe',
             'D:\\Program Files\\Tesseract-OCR\\tesseract.exe',
             'C:\\Program Files\\Tesseract-OCR\\tesseract.exe',
             'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe',
@@ -40,7 +42,7 @@ function getTesseractExecutable(): string {
         return trim($output[0]);
     }
 
-    throw new RuntimeException('Tesseract executable not found. Install Tesseract or set TESSERACT_PATH.');
+    throw new RuntimeException('Tesseract executable not found. Install Tesseract in the project folder (C:\xampp\htdocs\ArchiveVox\tesseract) or set TESSERACT_PATH.');
 }
 
 function runOcr(string $imagePath, string $language = 'eng'): string {
