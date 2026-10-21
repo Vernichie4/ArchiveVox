@@ -10,7 +10,6 @@ let currentTeacherDashEndDate = '';
 
 async function fetchTeacherDashboardData(language, dateFilter, startDate, endDate) {
     try {
-        // We append the language parameter so your PHP backend knows what to query
         const url = `php/api/shared/reports.php?action=teacher&language=${language}&dateFilter=${dateFilter}&startDate=${startDate}&endDate=${endDate}`;
         const data = await fetchJson(url);
         if (data && data.success && data.dashboard) {
@@ -27,7 +26,6 @@ async function renderTeacherDashboard() {
     const viewContainer = document.getElementById('view-container');
     if (!viewContainer) return;
 
-    // Reset container padding to let the wrapper handle it
     viewContainer.style.padding = '0';
     viewContainer.style.backgroundColor = '#f4f6fb';
 
@@ -38,40 +36,32 @@ async function renderTeacherDashboard() {
         </div>
     `;
 
-    // Change this line:
     const rawData = await fetchTeacherDashboardData(currentTeacherDashLanguage, currentTeacherDashDateFilter, currentTeacherDashStartDate, currentTeacherDashEndDate);
     console.log("Backend Data:", rawData);
-const dashData = {
-        // Pulls the actual logged-in user's name from your session state
-        teacherName: state.user?.username || "Teacher",
-        
+
+    const dashData = {
+        teacherName: state?.user?.username || "Teacher",
         grade: rawData?.grade || "N/A",
         language: currentTeacherDashLanguage === 'english' ? 'English' : 
                   currentTeacherDashLanguage === 'filipino' ? 'Filipino Language' : 
                   'Overall',
         section: rawData?.section || "N/A",
-        
-        // Replaced all Figma dummy numbers with 0
         storedRecords: rawData?.my_assessments ?? 0,
         classifiedAssessments: rawData?.my_assessments ?? 0,
         needsFollowUp: rawData?.students_below ?? 0,
         assessed: rawData?.my_students ?? 0,
         avgWcpm: Number(rawData?.class_avg_wcpm ?? 0).toFixed(1),
         avgAccuracy: Number(rawData?.avg_accuracy ?? 0).toFixed(1),
-        
-        // Multiplies the raw out-of-5 score by 20 for Option 2 (Percentage)
         avgComp: Number((rawData?.avg_comprehension ?? 0) * 20).toFixed(1),
-        
         recentAssessments: rawData?.recent_assessments || [],
         recentStudents: rawData?.recent_students || [],
-
         profileStats: rawData?.profile_stats || [],
         part1Stats: rawData?.part1_stats || []
     };
 
     viewContainer.innerHTML = `
-<style>
-            /* Scoped Styles to protect Figma design from global CSS */
+        <style>
+            /* Scoped Styles */
             #td-wrapper {
                 max-width: 1200px;
                 margin: 0 auto;
@@ -96,7 +86,7 @@ const dashData = {
             .td-text-violet { color: #7c3aed !important; }
             .td-text-red { color: #ef4444 !important; }
 
-            /* Pills & Buttons */
+            /* Buttons & Toolbar */
             .td-toolbar { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
             .td-tab-btn { padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b; }
             .td-tab-btn.active { background-color: #1b4382 !important; color: #ffffff !important; }
@@ -131,9 +121,7 @@ const dashData = {
         </style>
         
         <div id="td-wrapper">
-            <!-- Page Heading -->
-            <div style="margin-bottom: 1.25rem;">
-            <!-- Prominent Page Header -->
+            <!-- Header Info Banner -->
             <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                 <span style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #1e4d8c;">
                     ${dashData.teacherName}
@@ -147,16 +135,15 @@ const dashData = {
                     ${dashData.section}
                 </span>
                 
-                <!-- Interactive Language Filter -->
+                <!-- Language Filter Segment -->
                 <div class="td-segment-group" style="margin-left: 0.5rem;" id="td-header-lang-filter">
                     <button class="td-segment-btn ${currentTeacherDashLanguage === 'all' ? 'active' : ''}" data-lang="all">Overall</button>
                     <button class="td-segment-btn ${currentTeacherDashLanguage === 'english' ? 'active' : ''}" data-lang="english">English</button>
                     <button class="td-segment-btn ${currentTeacherDashLanguage === 'filipino' ? 'active' : ''}" data-lang="filipino">Filipino</button>
                 </div>
             </div>
-            </div>
 
-            <!-- Toolbar / View Selector -->
+            <!-- Toolbar / Tab Control -->
             <div class="td-toolbar">
                 <div style="display: flex; gap: 0.5rem;" id="teacher-dash-tabs">
                     <button class="td-tab-btn ${currentTeacherDashTab === 'summary' ? 'active' : ''}" data-tab="summary">Assessment Summary</button>
@@ -182,7 +169,7 @@ const dashData = {
             </div>
         </div>
 
-        ${getExportModalHTML()}
+        ${getExportModalHTML(dashData)}
     `;
 
     attachTeacherDashboardListeners();
@@ -191,7 +178,7 @@ const dashData = {
 function getTeacherDashTabContent(tab, dashData) {
     if (tab === 'summary') {
         return `
-<!-- Filter Panel -->
+            <!-- Filter Panel -->
             <div class="td-card" style="padding: 1rem; margin-bottom: 1.5rem;">
                 <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
                     <div class="td-segment-group" id="td-date-filter-group">
@@ -209,7 +196,7 @@ function getTeacherDashTabContent(tab, dashData) {
                     <span class="td-badge td-badge-grey">${dashData.language}</span>
                     <span class="td-badge td-badge-grey">
                         ${currentTeacherDashDateFilter === 'custom' && currentTeacherDashStartDate && currentTeacherDashEndDate 
-                            ? `${currentTeacherDashStartDate} to ${currentTeacherDashEndDate}` 
+                            ? `${currentTeacherDashStartDate} to${currentTeacherDashEndDate}` 
                             : currentTeacherDashDateFilter === 'custom' ? 'All Time' 
                             : currentTeacherDashDateFilter.charAt(0).toUpperCase() + currentTeacherDashDateFilter.slice(1)}
                     </span>
@@ -236,7 +223,7 @@ function getTeacherDashTabContent(tab, dashData) {
                 </div>
             </div>
 
-            <!-- Overall Class Performance -->
+            <!-- Overall Class Performance Summary -->
             <div class="td-card" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; padding: 2rem 0;">
                 <div style="border-right: 1px solid rgba(26,31,54,0.09);">
                     <div class="td-mono" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData.assessed}</div>
@@ -321,18 +308,110 @@ function getTeacherDashTabContent(tab, dashData) {
                     </table>
                 </div>
             </div>
-            `;
+        `;
     } 
+
+if (tab === 'record') {
+        // Look for materials data instead of student data
+        const materials = dashData.materialReports || dashData.materials || [];
+
+        return `
+            <!-- Materials Report Search & Meta -->
+            <div class="td-card" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex: 1; max-width: 400px;">
+                    <div style="position: relative; width: 100%;">
+                        <input type="text" id="td-record-search" placeholder="Search reading material title..." style="width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.25rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span class="td-text-muted" style="font-size: 0.875rem;">Total Materials Assessed: <strong>${materials.length}</strong></span>
+                </div>
+            </div>
+
+            <!-- Materials Report Table -->
+            <div class="td-card" style="padding: 0; overflow-x: auto;">
+                <table class="td-table" id="td-class-record-table">
+                    <thead>
+                        <tr>
+                            <th>Reading Material</th>
+                            <th>Language & Grade</th>
+                            <th>Completion Rate</th>
+                            <th>Avg. WCPM</th>
+                            <th>Avg. Accuracy</th>
+                            <th>Avg. Comprehension</th>
+                            <th style="text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${materials.length > 0 ? materials.map(m => {
+                            const title = m.title || m.material_title || 'Untitled Material';
+                            const language = m.language || 'Unknown';
+                            const grade = m.grade_level || m.grade || 'N/A';
+                            
+                            // Metrics
+                            const totalAssigned = m.total_assigned || 0;
+                            const totalCompleted = m.total_completed || 0;
+                            const completionPerc = totalAssigned > 0 ? Math.round((totalCompleted / totalAssigned) * 100) : 0;
+                            
+                            const avgWcpm = m.avg_wcpm || 0;
+                            const avgAcc = m.avg_accuracy || 0;
+                            const avgComp = m.avg_comprehension || 0;
+                            
+                            const searchStr = title.toLowerCase();
+
+                            return `
+                            <tr class="td-record-row" data-search="${searchStr}">
+                                <td>
+                                    <div style="font-weight: 600; color: #1e293b;">${escapeAssessmentHtml(title)}</div>
+                                </td>
+                                <td>
+                                    <div class="td-text-muted" style="font-size: 0.875rem;">
+                                        <span class="td-badge td-badge-grey" style="margin-right: 4px;">${escapeAssessmentHtml(language)}</span> 
+                                        Grade ${escapeAssessmentHtml(grade)}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="td-mono">${totalCompleted} /${totalAssigned}</span>
+                                        <span class="td-text-muted" style="font-size: 0.75rem;">(${completionPerc}%)</span>
+                                    </div>
+                                </td>
+                                <td class="td-mono td-text-blue">${Number(avgWcpm).toFixed(0)}</td>
+                                <td class="td-mono td-text-emerald">${Number(avgAcc).toFixed(1)}%</td>
+                                <td class="td-mono td-text-amber">${Number(avgComp).toFixed(0)}%</td>
+                                <td style="text-align: center;">
+                                    <button class="td-btn-outline-navy btn-view-material" data-id="${m.id || m.material_id}" style="padding: 4px 10px; font-size: 0.75rem; margin: 0 auto;">
+                                        View Breakdown
+                                    </button>
+                                </td>
+                            </tr>
+                            `;
+                        }).join('') : `
+                            <tr>
+                                <td colspan="7" class="td-text-muted" style="text-align: center; padding: 3rem;">
+                                    No reading material reports found for this class section.
+                                </td>
+                            </tr>
+                        `}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
     
-    // The 'record' and 'assignments' tabs remain unchanged structurally 
-    // but inherit the beautiful new scoped typography automatically!
-    if (tab === 'record') { return `<div class="td-card" style="text-align:center; padding: 3rem;">Class Record View (See previous code)</div>`; }
-    if (tab === 'assignments') { return `<div class="td-card" style="text-align:center; padding: 3rem;">Assignments View (See previous code)</div>`; }
+    if (tab === 'assignments') { 
+        return `<div class="td-card" style="text-align:center; padding: 3rem;">Assignments View</div>`; 
+    }
 
     return '';
 }
 
-function getExportModalHTML() {
+function getExportModalHTML(dashData) {
     return `
         <!-- Export Modal -->
         <div id="td-export-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 1.25rem;">
@@ -341,7 +420,7 @@ function getExportModalHTML() {
                 <div style="padding: 1.5rem; border-bottom: 1px solid rgba(26,31,54,0.09); display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <h2 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #1e4d8c; margin: 0 0 0.25rem 0;">Export Class Report</h2>
-                        <p style="color: #6b7280; font-size: 0.875rem; margin: 0;">Download assessment records as CSV</p>
+                        <p style="color: #6b7280; font-size: 0.875rem; margin: 0;">Download assessment records for your class</p>
                     </div>
                     <button id="td-close-export-btn" style="background: transparent; border: none; color: #6b7280; cursor: pointer; padding: 0.25rem;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -350,25 +429,25 @@ function getExportModalHTML() {
 
                 <div style="padding: 1.5rem;">
                     <div style="background: #f4f6fb; border: 1px solid rgba(26,31,54,0.09); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
-                        <div style="font-size: 0.875rem; color: #111827; font-weight: 500;">Grade 3 — Section Apitong</div>
+                        <div style="font-size: 0.875rem; color: #111827; font-weight: 500;">Grade: ${dashData?.grade || 'Class'} — Section: ${dashData?.section || 'Section'}</div>
                         <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">Teacher · Class Records</div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #111827; margin-bottom: 0.5rem;">Language</label>
-                        <div style="display: flex; background: #f4f6fb; border-radius: 0.5rem; padding: 0.25rem; border: 1px solid rgba(26,31,54,0.09);">
-                            <button style="flex: 1; border: none; background: transparent; padding: 0.5rem; font-size: 0.875rem; color: #6b7280; border-radius: 0.375rem; cursor: pointer;">All</button>
-                            <button style="flex: 1; border: none; background: #ffffff; padding: 0.5rem; font-size: 0.875rem; color: #111827; font-weight: 500; border-radius: 0.375rem; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Filipino</button>
-                            <button style="flex: 1; border: none; background: transparent; padding: 0.5rem; font-size: 0.875rem; color: #6b7280; border-radius: 0.375rem; cursor: pointer;">English</button>
+                        <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #111827; margin-bottom: 0.5rem;">Language Filter</label>
+                        <div style="display: flex; background: #f4f6fb; border-radius: 0.5rem; padding: 0.25rem; border: 1px solid rgba(26,31,54,0.09);" id="export-modal-lang-group">
+                            <button class="export-lang-btn ${currentTeacherDashLanguage === 'all' ? 'active' : ''}" data-lang="all" style="flex: 1; border: none; background: ${currentTeacherDashLanguage === 'all' ? '#ffffff' : 'transparent'}; padding: 0.5rem; font-size: 0.875rem; color: #111827; font-weight: 500; border-radius: 0.375rem; cursor: pointer;">All</button>
+                            <button class="export-lang-btn ${currentTeacherDashLanguage === 'filipino' ? 'active' : ''}" data-lang="filipino" style="flex: 1; border: none; background: ${currentTeacherDashLanguage === 'filipino' ? '#ffffff' : 'transparent'}; padding: 0.5rem; font-size: 0.875rem; color: #111827; font-weight: 500; border-radius: 0.375rem; cursor: pointer;">Filipino</button>
+                            <button class="export-lang-btn ${currentTeacherDashLanguage === 'english' ? 'active' : ''}" data-lang="english" style="flex: 1; border: none; background: ${currentTeacherDashLanguage === 'english' ? '#ffffff' : 'transparent'}; padding: 0.5rem; font-size: 0.875rem; color: #111827; font-weight: 500; border-radius: 0.375rem; cursor: pointer;">English</button>
                         </div>
                     </div>
                 </div>
 
                 <div style="padding: 1.25rem 1.5rem; background: #f9fafb; border-top: 1px solid rgba(26,31,54,0.09); display: flex; justify-content: flex-end; gap: 0.75rem;">
                     <button id="td-cancel-export-btn" style="padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(26,31,54,0.15); background: #ffffff; color: #111827; cursor: pointer;">Cancel</button>
-                    <button style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; background: #1e4d8c; color: #ffffff; cursor: pointer;">
+                    <button id="td-confirm-download-btn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; background: #1e4d8c; color: #ffffff; cursor: pointer;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        Generate & Download CSV
+                        Download Report
                     </button>
                 </div>
             </div>
@@ -377,38 +456,43 @@ function getExportModalHTML() {
 }
 
 function attachTeacherDashboardListeners() {
+    // 1. Tab Switching Handler
     const tabContainer = document.getElementById('teacher-dash-tabs');
     if (tabContainer) {
         tabContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('td-tab-btn')) {
-                const tab = e.target.getAttribute('data-tab');
+            const btn = e.target.closest('.td-tab-btn');
+            if (btn) {
+                const tab = btn.getAttribute('data-tab');
                 if (tab && tab !== currentTeacherDashTab) {
                     currentTeacherDashTab = tab;
-                    renderTeacherDashboard(); 
+                    renderTeacherDashboard();
                 }
             }
         });
     }
 
+    // 2. Refresh Button Handler
     const refreshBtn = document.getElementById('td-btn-refresh');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => renderTeacherDashboard());
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => renderTeacherDashboard());
+    }
 
-// Language Filter Logic
+    // 3. Header Language Filter
     const langFilterContainer = document.getElementById('td-header-lang-filter');
     if (langFilterContainer) {
         langFilterContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('.td-segment-btn'); // Ensures the click always registers
+            const btn = e.target.closest('.td-segment-btn');
             if (btn) {
                 const lang = btn.getAttribute('data-lang');
                 if (lang && lang !== currentTeacherDashLanguage) {
                     currentTeacherDashLanguage = lang;
-                    renderTeacherDashboard(); 
+                    renderTeacherDashboard();
                 }
             }
         });
     }
 
-    // Date Segment Buttons Logic (Day, Week, Month, Custom)
+    // 4. Date Filter Group
     const dateFilterGroup = document.getElementById('td-date-filter-group');
     if (dateFilterGroup) {
         dateFilterGroup.addEventListener('click', (e) => {
@@ -418,12 +502,10 @@ function attachTeacherDashboardListeners() {
                 currentTeacherDashDateFilter = filter;
                 
                 if (filter !== 'custom') {
-                    // Clear inputs for predefined ranges and fetch immediately
                     currentTeacherDashStartDate = '';
                     currentTeacherDashEndDate = '';
                     renderTeacherDashboard();
                 } else {
-                    // Just visually highlight 'Custom', wait for user to click Apply
                     document.querySelectorAll('#td-date-filter-group .td-segment-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                 }
@@ -431,16 +513,68 @@ function attachTeacherDashboardListeners() {
         });
     }
 
-    // Apply Filters Button Logic
+    // 5. Apply Custom Date Filters
     const btnApplyFilters = document.getElementById('td-btn-apply-filters');
     if (btnApplyFilters) {
         btnApplyFilters.addEventListener('click', () => {
-            const start = document.getElementById('td-start-date').value;
-            const end = document.getElementById('td-end-date').value;
+            const start = document.getElementById('td-start-date')?.value || '';
+            const end = document.getElementById('td-end-date')?.value || '';
             currentTeacherDashDateFilter = 'custom';
             currentTeacherDashStartDate = start;
             currentTeacherDashEndDate = end;
-            renderTeacherDashboard(); // Re-fetch with new dates
+            renderTeacherDashboard();
+        });
+    }
+
+    // 6. Export Modal Event Handlers
+    const exportBtn = document.getElementById('td-btn-export');
+    const exportModal = document.getElementById('td-export-modal');
+    const closeExportBtn = document.getElementById('td-close-export-btn');
+    const cancelExportBtn = document.getElementById('td-cancel-export-btn');
+    const confirmDownloadBtn = document.getElementById('td-confirm-download-btn');
+
+    if (exportBtn && exportModal) {
+        exportBtn.addEventListener('click', () => {
+            exportModal.style.display = 'flex';
+        });
+    }
+
+    const hideModal = () => {
+        if (exportModal) exportModal.style.display = 'none';
+    };
+
+    if (closeExportBtn) closeExportBtn.addEventListener('click', hideModal);
+    if (cancelExportBtn) cancelExportBtn.addEventListener('click', hideModal);
+
+    if (confirmDownloadBtn) {
+        confirmDownloadBtn.addEventListener('click', () => {
+            window.location.href = `export_excel.php?language=${currentTeacherDashLanguage}`;
+            hideModal();
+        });
+    }
+
+    // 7. Class Record Live Search Handler
+    const searchInput = document.getElementById('td-record-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.td-record-row');
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search') || '';
+                row.style.display = searchData.includes(query) ? '' : 'none';
+            });
+        });
+    }
+
+    // 8. View Details Button Handler
+    const recordTable = document.getElementById('td-class-record-table');
+    if (recordTable) {
+        recordTable.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-view-student');
+            if (btn) {
+                const studentId = btn.getAttribute('data-id');
+                console.log(`Opening individual assessment log for student ID: ${studentId}`);
+            }
         });
     }
 }

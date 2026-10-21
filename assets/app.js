@@ -4600,30 +4600,44 @@ function renderReports() {
 
 async function renderStudentDetail(studentId) {
     if (!studentId) {
-        viewContainer.innerHTML = '<p class="u-text-danger">Student not selected.</p>';
+        viewContainer.innerHTML = `
+            <div id="td-wrapper" style="padding: 2rem; text-align: center;">
+                <div class="td-card" style="border-color: #fca5a5; background: #fef2f2; color: #dc2626;">
+                    Student not selected.
+                </div>
+            </div>`;
         return;
     }
 
-    viewContainer.innerHTML = '<div class="spinner u-text-center u-mt-20">Loading student profile...</div>';
+    viewContainer.innerHTML = `
+        <div id="td-wrapper" style="text-align: center; padding: 4rem 0;">
+            <div class="spinner"></div>
+            <p class="td-text-muted" style="margin-top: 1rem; font-size: 0.875rem;">Loading student profile...</p>
+        </div>`;
 
     try {
         // 1. Fetch Student Info (PHP)
         const studentData = await fetchJson(`php/api/shared/students.php?action=get&id=${encodeURIComponent(studentId)}`);
         if (!studentData.success || !studentData.student) {
-            viewContainer.innerHTML = '<p class="u-text-danger">Student not found.</p>';
+            viewContainer.innerHTML = `
+                <div id="td-wrapper" style="padding: 2rem; text-align: center;">
+                    <div class="td-card" style="border-color: #fca5a5; background: #fef2f2; color: #dc2626;">
+                        Student not found.
+                    </div>
+                </div>`;
             return;
         }
         const student = studentData.student;
 
         // 2. Fetch Assignments & Quizzes (Python API)
         let assignments = [];
-        let assignmentsError = null; // NEW: Track if the fetch fails
+        let assignmentsError = null;
         try {
             const assignData = await fetchAssignmentApi(`/student/assignments?student_id=${studentId}`);
             assignments = assignData.assignments || [];
         } catch (e) {
             console.warn("Could not load Python assignments:", e);
-            assignmentsError = e.message || "Failed to connect to the assignment server."; // NEW: Capture the error
+            assignmentsError = e.message || "Failed to connect to the assignment server.";
         }
 
         // 3. Compute aggregate stats purely from completed Python Assignments
@@ -4639,109 +4653,168 @@ async function renderStudentDetail(studentId) {
         const avgWcpm = totalAssessments ? completedReadings.reduce((sum, m) => sum + (Number(m.reading_result.wcpm) || 0), 0) / totalAssessments : 0;
         const avgAccuracy = totalAssessments ? completedReadings.reduce((sum, m) => sum + (Number(m.reading_result.accuracy_percentage) || 0), 0) / totalAssessments : 0;
 
-        // Render the UI
+        // Render UI with td-* design system
         viewContainer.innerHTML = `
-            <div class="student-detail-shell">
-                <div class="u-row-between u-mb-16">
-                    <button class="btn-secondary" id="back-to-roster" style="padding: 8px 16px;">Back</button>
+            <!-- Scoped Dashboard Styles -->
+            <style>
+                #td-wrapper {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 32px 24px;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    color: #1e293b;
+                }
+                #td-wrapper * { box-sizing: border-box; }
+                .td-mono { font-family: 'JetBrains Mono', monospace !important; font-weight: 700; }
+                .td-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+                .td-text-muted { color: #64748b; }
+                .td-text-navy { color: #1b4382 !important; }
+                .td-text-amber { color: #ea580c !important; }
+                .td-text-blue { color: #2563eb !important; }
+                .td-text-emerald { color: #16a34a !important; }
+                .td-text-violet { color: #7c3aed !important; }
+                .td-text-red { color: #ef4444 !important; }
+
+                /* Buttons & Controls */
+                .td-btn-outline-navy { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #1b4382; background: transparent; color: #1b4382; cursor: pointer; transition: all 0.2s; }
+                .td-btn-outline-navy:hover { background: #f0f4f8; }
+                .td-btn-outline-grey { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #e2e8f0; background: #ffffff; color: #1e293b; cursor: pointer; transition: all 0.2s; }
+                .td-btn-outline-grey:hover { background: #f8fafc; border-color: #cbd5e1; }
+                .td-btn-solid-navy { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #1b4382; color: #ffffff; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+                .td-btn-solid-navy:hover { background: #163668; }
+
+                /* Badges */
+                .td-badge { padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; display: inline-block; }
+                .td-badge-grey { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+                .td-badge-red { background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; }
+                .td-badge-amber { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+                .td-badge-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+                .td-badge-emerald { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+
+                /* Tables */
+                .td-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+                .td-table th { padding: 14px 20px; font-size: 11px; text-transform: uppercase; font-weight: 600; background: #fafafa; color: #64748b; border-bottom: 1px solid #e2e8f0; letter-spacing: 0.5px; }
+                .td-table td { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+                .td-table tr.td-row-hover:hover { background-color: #f8fafc; }
+            </style>
+
+            <div id="td-wrapper">
+                <!-- Header Controls & Student Info -->
+                <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <button class="td-btn-outline-navy" id="back-to-roster" style="height: 38px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                        Back
+                    </button>
                     <div style="text-align: right;">
-                        <h2 class="u-m-0" style="color: #0f172a; font-family: 'Inter', sans-serif;">${escapeAssessmentHtml(student.first_name)} ${escapeAssessmentHtml(student.last_name)}</h2>
-                        <span class="u-text-muted">LRN: ${escapeAssessmentHtml(student.lrn || '-')}</span>
-                    </div>
-                </div>
-
-                <!-- Basic Info Bar -->
-                <div class="panel u-mb-16" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px 24px;">
-                    <div class="u-grid-3 u-gap-16">
-                        <div><strong style="color: #64748b;">Grade:</strong> <span style="color: #0f172a; font-weight: 600; font-size: 16px;">${escapeAssessmentHtml(student.grade_level || '-')}</span></div>
-                        <div><strong style="color: #64748b;">Section:</strong> <span style="color: #0f172a; font-weight: 600; font-size: 16px;">${escapeAssessmentHtml(student.section || '-')}</span></div>
-                        <div><strong style="color: #64748b;">Birthdate:</strong> <span style="color: #0f172a; font-weight: 600; font-size: 16px;">${student.birthdate ? new Date(student.birthdate).toLocaleDateString() : '-'}</span></div>
-                    </div>
-                </div>
-
-                <!-- Aggregate Stat Cards (Powered by Python API) -->
-                <div class="grid three u-mb-16">
-                    <div class="stat-card" style="padding: 16px;">
-                        <h4 style="font-size: 13px;">Completed Assignments</h4>
-                        <div class="stat-number" style="font-size: 24px;">${totalAssessments}</div>
-                    </div>
-                    <div class="stat-card" style="padding: 16px; border-top-color: #3b82f6;">
-                        <h4 style="font-size: 13px;">Avg WCPM</h4>
-                        <div class="stat-number" style="font-size: 24px; color: #1d4ed8;">${avgWcpm.toFixed(1)}</div>
-                    </div>
-                    <div class="stat-card" style="padding: 16px; border-top-color: #10b981;">
-                        <h4 style="font-size: 13px;">Avg Accuracy</h4>
-                        <div class="stat-number" style="font-size: 24px; color: #059669;">${avgAccuracy.toFixed(1)}%</div>
-                    </div>
-                </div>
-
-                <!-- Python API Assignments & Quizzes -->
-                <div class="panel u-mb-16">
-                    <div class="panel-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <h3 style="margin: 0;">Assignments & Quizzes</h3>
+                        <h2 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #1e4d8c; margin: 0;">
+                            ${escapeAssessmentHtml(student.first_name)} ${escapeAssessmentHtml(student.last_name)}
+                        </h2>
+                        <div class="td-text-muted td-mono" style="font-size: 0.8125rem; margin-top: 2px;">
+                            LRN: ${escapeAssessmentHtml(student.lrn || '—')}
                         </div>
                     </div>
-                    
-                    <!-- NEW: Check for API error first, then length, then standard empty state -->
+                </div>
+
+                <!-- Basic Info Bar Card -->
+                <div class="td-card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; background: #f8fafc;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div>
+                            <span class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Grade Level</span>
+                            <span style="color: #0f172a; font-weight: 600; font-size: 1rem;">${escapeAssessmentHtml(student.grade_level || '—')}</span>
+                        </div>
+                        <div>
+                            <span class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Section</span>
+                            <span style="color: #0f172a; font-weight: 600; font-size: 1rem;">${escapeAssessmentHtml(student.section || '—')}</span>
+                        </div>
+                        <div>
+                            <span class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Birthdate</span>
+                            <span style="color: #0f172a; font-weight: 600; font-size: 1rem;">${student.birthdate ? new Date(student.birthdate).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : '—'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aggregate Stat KPI Cards -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="td-card">
+                        <div class="td-mono" style="font-size: 2.25rem; line-height: 1; margin-bottom: 0.5rem; color: #1e293b;">${totalAssessments}</div>
+                        <div class="td-text-muted" style="font-size: 0.875rem;">Completed Assignments</div>
+                    </div>
+                    <div class="td-card">
+                        <div class="td-mono td-text-blue" style="font-size: 2.25rem; line-height: 1; margin-bottom: 0.5rem;">${avgWcpm.toFixed(1)}</div>
+                        <div class="td-text-muted" style="font-size: 0.875rem;">Avg. WCPM</div>
+                    </div>
+                    <div class="td-card">
+                        <div class="td-mono td-text-emerald" style="font-size: 2.25rem; line-height: 1; margin-bottom: 0.5rem;">${avgAccuracy.toFixed(1)}%</div>
+                        <div class="td-text-muted" style="font-size: 0.875rem;">Avg. Accuracy</div>
+                    </div>
+                </div>
+
+                <!-- Assignments & Quizzes Section -->
+                <div class="td-card" style="padding: 0; overflow: hidden;">
+                    <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+                        <h3 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1e4d8c; margin: 0;">Assignments & Quizzes</h3>
+                    </div>
+
                     ${assignmentsError ? `
-                        <div class="empty-state" style="background: #fef2f2; border: 1px dashed #fca5a5;">
-                            <p style="margin: 0; font-size: 15px; color: #dc2626;">⚠️ Unable to load assignments</p>
-                            <p class="u-text-muted-xs" style="margin-top: 4px; color: #ef4444;">${escapeAssessmentHtml(assignmentsError)}</p>
+                        <div style="padding: 2.5rem 1.5rem; text-align: center; background: #fef2f2;">
+                            <div style="font-size: 1rem; font-weight: 600; color: #dc2626; margin-bottom: 0.25rem;">⚠️ Unable to load assignments</div>
+                            <div class="td-text-muted" style="font-size: 0.875rem; color: #ef4444;">${escapeAssessmentHtml(assignmentsError)}</div>
                         </div>
                     ` : assignments.length ? `
-                        <div class="u-scroll-x">
-                            <table class="table-clean">
+                        <div style="overflow-x: auto;">
+                            <table class="td-table">
                                 <thead>
-                                    <tr style="background: #f8fafc;">
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">ASSIGNMENT TITLE</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">DUE DATE</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">READING METRICS</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">QUIZ SCORE</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">STATUS</th>
+                                    <tr>
+                                        <th>Assignment Title</th>
+                                        <th>Due Date</th>
+                                        <th>Reading Metrics</th>
+                                        <th>Quiz Score</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${assignments.map(a => {
-                                        // Look inside the materials array for results in THIS assignment
                                         const materialWithReading = a.materials?.find(m => m.reading_result);
                                         const materialWithQuiz = a.materials?.find(m => m.quiz_attempt && m.quiz_attempt.status === 'completed');
 
                                         // Process Reading Result
-                                        let readHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
+                                        let readHtml = '<span class="td-text-muted" style="font-size: 0.8125rem;">Pending</span>';
                                         if (materialWithReading) {
                                             const rr = materialWithReading.reading_result;
                                             const acc = rr.accuracy_percentage ? Math.round(rr.accuracy_percentage) : 0;
                                             const wcpm = rr.wcpm ? Math.round(rr.wcpm) : 0;
-                                            readHtml = `<strong style="color: #059669;">${acc}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${wcpm} WCPM</span>`;
+                                            readHtml = `<div><strong class="td-text-emerald">${acc}% Acc</strong></div><div class="td-text-muted td-mono" style="font-size: 0.75rem;">${wcpm} WCPM</div>`;
                                         }
 
                                         // Process Quiz Result
-                                        let quizHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
+                                        let quizHtml = '<span class="td-text-muted" style="font-size: 0.8125rem;">Pending</span>';
                                         if (materialWithQuiz) {
                                             const qa = materialWithQuiz.quiz_attempt;
                                             const perc = Math.round((qa.score / qa.total_questions) * 100);
-                                            const color = perc >= 80 ? '#059669' : (perc >= 60 ? '#d97706' : '#dc2626');
-                                            quizHtml = `<strong style="color: ${color}; font-size: 15px;">${qa.score}/${qa.total_questions}</strong><br><span style="font-size: 12px; color: #475569;">${perc}%</span>`;
+                                            const colorClass = perc >= 80 ? 'td-text-emerald' : (perc >= 60 ? 'td-text-amber' : 'td-text-red');
+                                            quizHtml = `<div><strong class="${colorClass}" style="font-size: 0.9375rem;">${qa.score}/${qa.total_questions}</strong></div><div class="td-text-muted td-mono" style="font-size: 0.75rem;">${perc}%</div>`;
                                         }
 
                                         // Smart Status Badges
-                                        let statusBadge = '<span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Assigned</span>';
-
+                                        let statusBadge = '<span class="td-badge td-badge-grey">Assigned</span>';
                                         if (a.status === 'completed' || (materialWithReading && materialWithQuiz)) {
-                                            statusBadge = '<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Completed</span>';
-                                        }
-                                        else if (a.status === 'in_progress' || materialWithReading || materialWithQuiz) {
-                                            statusBadge = '<span style="background: #fef9c3; color: #854d0e; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">In Progress</span>';
+                                            statusBadge = '<span class="td-badge td-badge-emerald">Completed</span>';
+                                        } else if (a.status === 'in_progress' || materialWithReading || materialWithQuiz) {
+                                            statusBadge = '<span class="td-badge td-badge-amber">In Progress</span>';
                                         }
 
                                         return `
-                                        <tr style="border-bottom: 1px solid #f1f5f9; cursor: pointer;" onclick="showAssignmentAttempts(${studentId}, ${a.assignment_id || a.id}, '${escapeAssessmentHtml(a.title)}')">
-                                            <td style="padding: 16px 12px;"><strong>${escapeAssessmentHtml(a.title)}</strong> <span style="color: #3b82f6; font-size: 12px;">↓ View Attempts</span></td>
-                                            <td style="padding: 16px 12px; color: #64748b; font-size: 14px;">${a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No Due Date'}</td>
-                                            <td style="padding: 16px 12px;">${readHtml}</td>
-                                            <td style="padding: 16px 12px;">${quizHtml}</td>
-                                            <td style="padding: 16px 12px;">${statusBadge}</td>
+                                        <tr class="td-row-hover" style="cursor: pointer;" onclick="showAssignmentAttempts(${studentId}, ${a.assignment_id || a.id}, '${escapeAssessmentHtml(a.title)}')">
+                                            <td>
+                                                <strong style="color: #0f172a; font-size: 0.875rem;">${escapeAssessmentHtml(a.title)}</strong>
+                                                <div style="color: #2563eb; font-size: 0.75rem; margin-top: 2px;">↓ View Attempts</div>
+                                            </td>
+                                            <td class="td-text-muted" style="font-size: 0.875rem;">
+                                                ${a.due_date ? new Date(a.due_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'No Due Date'}
+                                            </td>
+                                            <td>${readHtml}</td>
+                                            <td>${quizHtml}</td>
+                                            <td>${statusBadge}</td>
                                         </tr>
                                         `;
                                     }).join('')}
@@ -4749,9 +4822,9 @@ async function renderStudentDetail(studentId) {
                             </table>
                         </div>
                     ` : `
-                        <div class="empty-state">
-                            <p style="margin: 0; font-size: 15px;">No assignments found for this student.</p>
-                            <p class="u-text-muted-xs" style="margin-top: 4px;">Assign them reading materials from the Assignments tab.</p>
+                        <div style="padding: 3rem 1.5rem; text-align: center;">
+                            <p class="td-text-muted" style="margin: 0; font-size: 0.9375rem;">No assignments found for this student.</p>
+                            <p class="td-text-muted" style="margin-top: 4px; font-size: 0.8125rem;">Assign them reading materials from the Assignments tab.</p>
                         </div>
                     `}
                 </div>
@@ -4769,7 +4842,12 @@ async function renderStudentDetail(studentId) {
         });
 
     } catch (error) {
-        viewContainer.innerHTML = `<div class="panel"><p class="u-text-danger">Error loading student data: ${escapeAssessmentHtml(error.message)}</p></div>`;
+        viewContainer.innerHTML = `
+            <div id="td-wrapper" style="padding: 2rem;">
+                <div class="td-card" style="border-color: #fca5a5; background: #fef2f2; color: #dc2626; padding: 1.5rem;">
+                    Error loading student data: ${escapeAssessmentHtml(error.message)}
+                </div>
+            </div>`;
     }
 }
 
@@ -4908,53 +4986,70 @@ function renderStudents() {
 
     const classesList = Object.values(classesMap).sort((a, b) => a.grade.localeCompare(b.grade));
 
-    // ----------------------------------------------------
+// ----------------------------------------------------
     // VIEW A: Show Class Cards (If no class is selected)
     // ----------------------------------------------------
     if (!state.selectedClass) {
         viewContainer.innerHTML = `
-            <div class="page-header u-mb-16">
-                <div>
-                    <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Classes</h2>
-                    <p class="subtitle" style="margin-top: 4px;">Select a class to view your students' reading progress</p>
-                </div>
-                <div class="page-header-right" style="display: flex; gap: 8px; align-items: center;">
-                    ${!isAdminOrPrincipal ? `<button id="add-student-btn" class="btn-primary" style="width: auto; margin: 0;">+ Add Student</button>` : ''}
-                    <button id="import-students-btn" class="btn-secondary" style="width: auto; margin: 0;">Import</button>
-                    <button id="refresh-students-btn" class="btn-secondary" style="width: auto; margin: 0;">Refresh</button>
-                </div>
-            </div>
+            <!-- Scoped Dashboard Styles matching td-* design -->
+            <style>
+                #td-wrapper {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 32px 24px;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    color: #1e293b;
+                }
+                #td-wrapper * { box-sizing: border-box; }
+                .td-mono { font-family: 'JetBrains Mono', monospace !important; font-weight: 700; }
+                .td-text-muted { color: #64748b; }
+            </style>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;" class="u-mt-20">
-                ${classesList.map(cls => `
-                    <div data-preserve-inline-colors="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div style="display: flex; gap: 12px; align-items: center;">
-                                <div style="width: 42px; height: 42px; border-radius: 10px; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a; font-family: 'Inter', sans-serif;">${escapeAssessmentHtml(cls.section)}</h4>
-                                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Class • ${escapeAssessmentHtml(cls.grade)}</div>
-                                </div>
-                            </div>
-                            <button type="button" aria-label="More options for ${escapeAssessmentHtml(cls.section)}" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                            </button>
-                        </div>
+            <div id="td-wrapper">
+                <div class="page-header u-mb-16" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #1e4d8c; margin: 0;">Classes</h2>
+                        <p class="td-text-muted" style="margin-top: 4px; font-size: 0.875rem;">Select a class to view your students' reading progress</p>
+                    </div>
+                    <div class="page-header-right" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        ${!isAdminOrPrincipal ? `<button id="add-student-btn" class="btn-primary" style="width: auto; margin: 0;" onclick="showModal('add-student-modal')">+ Add Student</button>` : ''}
+                        <button id="import-students-btn" class="btn-secondary" style="width: auto; margin: 0;" onclick="showModal('import-students-modal')">Import</button>
+                        <button id="refresh-students-btn" class="btn-secondary" style="width: auto; margin: 0;" onclick="renderStudents()">Refresh</button>
+                    </div>
+                </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
-                                <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Grade Level</div>
-                                <div style="font-size: 14px; font-weight: 600; color: #0f172a;">${escapeAssessmentHtml(cls.grade)}</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;" class="u-mt-20">
+                    ${classesList.map(cls => {
+                        const classKey = cls.key || cls.id || `${cls.grade}${cls.section}`;
+                        return `
+                        <div data-preserve-inline-colors="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="display: flex; gap: 12px; align-items: center;">
+                                    <div style="width: 42px; height: 42px; border-radius: 10px; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a; font-family: 'Inter', sans-serif;">${escapeAssessmentHtml(cls.section)}</h4>
+                                        <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Class • ${escapeAssessmentHtml(cls.grade)}</div>
+                                    </div>
+                                </div>
+                                <button type="button" aria-label="More options for ${escapeAssessmentHtml(cls.section)}" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                                </button>
                             </div>
-                            <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
-                                <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Students</div>
-                                <div style="font-size: 18px; font-weight: 600; color: #2563eb;">${cls.students.length}</div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
+                                    <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Grade Level</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: #0f172a;">${escapeAssessmentHtml(cls.grade)}</div>
+                                </div>
+                                <div style="background: #f1f5f9; border-radius: 8px; padding: 12px;">
+                                    <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Students</div>
+                                    <div style="font-size: 18px; font-weight: 600; color: #2563eb;">${cls.students.length}</div>
+                                </div>
                             </div>
-                        </div>
 
                         <button type="button" onclick="state.selectedClass = '${cls.grade} - ${cls.section}'; renderStudents();" style="width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -4963,11 +5058,14 @@ function renderStudents() {
                             View Students
                         </button>
                     </div>
-                `).join('')}
-                ${classesList.length === 0 ? '<p class="u-text-muted">No classes or students found. Add a student to create a class.</p>' : ''}
+                        `;
+                    }).join('')}
+                    ${classesList.length === 0 ? '<p class="u-text-muted">No classes or students found. Add a student to create a class.</p>' : ''}
+                </div>
             </div>
-        ` + getStudentModalsHTML(); // Inject modals at bottom
-    } 
+        ` + getStudentModalsHTML();
+    }
+
     // ----------------------------------------------------
     // VIEW B: Show Spreadsheet for Selected Class
     // ----------------------------------------------------
@@ -4997,181 +5095,201 @@ function renderStudents() {
             filteredStudents = filteredStudents.filter(student => {
                 const rawLvl = (student.reading_level || 'Pending').toLowerCase();
 
-                if (state.studentFilter === 'level:grade') return rawLvl.includes('reading at grade level');
+                if (state.studentFilter === 'level:grade') return rawLvl.includes('reading at grade level') || rawLvl.includes('grade level');
                 if (state.studentFilter === 'level:transitioning') return rawLvl.includes('transitioning');
                 if (state.studentFilter === 'level:developing') return rawLvl.includes('developing');
                 if (state.studentFilter === 'level:high_emerging') return rawLvl.includes('high emerging');
                 if (state.studentFilter === 'level:low_emerging') return rawLvl.includes('low emerging');
-                if (state.studentFilter === 'status:pending') {
-                    return rawLvl === 'pending';
-                }
+                if (state.studentFilter === 'status:pending') return rawLvl === 'pending';
                 return true;
             });
         }
 
         viewContainer.innerHTML = `
-            <div class="page-header u-mb-16">
-                <div class="u-row-between" style="width: 100%;">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <button class="btn-secondary" style="padding: 8px 12px; height: 40px; border-radius: 8px;" onclick="state.selectedClass = null; renderStudents();">Back</button>
+            <!-- Scoped Dashboard Styles -->
+            <style>
+                #td-wrapper {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 24px 16px;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    color: #1e293b;
+                }
+                #td-wrapper * { box-sizing: border-box; }
+                .td-mono { font-family: 'JetBrains Mono', monospace !important; font-weight: 700; }
+                .td-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+                .td-text-muted { color: #64748b; }
+                
+                /* Buttons & Controls */
+                .td-btn-outline-navy { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #1b4382; background: transparent; color: #1b4382; cursor: pointer; transition: all 0.2s; }
+                .td-btn-outline-navy:hover { background: #f0f4f8; }
+                .td-btn-outline-grey { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #e2e8f0; background: #ffffff; color: #1e293b; cursor: pointer; transition: all 0.2s; }
+                .td-btn-outline-grey:hover { background: #f8fafc; border-color: #cbd5e1; }
+                .td-btn-solid-navy { display: inline-flex; align-items: center; gap: 8px; background: #1b4382; color: #ffffff; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+                .td-btn-solid-navy:hover { background: #163668; }
+
+                /* Status Badges */
+                .td-badge { padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; display: inline-block; }
+                .td-badge-grey { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+                .td-badge-red { background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; }
+                .td-badge-amber { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+                .td-badge-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+                .td-badge-emerald { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+
+                /* Tables */
+                .td-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+                .td-table th { padding: 14px 20px; font-size: 11px; text-transform: uppercase; font-weight: 600; background: #fafafa; color: #64748b; border-bottom: 1px solid #e2e8f0; letter-spacing: 0.5px; }
+                .td-table td { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+                .td-table tr.td-row-hover:hover { background-color: #f8fafc; }
+            </style>
+
+            <div id="td-wrapper">
+                <!-- Page Header & Class Banner -->
+                <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="td-btn-outline-navy" style="padding: 6px 12px; height: 38px;" onclick="state.selectedClass = null; renderStudents();">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                            Back
+                        </button>
                         <div>
-                            <h2 style="font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a;">Students</h2>
-                            <p class="subtitle" style="margin-top: 4px;">${currentClass.grade} - ${currentClass.section}</p>
+                            <h2 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #1e4d8c; margin: 0;">Students Roster</h2>
+                            <p class="td-text-muted" style="font-size: 0.875rem; margin-top: 2px;">${currentClass.grade} &bull; ${currentClass.section}</p>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="u-row-between u-mb-24" style="gap: 16px; flex-wrap: wrap;">
-                <div style="position: relative; flex: 1; min-width: 280px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; top: 11px;">
-                        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input type="text" id="roster-search-input" placeholder="Search students..." class="input-inline-fill" style="background: #fff; padding-left: 40px; width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <!-- EXPORT BUTTON -->
-                    <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onclick="window.open('php/api/teacher/export-class-report.php?grade_level=' + encodeURIComponent('${currentClass.grade}'), '_blank')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Export
+                    <button class="td-btn-solid-navy" onclick="showModal('add-student-modal')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Add Student
                     </button>
+                </div>
 
-                    <!-- SORT TOGGLE (A-Z / Z-A) -->
-                    <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onclick="state.studentSortOrder = state.studentSortOrder === 'asc' ? 'desc' : 'asc'; renderStudents();">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            ${state.studentSortOrder === 'asc'
-                                ? '<path d="M3 6h18M3 12h12M3 18h6"/>'
-                                : '<path d="M3 18h18M3 12h12M3 6h6"/>'}
+                <!-- Controls & Search Bar -->
+                <div class="td-card" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="position: relative; flex: 1; min-width: 280px; max-width: 420px;">
+                        <input type="text" id="roster-search-input" placeholder="Search student name or LRN..." style="width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.25rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
-                        Sort ${state.studentSortOrder === 'asc' ? '(A-Z)' : '(Z-A)'}
-                    </button>
+                    </div>
 
-                    <!-- FILTER DROPDOWN -->
-                    <div style="position: relative;">
-                        <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02); ${state.studentFilter !== 'all' ? 'border-color: var(--primary); color: var(--primary);' : ''}" onclick="document.getElementById('roster-filter-menu').classList.toggle('hidden')">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                            Filter ${state.studentFilter !== 'all' ? '(1)' : ''}
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <!-- EXPORT BUTTON -->
+                        <button class="td-btn-outline-grey" onclick="window.open('php/api/teacher/export-class-report.php?grade_level=' + encodeURIComponent('${currentClass.grade}'), '_blank')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export
                         </button>
 
-                        <!-- Filter Menu Options -->
-                        <div id="roster-filter-menu" class="hidden" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 250px; z-index: 100; overflow: hidden; text-align: left;">
-                            <div style="padding: 10px 12px; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; background: #f8fafc;">READING LEVELS</div>
+                        <!-- SORT TOGGLE -->
+                        <button class="td-btn-outline-grey" onclick="state.studentSortOrder = state.studentSortOrder === 'asc' ? 'desc' : 'asc'; renderStudents();">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                ${state.studentSortOrder === 'asc'
+                                    ? '<path d="M3 6h18M3 12h12M3 18h6"/>'
+                                    : '<path d="M3 18h18M3 12h12M3 6h6"/>'}
+                            </svg>
+                            Sort ${state.studentSortOrder === 'asc' ? '(A-Z)' : '(Z-A)'}
+                        </button>
 
-                            <div class="selector-item ${state.studentFilter === 'all' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'all'; renderStudents();">All Students</div>
+                        <!-- FILTER DROPDOWN -->
+                        <div style="position: relative;">
+                            <button class="td-btn-outline-grey" style="${state.studentFilter !== 'all' ? 'border-color: #1b4382; color: #1b4382; background: #f0f4f8;' : ''}" onclick="document.getElementById('roster-filter-menu').classList.toggle('hidden')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                Filter ${state.studentFilter !== 'all' ? '(1)' : ''}
+                            </button>
 
-                            <div class="selector-item ${state.studentFilter === 'level:grade' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:grade'; renderStudents();">Reading at Grade Level</div>
-
-                            <div class="selector-item ${state.studentFilter === 'level:transitioning' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:transitioning'; renderStudents();">Transitioning Reader</div>
-
-                            <div class="selector-item ${state.studentFilter === 'level:developing' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:developing'; renderStudents();">Developing Reader</div>
-
-                            <div class="selector-item ${state.studentFilter === 'level:high_emerging' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:high_emerging'; renderStudents();">High Emerging Reader</div>
-
-                            <div class="selector-item ${state.studentFilter === 'level:low_emerging' ? 'selected' : ''}" style="border:none; border-radius:0; border-bottom: 1px solid #f1f5f9; padding: 10px 16px;" onclick="state.studentFilter = 'level:low_emerging'; renderStudents();">Low Emerging Reader</div>
-
-                            <div class="selector-item ${state.studentFilter === 'status:pending' ? 'selected' : ''}" style="border:none; border-radius:0; padding: 10px 16px;" onclick="state.studentFilter = 'status:pending'; renderStudents();">Pending (No Data)</div>
+                            <!-- Filter Dropdown Options -->
+                            <div id="roster-filter-menu" class="hidden" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 250px; z-index: 100; overflow: hidden; text-align: left;">
+                                <div style="padding: 10px 12px; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">READING LEVELS</div>
+                                <div class="selector-item ${state.studentFilter === 'all' ? 'selected' : ''}" style="padding: 10px 16px; cursor: pointer;" onclick="state.studentFilter = 'all'; renderStudents();">All Students</div>
+                                <div class="selector-item ${state.studentFilter === 'level:grade' ? 'selected' : ''}" style="padding: 10px 16px; cursor: pointer;" onclick="state.studentFilter = 'level:grade'; renderStudents();">Reading at Grade Level</div>
+                                <div class="selector-item ${state.studentFilter === 'level:transitioning' ? 'selected' : ''}" style="padding: 10px 16px; cursor: pointer;" onclick="state.studentFilter = 'level:transitioning'; renderStudents();">Transitioning Reader</div>
+                                <div class="selector-item ${state.studentFilter === 'level:developing' ? 'selected' : ''}" style="padding: 10px 16px; cursor: pointer;" onclick="state.studentFilter = 'level:developing'; renderStudents();">Developing Reader</div>
+                                <div class="selector-item ${state.studentFilter === 'level:high_emerging' ? 'selected' : ''}" style="padding: 10px 16px; cursor: pointer;" onclick="state.studentFilter = 'level:high_emerging'; renderStudents();">High Emerging Reader</div>
+                                <div class="selector-item ${state.studentFilter === 'level:low_emerging' ? 'selected' : ''}" style="padding: 10px 16px; cursor: pointer;" onclick="state.studentFilter = 'level:low_emerging'; renderStudents();">Low Emerging Reader</div>
+                                <div class="selector-item ${state.studentFilter === 'status:pending' ? 'selected' : ''}" style="padding: 10px 16px; cursor: pointer;" onclick="state.studentFilter = 'status:pending'; renderStudents();">Pending (No Data)</div>
+                            </div>
                         </div>
                     </div>
-                    <button class="btn-primary" style="background: #1e40af; height: 40px; border-radius: 8px; margin: 0;" onclick="showModal('add-student-modal')">+ Add Student</button>
                 </div>
-            </div>
 
-            <div data-preserve-inline-colors="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div class="u-scroll-x">
-                    <table class="table-clean" style="margin: 0; border-collapse: collapse;">
+                <!-- Student Table Card -->
+                <div class="td-card" style="padding: 0; overflow-x: auto;">
+                    <table class="td-table">
                         <thead>
-                            <tr style="background: #fff; border-bottom: 2px solid #f1f5f9;">
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">ID</th>
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">NAME</th>
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">GRADE</th>
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">SECTION</th>
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">READING LEVEL</th>
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">LAST ASSESSED</th>
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px; text-align: center;">ACCURACY</th>
-                                <th style="padding: 16px 20px; color: #64748b; font-size: 11px; letter-spacing: 0.5px;">PROGRESS</th>
+                            <tr>
+                                <th>LRN & ID</th>
+                                <th>Student Name</th>
+                                <th>Grade</th>
+                                <th>Section</th>
+                                <th style="text-align: center;">Reading Profile</th>
+                                <th>Last Assessed</th>
+                                <th style="text-align: center;">Accuracy</th>
+                                <th>Progress Trend</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${filteredStudents.length === 0 ? `
                                 <tr>
-                                    <td colspan="8" style="padding: 40px; text-align: center; color: #64748b;">
-                                        No students match this filter. <a href="#" onclick="state.studentFilter = 'all'; renderStudents(); return false;" style="color: var(--primary);">Clear filter</a>
+                                    <td colspan="8" class="td-text-muted" style="padding: 40px; text-align: center;">
+                                        No students match this filter. <a href="#" onclick="state.studentFilter = 'all'; renderStudents(); return false;" style="color: #1b4382; font-weight: 600;">Clear filter</a>
                                     </td>
                                 </tr>
                             ` : filteredStudents.map(student => {
-                                // 1. Generate Avatar Initials
-                                const firstI = student.first_name ? student.first_name.charAt(0).toUpperCase() : '';
-                                const lastI = student.last_name ? student.last_name.charAt(0).toUpperCase() : '';
-                                
-                                // 2. Determine Reading Level Badges & Avatar Colors (Mockup Spec)
+                                // 1. Reading Level Badges & Colors
                                 const rawLvl = student.reading_level || 'Pending';
                                 let lvl = rawLvl;
-                                let badgeStyle = 'border: 1px solid #e2e8f0; color: #64748b; background: #ffffff;';
-                                let avatarBg = '#f1f5f9';
-                                let avatarCol = '#475569';
+                                let badgeClass = 'td-badge-grey';
 
                                 const lowerLvl = rawLvl.toLowerCase();
 
                                 if (lowerLvl.includes('reading at grade level') || lowerLvl === 'grade level') {
                                     lvl = 'Reading At Grade Level';
-                                    badgeStyle = 'border: 1px solid #86efac; color: #10b981; background: #ffffff;';
-                                    avatarBg = '#ecfdf5'; avatarCol = '#059669';
-                                } 
-                                else if (lowerLvl.includes('transitioning')) {
+                                    badgeClass = 'td-badge-emerald';
+                                } else if (lowerLvl.includes('transitioning')) {
                                     lvl = 'Transitioning';
-                                    badgeStyle = 'border: 1px solid #bfdbfe; color: #3b82f6; background: #ffffff;';
-                                    avatarBg = '#eff6ff'; avatarCol = '#1d4ed8';
-                                } 
-                                else if (lowerLvl.includes('developing')) {
+                                    badgeClass = 'td-badge-blue';
+                                } else if (lowerLvl.includes('developing')) {
                                     lvl = 'Developing Reader';
-                                    badgeStyle = 'border: 1px solid #fde047; color: #ca8a04; background: #ffffff;';
-                                    avatarBg = '#fef9c3'; avatarCol = '#a16207';
-                                } 
-                                else if (lowerLvl.includes('high emerging')) {
+                                    badgeClass = 'td-badge-amber';
+                                } else if (lowerLvl.includes('high emerging')) {
                                     lvl = 'High Emerging';
-                                    badgeStyle = 'border: 1px solid #fcd34d; color: #d97706; background: #ffffff;';
-                                    avatarBg = '#fffbeb'; avatarCol = '#b45309';
-                                } 
-                                else if (lowerLvl.includes('low emerging') || lowerLvl.includes('emerging')) {
+                                    badgeClass = 'td-badge-amber';
+                                } else if (lowerLvl.includes('low emerging') || lowerLvl.includes('emerging')) {
                                     lvl = 'Low Emerging Reader';
-                                    badgeStyle = 'border: 1px solid #fca5a5; color: #ef4444; background: #ffffff;';
-                                    avatarBg = '#fef2f2'; avatarCol = '#b91c1c';
+                                    badgeClass = 'td-badge-red';
                                 }
 
-                                // 3. Format Accuracy
+                                // 2. Accuracy Calculation
                                 const rawAcc = student.accuracy_percentage || student.avg_accuracy || 0;
                                 const acc = Math.round(rawAcc);
-                                const accColor = acc >= 80 ? '#10b981' : (acc >= 65 ? '#f59e0b' : '#ef4444');
+                                const accColorClass = acc >= 80 ? 'td-text-emerald' : (acc >= 65 ? 'td-text-amber' : 'td-text-red');
 
-                                // 4. Determine Progress Trend (Mockup SVGs included)
-                                let progHtml = '<span style="color: #94a3b8; font-size: 13px;">Stable</span>';
+                                // 3. Progress Trend Icon & Label
+                                let progHtml = '<span class="td-text-muted" style="font-size: 13px;">Stable</span>';
                                 if (acc >= 80) {
-                                    progHtml = '<span style="color: #10b981; font-size: 13px; display: flex; align-items: center; gap: 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Improving</span>';
+                                    progHtml = '<span class="td-text-emerald" style="font-size: 13px; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Improving</span>';
                                 } else if (acc < 65 && rawAcc > 0) {
-                                    progHtml = '<span style="color: #ef4444; font-size: 13px; display: flex; align-items: center; gap: 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Declining</span>';
+                                    progHtml = '<span class="td-text-red" style="font-size: 13px; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Declining</span>';
                                 }
 
                                 return `
-                                <tr class="table-row" style="background: #fff; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
-                                    <td style="padding: 16px 20px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 13px;">${student.lrn || `STU-${student.student_id.toString().padStart(3, '0')}`}</td>
-                                    <td style="padding: 16px 20px;">
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${avatarBg}; color:${avatarCol}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${firstI}${lastI}</div>
-                                            <strong style="color: #0f172a; font-weight: 600;">${student.first_name} ${student.last_name}</strong>
-                                        </div>
+                                <tr class="td-row-hover" style="cursor: pointer;" onclick="state.selectedStudentId = '${student.student_id}'; setActiveView('student-detail');">
+                                    <td class="td-mono td-text-muted" style="font-size: 13px;">${student.lrn || `STU-${student.student_id.toString().padStart(3, '0')}`}</td>
+                                    <td>
+                                        <strong style="color: #0f172a; font-weight: 600;">${student.first_name}${student.last_name}</strong>
                                     </td>
-                                    <td style="padding: 16px 20px; color: #475569;">${student.grade_level}</td>
-                                    <td style="padding: 16px 20px; color: #94a3b8;">${student.section || '-'}</td>
-                                    <td style="padding: 16px 20px; text-align: center;">
-                                        <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; ${badgeStyle}">${lvl}</span>
+                                    <td>${student.grade_level}</td>
+                                    <td class="td-text-muted">${student.section || '—'}</td>
+                                    <td style="text-align: center;">
+                                        <span class="td-badge ${badgeClass}">${lvl}</span>
                                     </td>
-                                    <td style="padding: 16px 20px; color: #64748b;">${student.last_assessed ? new Date(student.last_assessed).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : '-'}</td>
-                                    <td style="padding: 16px 20px; text-align: center; color: ${rawAcc > 0 ? accColor : '#94a3b8'}; font-weight: 700;">${rawAcc > 0 ? acc + '%' : '-'}</td>
-                                    <td style="padding: 16px 20px;">${rawAcc > 0 ? progHtml : '-'}</td>
+                                    <td class="td-text-muted">${student.last_assessed ? new Date(student.last_assessed).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : '—'}</td>
+                                    <td class="td-mono ${rawAcc > 0 ? accColorClass : 'td-text-muted'}" style="text-align: center;">${rawAcc > 0 ? acc + '%' : '—'}</td>
+                                    <td>${rawAcc > 0 ? progHtml : '—'}</td>
                                 </tr>
                                 `;
                             }).join('')}
@@ -5179,9 +5297,9 @@ function renderStudents() {
                     </table>
                 </div>
             </div>
-        ` + getStudentModalsHTML(); // Inject modals at bottom
+        ` + getStudentModalsHTML();
     }
-
+    
     // Finally, re-attach all your existing event listeners for the Modals!
     attachStudentEventListeners();
 
