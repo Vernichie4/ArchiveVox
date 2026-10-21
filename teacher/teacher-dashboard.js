@@ -39,6 +39,23 @@ async function renderTeacherDashboard() {
     const rawData = await fetchTeacherDashboardData(currentTeacherDashLanguage, currentTeacherDashDateFilter, currentTeacherDashStartDate, currentTeacherDashEndDate);
     console.log("Backend Data:", rawData);
 
+    let materialReportsData = [];
+    if (currentTeacherDashTab === 'record') {
+        try {
+            const teacherId = state?.user?.teacher_id || state?.user?.id || '';
+            const classId = state?.selectedClass || rawData?.class_id || state?.user?.class_id || '';
+            
+            if (teacherId && classId) {
+                const matRes = await fetchJson(`php/api/assignments.php?action=teacher/class-materials-report&teacher_id=${teacherId}&class_id=${classId}`);
+                if (matRes && matRes.materialReports) {
+                    materialReportsData = matRes.materialReports;
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to load material reports:", e);
+        }
+    }
+
     const dashData = {
         teacherName: state?.user?.username || "Teacher",
         grade: rawData?.grade || "N/A",
@@ -56,7 +73,8 @@ async function renderTeacherDashboard() {
         recentAssessments: rawData?.recent_assessments || [],
         recentStudents: rawData?.recent_students || [],
         profileStats: rawData?.profile_stats || [],
-        part1Stats: rawData?.part1_stats || []
+        part1Stats: rawData?.part1_stats || [],
+        materialReports: materialReportsData
     };
 
     viewContainer.innerHTML = `
@@ -176,6 +194,20 @@ async function renderTeacherDashboard() {
 }
 
 function getTeacherDashTabContent(tab, dashData) {
+    // Safe HTML sanitizer fallback to prevent ReferenceErrors
+    const safeEscape = (str) => {
+        if (typeof escapeAssessmentHtml === 'function') return escapeAssessmentHtml(str);
+        if (typeof escapeHtml === 'function') return escapeHtml(str);
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    };
+
+    // Safe array fallbacks
+    const profileStats = dashData?.profileStats || [];
+    const part1Stats = dashData?.part1Stats || [];
+    const materials = dashData?.materialReports || dashData?.materials || [];
+    const assignments = dashData?.assignments || [];
+
     if (tab === 'summary') {
         return `
             <!-- Filter Panel -->
@@ -193,31 +225,31 @@ function getTeacherDashTabContent(tab, dashData) {
                     <button id="td-btn-apply-filters" class="td-btn-solid-navy" style="padding: 0.35rem 1rem;">Apply Filters</button>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
-                    <span class="td-badge td-badge-grey">${dashData.language}</span>
+                    <span class="td-badge td-badge-grey">${safeEscape(dashData?.language || 'Overall')}</span>
                     <span class="td-badge td-badge-grey">
                         ${currentTeacherDashDateFilter === 'custom' && currentTeacherDashStartDate && currentTeacherDashEndDate 
                             ? `${currentTeacherDashStartDate} to${currentTeacherDashEndDate}` 
                             : currentTeacherDashDateFilter === 'custom' ? 'All Time' 
                             : currentTeacherDashDateFilter.charAt(0).toUpperCase() + currentTeacherDashDateFilter.slice(1)}
                     </span>
-                    <span class="td-badge td-badge-grey">${dashData.section}</span>
+                    <span class="td-badge td-badge-grey">${safeEscape(dashData?.section || 'N/A')}</span>
                 </div>
             </div>
 
             <!-- KPI Cards -->
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem;">
                 <div class="td-card">
-                    <div class="td-mono" style="font-size: 2.5rem; line-height: 1; margin-bottom: 0.5rem;">${dashData.storedRecords}</div>
+                    <div class="td-mono" style="font-size: 2.5rem; line-height: 1; margin-bottom: 0.5rem;">${dashData?.storedRecords ?? 0}</div>
                     <div class="td-text-muted" style="font-size: 0.875rem;">Stored Assessment Records</div>
                 </div>
                 <div class="td-card">
-                    <div class="td-mono" style="font-size: 2.5rem; line-height: 1; margin-bottom: 0.5rem;">${dashData.classifiedAssessments}</div>
+                    <div class="td-mono" style="font-size: 2.5rem; line-height: 1; margin-bottom: 0.5rem;">${dashData?.classifiedAssessments ?? 0}</div>
                     <div class="td-text-muted" style="font-size: 0.875rem;">Classified Assessments</div>
                 </div>
                 <div class="td-card td-card-warning" style="display: flex; align-items: flex-start; gap: 1rem;">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8a020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 0.25rem;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                     <div>
-                        <div class="td-mono td-text-amber" style="font-size: 2.5rem; line-height: 1; margin-bottom: 0.5rem;">${dashData.needsFollowUp}</div>
+                        <div class="td-mono td-text-amber" style="font-size: 2.5rem; line-height: 1; margin-bottom: 0.5rem;">${dashData?.needsFollowUp ?? 0}</div>
                         <div style="color: #b45309; font-size: 0.875rem; line-height: 1.4;">Learners classified as Low Emerging — require intervention</div>
                     </div>
                 </div>
@@ -226,19 +258,19 @@ function getTeacherDashTabContent(tab, dashData) {
             <!-- Overall Class Performance Summary -->
             <div class="td-card" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; padding: 2rem 0;">
                 <div style="border-right: 1px solid rgba(26,31,54,0.09);">
-                    <div class="td-mono" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData.assessed}</div>
+                    <div class="td-mono" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData?.assessed ?? 0}</div>
                     <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Learners Assessed</div>
                 </div>
                 <div style="border-right: 1px solid rgba(26,31,54,0.09);">
-                    <div class="td-mono td-text-blue" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData.avgWcpm}</div>
+                    <div class="td-mono td-text-blue" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData?.avgWcpm ?? '0.0'}</div>
                     <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Avg. WCPM</div>
                 </div>
                 <div style="border-right: 1px solid rgba(26,31,54,0.09);">
-                    <div class="td-mono td-text-emerald" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData.avgAccuracy}%</div>
+                    <div class="td-mono td-text-emerald" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData?.avgAccuracy ?? '0.0'}%</div>
                     <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Avg. Accuracy</div>
                 </div>
                 <div>
-                    <div class="td-mono td-text-violet" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData.avgComp}%</div>
+                    <div class="td-mono td-text-violet" style="font-size: 2.5rem; margin-bottom: 0.5rem;">${dashData?.avgComp ?? '0.0'}%</div>
                     <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Avg. Comprehension</div>
                 </div>
             </div>
@@ -259,17 +291,17 @@ function getTeacherDashTabContent(tab, dashData) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${dashData.profileStats.length > 0 ? dashData.profileStats.map(stat => {
-                                const p = String(stat.profile).toLowerCase();
+                            ${profileStats.length > 0 ? profileStats.map(stat => {
+                                const p = String(stat.profile || '').toLowerCase();
                                 const badgeColor = p.includes('low') || p.includes('frustration') ? 'td-badge-red' : p.includes('developing') || p.includes('high') ? 'td-badge-amber' : p.includes('transitioning') ? 'td-badge-blue' : 'td-badge-emerald';
                                 const textColor = p.includes('low') || p.includes('frustration') ? 'td-text-red' : p.includes('developing') || p.includes('high') ? 'td-text-amber' : 'td-text-emerald';
                                 
                                 return `
                                 <tr>
-                                    <td><span class="td-badge ${badgeColor}">${stat.profile}</span></td>
-                                    <td>${stat.students}</td>
-                                    <td class="td-mono">${Number(stat.avg_wcpm).toFixed(0)}</td>
-                                    <td class="td-mono ${textColor}">${Number(stat.avg_accuracy).toFixed(1)}%</td>
+                                    <td><span class="td-badge ${badgeColor}">${safeEscape(stat.profile)}</span></td>
+                                    <td>${stat.students || 0}</td>
+                                    <td class="td-mono">${Number(stat.avg_wcpm || 0).toFixed(0)}</td>
+                                    <td class="td-mono ${textColor}">${Number(stat.avg_accuracy || 0).toFixed(1)}%</td>
                                 </tr>
                                 `;
                             }).join('') : `<tr><td colspan="4" class="td-text-muted" style="text-align:center; padding: 2rem;">No profile data available</td></tr>`}
@@ -290,17 +322,17 @@ function getTeacherDashTabContent(tab, dashData) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${dashData.part1Stats.length > 0 ? dashData.part1Stats.map(stat => {
-                                const l = String(stat.level).toLowerCase();
+                            ${part1Stats.length > 0 ? part1Stats.map(stat => {
+                                const l = String(stat.level || '').toLowerCase();
                                 const badgeColor = l.includes('refresher') || l.includes('fail') ? 'td-badge-red' : 'td-badge-emerald';
                                 const textColor = l.includes('refresher') || l.includes('fail') ? 'td-text-muted' : 'td-text-emerald';
                                 
                                 return `
                                 <tr>
-                                    <td><span class="td-badge ${badgeColor}">${stat.level}</span></td>
-                                    <td>${stat.students}</td>
-                                    <td class="td-mono ${textColor}">${Number(stat.avg_wcpm) > 0 ? Number(stat.avg_wcpm).toFixed(0) : 'N/A'}</td>
-                                    <td class="td-mono ${textColor}">${Number(stat.avg_accuracy) > 0 ? Number(stat.avg_accuracy).toFixed(1) + '%' : 'N/A'}</td>
+                                    <td><span class="td-badge ${badgeColor}">${safeEscape(stat.level)}</span></td>
+                                    <td>${stat.students || 0}</td>
+                                    <td class="td-mono ${textColor}">${Number(stat.avg_wcpm || 0) > 0 ? Number(stat.avg_wcpm).toFixed(0) : 'N/A'}</td>
+                                    <td class="td-mono ${textColor}">${Number(stat.avg_accuracy || 0) > 0 ? Number(stat.avg_accuracy).toFixed(1) + '%' : 'N/A'}</td>
                                 </tr>
                                 `;
                             }).join('') : `<tr><td colspan="4" class="td-text-muted" style="text-align:center; padding: 2rem;">No Part 1 data available</td></tr>`}
@@ -311,10 +343,7 @@ function getTeacherDashTabContent(tab, dashData) {
         `;
     } 
 
-if (tab === 'record') {
-        // Look for materials data instead of student data
-        const materials = dashData.materialReports || dashData.materials || [];
-
+    if (tab === 'record') {
         return `
             <!-- Materials Report Search & Meta -->
             <div class="td-card" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -353,7 +382,6 @@ if (tab === 'record') {
                             const language = m.language || 'Unknown';
                             const grade = m.grade_level || m.grade || 'N/A';
                             
-                            // Metrics
                             const totalAssigned = m.total_assigned || 0;
                             const totalCompleted = m.total_completed || 0;
                             const completionPerc = totalAssigned > 0 ? Math.round((totalCompleted / totalAssigned) * 100) : 0;
@@ -362,17 +390,17 @@ if (tab === 'record') {
                             const avgAcc = m.avg_accuracy || 0;
                             const avgComp = m.avg_comprehension || 0;
                             
-                            const searchStr = title.toLowerCase();
+                            const searchStr = String(title).toLowerCase();
 
                             return `
-                            <tr class="td-record-row" data-search="${searchStr}">
+                            <tr class="td-record-row" data-search="${safeEscape(searchStr)}">
                                 <td>
-                                    <div style="font-weight: 600; color: #1e293b;">${escapeAssessmentHtml(title)}</div>
+                                    <div style="font-weight: 600; color: #1e293b;">${safeEscape(title)}</div>
                                 </td>
                                 <td>
                                     <div class="td-text-muted" style="font-size: 0.875rem;">
-                                        <span class="td-badge td-badge-grey" style="margin-right: 4px;">${escapeAssessmentHtml(language)}</span> 
-                                        Grade ${escapeAssessmentHtml(grade)}
+                                        <span class="td-badge td-badge-grey" style="margin-right: 4px;">${safeEscape(language)}</span> 
+                                        Grade ${safeEscape(grade)}
                                     </div>
                                 </td>
                                 <td>
@@ -403,9 +431,73 @@ if (tab === 'record') {
             </div>
         `;
     }
-    
+
     if (tab === 'assignments') { 
-        return `<div class="td-card" style="text-align:center; padding: 3rem;">Assignments View</div>`; 
+        return `
+            <!-- Assignments Action Header -->
+            <div class="td-card" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1e4d8c; margin: 0;">Class Assignments</h3>
+                    <p class="td-text-muted" style="font-size: 0.8125rem; margin-top: 2px;">Manage active reading assignments for this class</p>
+                </div>
+                <button id="td-btn-create-assignment" class="td-btn-solid-navy" onclick="showCreateAssignmentModal()">
+                    + Create Assignment
+                </button>
+            </div>
+
+            <!-- Assignments Table -->
+            <div class="td-card" style="padding: 0; overflow-x: auto;">
+                <table class="td-table">
+                    <thead>
+                        <tr>
+                            <th>Assignment Title</th>
+                            <th>Materials Included</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th style="text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${assignments.length > 0 ? assignments.map(a => {
+                            const title = a.title || 'Untitled Assignment';
+                            const mats = a.material_titles || 'No materials';
+                            const dueDate = a.due_date ? new Date(a.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No due date';
+                            
+                            const status = String(a.status || 'assigned').toLowerCase();
+                            const statusBadge = status === 'completed' 
+                                ? '<span class="td-badge td-badge-emerald">Completed</span>' 
+                                : '<span class="td-badge td-badge-blue">Active</span>';
+
+                            return `
+                            <tr class="td-row-hover">
+                                <td>
+                                    <strong style="color: #0f172a; font-size: 0.875rem;">${safeEscape(title)}</strong>
+                                </td>
+                                <td class="td-text-muted" style="font-size: 0.8125rem;">
+                                    ${safeEscape(mats)}
+                                </td>
+                                <td class="td-text-muted" style="font-size: 0.8125rem;">
+                                    ${dueDate}
+                                </td>
+                                <td>${statusBadge}</td>
+                                <td style="text-align: center;">
+                                    <button class="td-btn-outline-navy btn-view-assignment-results" data-id="${a.assignment_id}" style="padding: 4px 10px; font-size: 0.75rem; margin: 0 auto;">
+                                        View Results
+                                    </button>
+                                </td>
+                            </tr>
+                            `;
+                        }).join('') : `
+                            <tr>
+                                <td colspan="5" class="td-text-muted" style="text-align: center; padding: 3rem;">
+                                    No assignments created for this class yet. Click "Create Assignment" to assign reading materials.
+                                </td>
+                            </tr>
+                        `}
+                    </tbody>
+                </table>
+            </div>
+        `; 
     }
 
     return '';
@@ -453,6 +545,131 @@ function getExportModalHTML(dashData) {
             </div>
         </div>
     `;
+}
+
+// ============================================================
+// MATERIAL BREAKDOWN MODAL
+// ============================================================
+
+async function showMaterialBreakdownModal(materialId) {
+    try {
+        // Fallback checks for teacher and class IDs
+        const teacherId = state?.user?.teacher_id || state?.user?.id || state?.user?.user_id || '';
+        const classId = state?.selectedClass || state?.user?.class_id || '';
+
+        if (!teacherId || !classId) {
+            alert('Missing teacher or class context.');
+            return;
+        }
+
+        // Safe HTML sanitizer fallback
+        const sanitize = typeof escapeAssessmentHtml === 'function' 
+            ? escapeAssessmentHtml 
+            : (typeof escapeHtml === 'function' ? escapeHtml : text => text || '');
+
+        // 1. Remove existing modal if open
+        document.getElementById('td-material-breakdown-modal')?.remove();
+
+        // 2. Create modal shell immediately so user sees loading state
+        const modalHtml = `
+            <div id="td-material-breakdown-modal" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1.25rem;">
+                <div class="td-card" style="width: 100%; max-width: 900px; max-height: 85vh; overflow-y: auto; padding: 0; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); background: #fff;">
+                    <div style="padding: 4rem; text-align: center;">
+                        <div class="spinner"></div>
+                        <p class="td-text-muted" style="margin-top: 1rem;">Gathering student scores...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = modalHtml;
+        document.body.appendChild(tempDiv.firstElementChild);
+
+        // 3. Fetch data from backend
+        const response = await fetchJson(`php/api/assignments.php?action=teacher/material-breakdown&teacher_id=${teacherId}&class_id=${classId}&material_id=${materialId}`);
+        
+        // Ensure the modal wasn't closed by the user while loading
+        const modal = document.getElementById('td-material-breakdown-modal');
+        if (!modal) return; 
+
+        const material = response.material || {};
+        const students = response.breakdown || [];
+
+        // 4. Inject the table into the modal card
+        const innerHtml = `
+            <!-- Modal Header -->
+            <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; background: #fafafa; position: sticky; top: 0; z-index: 10;">
+                <div>
+                    <h3 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1e4d8c; margin: 0;">
+                        ${sanitize(material.title || 'Reading Material')}
+                    </h3>
+                    <div class="td-text-muted" style="font-size: 0.8125rem; margin-top: 4px;">
+                        <span class="td-badge td-badge-grey" style="padding: 2px 8px; font-size: 0.65rem;">${sanitize(material.language || 'Unknown')}</span>
+                        Grade ${sanitize(material.grade_level || 'N/A')} &bull; Class Roster Breakdown
+                    </div>
+                </div>
+                <button onclick="document.getElementById('td-material-breakdown-modal').remove()" style="background: transparent; border: none; color: #64748b; font-size: 1.5rem; cursor: pointer; padding: 4px 8px; line-height: 1;">&times;</button>
+            </div>
+
+            <!-- Modal Content (Table) -->
+            <div style="padding: 0; overflow-x: auto;">
+                ${students.length === 0 ? `
+                    <div style="text-align: center; padding: 3rem 1rem;">
+                        <p class="td-text-muted" style="margin: 0;">No students found in this class.</p>
+                    </div>
+                ` : `
+                    <table class="td-table" style="width: 100%; border-bottom: none;">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Highest WCPM</th>
+                                <th>Best Accuracy</th>
+                                <th>Best Quiz</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${students.map(s => {
+                                const isCompleted = s.best_acc !== null || s.best_comp !== null;
+                                const statusBadge = isCompleted 
+                                    ? '<span class="td-badge td-badge-emerald">Completed</span>' 
+                                    : '<span class="td-badge td-badge-grey">Pending</span>';
+                                
+                                const wcpm = s.best_wcpm !== null ? Math.round(s.best_wcpm) : '—';
+                                const acc = s.best_acc !== null ? Number(s.best_acc).toFixed(1) + '%' : '—';
+                                const comp = s.best_comp !== null ? Number(s.best_comp).toFixed(0) + '%' : '—';
+                                
+                                const scoreText = s.best_score !== null && s.quiz_total !== null ? `(${s.best_score}/${s.quiz_total})` : '';
+
+                                return `
+                                    <tr class="td-row-hover">
+                                        <td>
+                                            <div style="font-weight: 600; color: #1e293b; font-size: 0.875rem;">${sanitize(s.first_name)} ${sanitize(s.last_name)}</div>
+                                            <div class="td-text-muted td-mono" style="font-size: 0.75rem; margin-top: 2px;">LRN: ${sanitize(s.lrn || 'N/A')}</div>
+                                        </td>
+                                        <td>${statusBadge}</td>
+                                        <td class="td-mono ${isCompleted ? 'td-text-blue' : 'td-text-muted'}">${wcpm}</td>
+                                        <td class="td-mono ${isCompleted ? 'td-text-emerald' : 'td-text-muted'}">${acc}</td>
+                                        <td>
+                                            <div class="td-mono ${isCompleted ? 'td-text-amber' : 'td-text-muted'}">${comp}</div>
+                                            <div class="td-text-muted td-mono" style="font-size: 0.7rem; margin-top: 2px;">${scoreText}</div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `}
+            </div>
+        `;
+
+        modal.querySelector('.td-card').innerHTML = innerHtml;
+
+    } catch (error) {
+        console.error("Failed to load breakdown:", error);
+        alert("Failed to load material breakdown: " + error.message);
+        document.getElementById('td-material-breakdown-modal')?.remove();
+    }
 }
 
 function attachTeacherDashboardListeners() {
@@ -526,12 +743,13 @@ function attachTeacherDashboardListeners() {
         });
     }
 
-    // 6. Export Modal Event Handlers
+    // 6. Export Modal Event Handlers & Export Language Selection
     const exportBtn = document.getElementById('td-btn-export');
     const exportModal = document.getElementById('td-export-modal');
     const closeExportBtn = document.getElementById('td-close-export-btn');
     const cancelExportBtn = document.getElementById('td-cancel-export-btn');
     const confirmDownloadBtn = document.getElementById('td-confirm-download-btn');
+    const exportLangGroup = document.getElementById('export-modal-lang-group');
 
     if (exportBtn && exportModal) {
         exportBtn.addEventListener('click', () => {
@@ -545,6 +763,25 @@ function attachTeacherDashboardListeners() {
 
     if (closeExportBtn) closeExportBtn.addEventListener('click', hideModal);
     if (cancelExportBtn) cancelExportBtn.addEventListener('click', hideModal);
+
+    // Export Modal Language Filter Click Handler
+    if (exportLangGroup) {
+        exportLangGroup.addEventListener('click', (e) => {
+            const btn = e.target.closest('.export-lang-btn');
+            if (btn) {
+                const lang = btn.getAttribute('data-lang');
+                if (lang) {
+                    currentTeacherDashLanguage = lang;
+                    exportLangGroup.querySelectorAll('.export-lang-btn').forEach(b => {
+                        b.style.background = 'transparent';
+                        b.classList.remove('active');
+                    });
+                    btn.style.background = '#ffffff';
+                    btn.classList.add('active');
+                }
+            }
+        });
+    }
 
     if (confirmDownloadBtn) {
         confirmDownloadBtn.addEventListener('click', () => {
@@ -566,14 +803,30 @@ function attachTeacherDashboardListeners() {
         });
     }
 
-    // 8. View Details Button Handler
+    // 8. FIXED: View Material Breakdown Handler
     const recordTable = document.getElementById('td-class-record-table');
     if (recordTable) {
         recordTable.addEventListener('click', (e) => {
-            const btn = e.target.closest('.btn-view-student');
+            const btn = e.target.closest('.btn-view-material');
             if (btn) {
-                const studentId = btn.getAttribute('data-id');
-                console.log(`Opening individual assessment log for student ID: ${studentId}`);
+                const materialId = btn.getAttribute('data-id');
+                showMaterialBreakdownModal(materialId);
+            }
+        });
+    }
+
+    // 9. NEW: View Assignment Results Handler
+    const dashContent = document.getElementById('teacher-dash-content');
+    if (dashContent) {
+        dashContent.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-view-assignment-results');
+            if (btn) {
+                const assignmentId = btn.getAttribute('data-id');
+                if (typeof showAssignmentResultsModal === 'function') {
+                    showAssignmentResultsModal(assignmentId);
+                } else {
+                    console.log(`View results requested for Assignment ID: ${assignmentId}`);
+                }
             }
         });
     }
