@@ -1074,15 +1074,6 @@ function renderTopbar() {
                 <p class="topbar-page-subtitle" style="font-size: 13px; color: #64748b; margin-top: 2px;">${dateText}</p>
             </div>
         </div>
-
-        <div class="topbar-right" style="margin-left: auto;">
-            <button class="icon-btn" style="border: 1px solid #e2e8f0; background: #fff; width: 40px; height: 40px; border-radius: 50%;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-            </button>
-        </div>
     `;
 }
 
@@ -1185,7 +1176,7 @@ function renderTeacherDashboard() {
     // Check if we have performance data
     const hasPerformanceData = classPerf.length > 0;
     
-    viewContainer.innerHTML = `
+        viewContainer.innerHTML = `
         <div class="dashboard-teacher mobile-polished">
 
             <!-- NEW POLISHED 2x2 STATS GRID -->
@@ -5956,21 +5947,24 @@ function displayReport(reportType, data) {
 
 
 
-// ============================================================
-// 9. DATA LOADING - Dashboard, Materials, Assessments
-// ============================================================
-
-async function loadDashboardData() {
+async function loadDashboardData(startDate = null, endDate = null) {
     const user = state.user;
     if (!user) return;
     const role = String(user.role || '').toLowerCase();
     
     try {
         let data;
+        let queryParams = '';
+
+        // Build query string if date parameters are passed
+        if (startDate && endDate) {
+            queryParams = `&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+        }
+
         if (role === 'teacher') {
-            data = await fetchJson('php/api/shared/reports.php?action=teacher');
+            data = await fetchJson(`php/api/shared/reports.php?action=teacher${queryParams}`);
         } else if (role === 'principal' || role === 'admin') {
-            data = await fetchJson('php/api/shared/reports.php?action=principal');
+            data = await fetchJson(`php/api/shared/reports.php?action=principal${queryParams}`);
         } else {
             return;
         }
@@ -5997,7 +5991,6 @@ async function loadDashboardData() {
                 renderView();
             }
         } else {
-            // If no data from API, use defaults but show a warning
             console.warn('No dashboard data received from API');
             state.dashboard = {
                 ...state.dashboard,
@@ -6012,7 +6005,6 @@ async function loadDashboardData() {
         }
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        // Don't show alert to user, just use defaults
         state.dashboard = {
             ...state.dashboard,
             my_students: 0,
@@ -6840,25 +6832,86 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Select the necessary DOM elements based on index.php
+    // ==========================================
+    // 1. SIDEBAR & MOBILE MENU LOGIC
+    // ==========================================
     const appShell = document.getElementById('app-shell');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const sidebarToggleMobile = document.getElementById('sidebar-toggle-mobile');
 
-    // Toggle the class that controls mobile visibility
     const toggleMobileSidebar = () => {
         appShell.classList.toggle('sidebar-mobile-open');
     };
 
-    // Listen for clicks on the hamburger button
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', toggleMobileSidebar);
-    }
-
-    // Close the sidebar when tapping the darkened overlay background
+    if (sidebarToggle) sidebarToggle.addEventListener('click', toggleMobileSidebar);
+    if (sidebarToggleMobile) sidebarToggleMobile.addEventListener('click', toggleMobileSidebar);
+    
     if (sidebarOverlay) {
         sidebarOverlay.addEventListener('click', () => {
             appShell.classList.remove('sidebar-mobile-open');
         });
     }
+
+    // ==========================================
+    // 2. GLOBAL DATE FILTER LOGIC
+    // ==========================================
+    const globalStartDate = document.getElementById('global-start-date');
+    const globalEndDate = document.getElementById('global-end-date');
+    const globalApplyBtn = document.getElementById('global-filter-btn');
+
+    // Helper to format dates to YYYY-MM-DD
+    const formatDate = (date) => {
+        const offset = date.getTimezoneOffset() * 60000;
+        return (new Date(date - offset)).toISOString().split('T')[0];
+    };
+
+    // Helper to apply dates and trigger the fetch automatically
+    const applyGlobalFilter = (start, end) => {
+        if (globalStartDate && globalEndDate && globalApplyBtn) {
+            globalStartDate.value = start;
+            globalEndDate.value = end;
+            globalApplyBtn.click();
+        }
+    };
+
+    document.getElementById('btn-filter-today')?.addEventListener('click', () => {
+        const today = formatDate(new Date());
+        applyGlobalFilter(today, today);
+    });
+
+    document.getElementById('btn-filter-week')?.addEventListener('click', () => {
+        const curr = new Date();
+        const first = curr.getDate() - curr.getDay(); 
+        const last = first + 6; 
+        const firstDay = formatDate(new Date(curr.setDate(first)));
+        const lastDay = formatDate(new Date(curr.setDate(last)));
+        applyGlobalFilter(firstDay, lastDay);
+    });
+
+    document.getElementById('btn-filter-month')?.addEventListener('click', () => {
+        const date = new Date();
+        const firstDay = formatDate(new Date(date.getFullYear(), date.getMonth(), 1));
+        const lastDay = formatDate(new Date(date.getFullYear(), date.getMonth() + 1, 0));
+        applyGlobalFilter(firstDay, lastDay);
+    });
+
+    globalApplyBtn?.addEventListener('click', async () => {
+        const start = globalStartDate.value;
+        const end = globalEndDate.value;
+        
+        if (start && end) {
+            globalApplyBtn.disabled = true;
+            globalApplyBtn.textContent = 'Loading...';
+            
+            // Pass dates directly to existing function
+            await loadDashboardData(start, end); 
+            
+            globalApplyBtn.disabled = false;
+            globalApplyBtn.textContent = 'Apply';
+        } else {
+            alert("Please select both a start and end date.");
+        }
+    });
+
 });

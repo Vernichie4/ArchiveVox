@@ -5,10 +5,10 @@ require_once __DIR__ . '/../_helpers.php';
 $action = $_GET['action'] ?? '';
 
 // 1. CAPTURE ALL PARAMETERS
-$language = strtolower($_GET['language'] ?? 'all');
+$language   = strtolower($_GET['language'] ?? 'all');
 $dateFilter = strtolower($_GET['dateFilter'] ?? 'custom');
-$startDate = $_GET['startDate'] ?? '';
-$endDate = $_GET['endDate'] ?? '';
+$startDate  = $_GET['start_date'] ?? null;
+$endDate    = $_GET['end_date'] ?? null;
 
 $user = getCurrentUser();
 
@@ -23,8 +23,11 @@ try {
         'class_performance' => [], 'recent_students' => []
     ];
 
-    // 2. BUILD DYNAMIC SQL FILTERS
-    $langFilterRa = ""; $langFilterRa2 = ""; $langFilterM = "";
+    // 2. BUILD DYNAMIC LANGUAGE FILTERS
+    $langFilterRa  = ""; 
+    $langFilterRa2 = ""; 
+    $langFilterM   = "";
+
     if ($language === 'english') {
         $langFilterRa  = " AND ra.material_id IN (SELECT material_id FROM reading_material WHERE LOWER(language) = 'english') ";
         $langFilterRa2 = " AND ra2.material_id IN (SELECT material_id FROM reading_material WHERE LOWER(language) = 'english') ";
@@ -35,33 +38,66 @@ try {
         $langFilterM   = " AND LOWER(m.language) = 'filipino' ";
     }
 
-    // 3. BUILD DYNAMIC DATE FILTERS
-    $dateFilterSql = ""; $dateFilterSql2 = "";
+    // 3. BUILD DYNAMIC DATE FILTERS (Index-friendly timestamp ranges)
+    $dateFilterSql  = ""; 
+    $dateFilterSql2 = "";
+
     if ($dateFilter === 'day') {
-        $dateFilterSql = " AND DATE(ar.assessed_at) = CURDATE() ";
-        $dateFilterSql2 = " AND DATE(ar2.assessed_at) = CURDATE() ";
+        $dateFilterSql  = " AND ar.assessed_at >= CURDATE() AND ar.assessed_at < CURDATE() + INTERVAL 1 DAY ";
+        $dateFilterSql2 = " AND ar2.assessed_at >= CURDATE() AND ar2.assessed_at < CURDATE() + INTERVAL 1 DAY ";
     } elseif ($dateFilter === 'week') {
-        $dateFilterSql = " AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) ";
+        $dateFilterSql  = " AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) ";
         $dateFilterSql2 = " AND ar2.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) ";
     } elseif ($dateFilter === 'month') {
-        $dateFilterSql = " AND MONTH(ar.assessed_at) = MONTH(CURDATE()) AND YEAR(ar.assessed_at) = YEAR(CURDATE()) ";
-        $dateFilterSql2 = " AND MONTH(ar2.assessed_at) = MONTH(CURDATE()) AND YEAR(ar2.assessed_at) = YEAR(CURDATE()) ";
+        $dateFilterSql  = " AND ar.assessed_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') ";
+        $dateFilterSql2 = " AND ar2.assessed_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') ";
     } elseif ($dateFilter === 'custom' && !empty($startDate) && !empty($endDate)) {
-        $start = date('Y-m-d', strtotime($startDate));
-        $end = date('Y-m-d', strtotime($endDate));
-        $dateFilterSql = " AND DATE(ar.assessed_at) BETWEEN '$start' AND '$end' ";
-        $dateFilterSql2 = " AND DATE(ar2.assessed_at) BETWEEN '$start' AND '$end' ";
+        $startFormatted = date('Y-m-d 00:00:00', strtotime($startDate));
+        $endFormatted   = date('Y-m-d 23:59:59', strtotime($endDate));
+        
+        $dateFilterSql  = " AND ar.assessed_at BETWEEN '$startFormatted' AND '$endFormatted' ";
+        $dateFilterSql2 = " AND ar2.assessed_at BETWEEN '$startFormatted' AND '$endFormatted' ";
     }
 
+    // --- PRINCIPAL / ADMIN ROLE ---
     if ($action === 'principal' || $action === 'admin') {
-        // Stats
-        // Updated to count learners who actually took an assessment in the selected language
-        $dashboard['my_students'] = (int) $pdo->query("SELECT COUNT(DISTINCT ra.student_id) FROM reading_activity ra JOIN student s ON ra.student_id = s.student_id WHERE s.is_active = 1 $langFilterRa")->fetchColumn();
-        $dashboard['my_assessments'] = (int) $pdo->query("SELECT COUNT(*) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE 1=1 $langFilterRa")->fetchColumn();
-        $dashboard['class_avg_wcpm'] = (float) $pdo->query("SELECT AVG(wcpm) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ar.wcpm > 0 $langFilterRa")->fetchColumn();
-        $dashboard['students_below'] = (int) $pdo->query("SELECT COUNT(DISTINCT ra.student_id) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE ar.reading_level IN ('Low Emerging Reader', 'High Emerging Reader', 'Developing Reader', 'Frustration') $langFilterRa")->fetchColumn();
-        $dashboard['avg_accuracy'] = (int) $pdo->query("SELECT ROUND(AVG(accuracy_percentage)) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id WHERE 1=1 $langFilterRa")->fetchColumn();
-        
+        $dashboard['my_students'] = (int) $pdo->query("
+            SELECT COUNT(DISTINCT ra.student_id) 
+            FROM reading_activity ra 
+            JOIN student s ON ra.student_id = s.student_id 
+            JOIN assessment_result ar ON ra.activity_id = ar.activity_id
+            WHERE s.is_active = 1 $langFilterRa $dateFilterSql
+        ")->fetchColumn();
+
+        $dashboard['my_assessments'] = (int) $pdo->query("
+            SELECT COUNT(*) 
+            FROM assessment_result ar 
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+            WHERE 1=1 $langFilterRa $dateFilterSql
+        ")->fetchColumn();
+
+        $dashboard['class_avg_wcpm'] = (float) $pdo->query("
+            SELECT AVG(ar.wcpm) 
+            FROM assessment_result ar 
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+            WHERE ar.wcpm > 0 $langFilterRa $dateFilterSql
+        ")->fetchColumn();
+
+        $dashboard['students_below'] = (int) $pdo->query("
+            SELECT COUNT(DISTINCT ra.student_id) 
+            FROM assessment_result ar 
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+            WHERE ar.reading_level IN ('Low Emerging Reader', 'High Emerging Reader', 'Developing Reader', 'Frustration') 
+            $langFilterRa $dateFilterSql
+        ")->fetchColumn();
+
+        $dashboard['avg_accuracy'] = (int) $pdo->query("
+            SELECT ROUND(AVG(ar.accuracy_percentage)) 
+            FROM assessment_result ar 
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+            WHERE 1=1 $langFilterRa $dateFilterSql
+        ")->fetchColumn();
+
         // Recent Assessments
         $stmt = $pdo->query("
             SELECT
@@ -77,28 +113,27 @@ try {
             JOIN reading_assignment ra2 ON ram.assignment_id = ra2.assignment_id
             JOIN reading_material m ON ra.material_id = m.material_id
             WHERE ra2.status = 'assigned'
-            AND ra2.teacher_id = $teacherId
             AND ra2.title IS NOT NULL
             AND ra2.title != ''
             AND ra.assignment_material_id IS NOT NULL
-            AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
             $langFilterM
+            $dateFilterSql
             ORDER BY ar.assessed_at DESC LIMIT 5
         ");
         $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Class Performance (Time Series for Chart)
+        // Class Performance Time Series
         $stmt = $pdo->query("
             SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
             FROM assessment_result ar 
             JOIN reading_activity ra ON ar.activity_id = ra.activity_id
-            WHERE 1=1 $langFilterRa
+            WHERE 1=1 $langFilterRa $dateFilterSql
             GROUP BY DATE(ar.assessed_at) 
             ORDER BY DATE(ar.assessed_at) ASC LIMIT 7
         ");
         $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Student Overview (Principal)
+        // Student Overview
         $stmt = $pdo->query("
             SELECT 
                 s.lrn, 
@@ -112,12 +147,12 @@ try {
                 (SELECT ar2.reading_level 
                  FROM assessment_result ar2 
                  JOIN reading_activity ra2 ON ar2.activity_id = ra2.activity_id 
-                 WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL $langFilterRa2
+                 WHERE ra2.student_id = s.student_id AND ar2.reading_level IS NOT NULL $langFilterRa2 $dateFilterSql2
                  ORDER BY ar2.assessed_at DESC LIMIT 1) as reading_level
             FROM student s
             LEFT JOIN class c ON s.class_id = c.class_id
             LEFT JOIN reading_activity ra ON s.student_id = ra.student_id $langFilterRa
-            LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
+            LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id $dateFilterSql
             WHERE s.is_active = 1
             GROUP BY s.student_id, s.lrn, s.first_name, s.last_name, c.grade_level
             ORDER BY s.first_name ASC
@@ -128,19 +163,44 @@ try {
         sendJson(['success' => true, 'dashboard' => $dashboard]);
     } 
 
+    // --- TEACHER ROLE ---
     elseif ($action === 'teacher') {
         $stmt = $pdo->prepare("SELECT teacher_id FROM teacher WHERE user_id = ?");
         $stmt->execute([$user['user_id']]);
         $teacherId = $stmt->fetchColumn();
 
         if ($teacherId) {
-            // Stats
-            $dashboard['my_students'] = (int) $pdo->query("SELECT COUNT(DISTINCT s.student_id) FROM student s JOIN reading_activity ra ON s.student_id = ra.student_id JOIN assessment_result ar ON ra.activity_id = ar.activity_id WHERE s.teacher_id = $teacherId AND s.is_active = 1 $langFilterRa $dateFilterSql")->fetchColumn();
+            $dashboard['my_students'] = (int) $pdo->query("
+                SELECT COUNT(DISTINCT s.student_id) 
+                FROM student s 
+                JOIN reading_activity ra ON s.student_id = ra.student_id 
+                JOIN assessment_result ar ON ra.activity_id = ar.activity_id 
+                WHERE s.teacher_id = $teacherId AND s.is_active = 1 $langFilterRa $dateFilterSql
+            ")->fetchColumn();
             
-            $dashboard['my_assessments'] = (int) $pdo->query("SELECT COUNT(*) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id JOIN student s ON ra.student_id = s.student_id WHERE s.teacher_id = $teacherId $langFilterRa $dateFilterSql")->fetchColumn();            
+            $dashboard['my_assessments'] = (int) $pdo->query("
+                SELECT COUNT(*) 
+                FROM assessment_result ar 
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+                JOIN student s ON ra.student_id = s.student_id 
+                WHERE s.teacher_id = $teacherId $langFilterRa $dateFilterSql
+            ")->fetchColumn();            
             
-            $dashboard['avg_comprehension'] = (float) $pdo->query("SELECT AVG(ar.comprehension_score) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id JOIN student s ON ra.student_id = s.student_id WHERE s.teacher_id = $teacherId $langFilterRa $dateFilterSql")->fetchColumn();
-            $dashboard['class_avg_wcpm'] = (float) $pdo->query("SELECT AVG(ar.wcpm) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id JOIN student s ON ra.student_id = s.student_id WHERE s.teacher_id = $teacherId AND ar.wcpm > 0 $langFilterRa $dateFilterSql")->fetchColumn();
+            $dashboard['avg_comprehension'] = (float) $pdo->query("
+                SELECT AVG(ar.comprehension_score) 
+                FROM assessment_result ar 
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+                JOIN student s ON ra.student_id = s.student_id 
+                WHERE s.teacher_id = $teacherId $langFilterRa $dateFilterSql
+            ")->fetchColumn();
+
+            $dashboard['class_avg_wcpm'] = (float) $pdo->query("
+                SELECT AVG(ar.wcpm) 
+                FROM assessment_result ar 
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+                JOIN student s ON ra.student_id = s.student_id 
+                WHERE s.teacher_id = $teacherId AND ar.wcpm > 0 $langFilterRa $dateFilterSql
+            ")->fetchColumn();
             
             $classStmt = $pdo->query("
                 SELECT grade_level, section 
@@ -150,8 +210,7 @@ try {
                 LIMIT 1
             ");
             
-            if ($classStmt) {
-                $classData = $classStmt->fetch(PDO::FETCH_ASSOC);
+            if ($classStmt && $classData = $classStmt->fetch(PDO::FETCH_ASSOC)) {
                 $dashboard['grade'] = $classData['grade_level'] ?? 'N/A';
                 $dashboard['section'] = $classData['section'] ?? 'N/A';
             } else {
@@ -182,7 +241,13 @@ try {
             $studentsBelow = $stmt->fetch();
             $dashboard['students_below'] = $studentsBelow ? (int) $studentsBelow['total'] : 0;
             
-            $dashboard['avg_accuracy'] = (int) $pdo->query("SELECT ROUND(AVG(ar.accuracy_percentage)) FROM assessment_result ar JOIN reading_activity ra ON ar.activity_id = ra.activity_id JOIN student s ON ra.student_id = s.student_id WHERE s.teacher_id = $teacherId $langFilterRa $dateFilterSql")->fetchColumn();
+            $dashboard['avg_accuracy'] = (int) $pdo->query("
+                SELECT ROUND(AVG(ar.accuracy_percentage)) 
+                FROM assessment_result ar 
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
+                JOIN student s ON ra.student_id = s.student_id 
+                WHERE s.teacher_id = $teacherId $langFilterRa $dateFilterSql
+            ")->fetchColumn();
 
             // Recent Assessments
             $stmt = $pdo->query("
@@ -207,7 +272,7 @@ try {
             ");
             $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Class Performance (Time Series for Chart)
+            // Class Performance
             $stmt = $pdo->query("
                 SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
                 FROM assessment_result ar 
@@ -221,7 +286,7 @@ try {
             ");
             $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Student Overview (Teacher)
+            // Student Overview
             $stmt = $pdo->query("
                 SELECT 
                     s.lrn, 
@@ -242,16 +307,14 @@ try {
                 FROM student s
                 LEFT JOIN class c ON s.class_id = c.class_id
                 LEFT JOIN reading_activity ra ON s.student_id = ra.student_id $langFilterRa
-                LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id
+                LEFT JOIN assessment_result ar ON ra.activity_id = ar.activity_id $dateFilterSql
                 WHERE s.teacher_id = $teacherId AND s.is_active = 1
-                $dateFilterSql
                 GROUP BY s.student_id, s.lrn, s.first_name, s.last_name, c.grade_level
                 ORDER BY s.first_name ASC
                 LIMIT 10
             ");
-            
-$dashboard['recent_students'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+            $dashboard['recent_students'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
             // Group Results by Reading Profile
             $stmt = $pdo->query("
                 SELECT 
@@ -284,8 +347,7 @@ $dashboard['recent_students'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 GROUP BY ar.part1_reading_level
             ");
             $dashboard['part1_stats'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-        } // <--- THIS BRACE MOVED DOWN HERE!
+        }
 
         sendJson(['success' => true, 'dashboard' => $dashboard]);
     }

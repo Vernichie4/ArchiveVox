@@ -111,19 +111,39 @@ if (empty($students)) {
     exit;
 }
 
-// Now for each student, get the latest assessment for the chosen language (or any)
+// Now for each student, get the latest assessment for the chosen filters
 $languageCondition = '';
 $langParams = [];
-if ($language) {
+if ($language && $language !== 'all') {
     $languageCondition = " AND rm.language = :language";
     $langParams[':language'] = $language;
+}
+
+// 1. Capture Date Filters
+$dateFilter = strtolower($_GET['dateFilter'] ?? 'custom');
+$startDate = $_GET['startDate'] ?? '';
+$endDate = $_GET['endDate'] ?? '';
+
+// 2. Build Date Condition SQL
+$dateCondition = "";
+if ($dateFilter === 'day') {
+    $dateCondition = " AND DATE(ar.assessed_at) = CURDATE() ";
+} elseif ($dateFilter === 'week') {
+    $dateCondition = " AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) ";
+} elseif ($dateFilter === 'month') {
+    $dateCondition = " AND MONTH(ar.assessed_at) = MONTH(CURDATE()) AND YEAR(ar.assessed_at) = YEAR(CURDATE()) ";
+} elseif ($dateFilter === 'custom' && !empty($startDate) && !empty($endDate)) {
+    // Prevent SQL injection by formatting dates
+    $start = date('Y-m-d', strtotime($startDate));
+    $end = date('Y-m-d', strtotime($endDate));
+    $dateCondition = " AND DATE(ar.assessed_at) BETWEEN '$start' AND '$end' ";
 }
 
 // Prepare output rows
 $rows = [];
 $sn = 1;
 foreach ($students as $student) {
-    // Fetch the most recent completed assessment for this student with the matching language
+    // Fetch the most recent completed assessment for this student matching all filters
     $assessStmt = $pdo->prepare("
         SELECT 
             ar.*,
@@ -137,6 +157,7 @@ foreach ($students as $student) {
         WHERE ra.student_id = :student_id
           AND ra.activity_status = 'Completed'
           $languageCondition
+          $dateCondition
         ORDER BY ar.assessed_at DESC
         LIMIT 1
     ");

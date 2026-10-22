@@ -46,6 +46,7 @@ async function renderTeacherDashboard() {
             const classId = state?.selectedClass || rawData?.class_id || state?.user?.class_id || '';
             
             if (teacherId && classId) {
+                const recordUrl = `php/api/assignments.php?action=teacher/class-materials-report&teacher_id=${teacherId}&class_id=${classId}&dateFilter=${currentTeacherDashDateFilter}&startDate=${currentTeacherDashStartDate}&endDate=${currentTeacherDashEndDate}`;
                 const matRes = await fetchJson(`php/api/assignments.php?action=teacher/class-materials-report&teacher_id=${teacherId}&class_id=${classId}`);
                 if (matRes && matRes.materialReports) {
                     materialReportsData = matRes.materialReports;
@@ -139,25 +140,50 @@ async function renderTeacherDashboard() {
         </style>
         
         <div id="td-wrapper">
-            <!-- Header Info Banner -->
-            <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                <span style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #1e4d8c;">
-                    ${dashData.teacherName}
-                </span>
-                <span style="color: #cbd5e1; font-size: 1.25rem;">|</span>
-                <span style="font-size: 1rem; font-weight: 500; color: #475569;">
-                    ${dashData.grade}
-                </span>
-                <span style="color: #cbd5e1; font-size: 1rem;">•</span>
-                <span style="font-size: 1rem; font-weight: 500; color: #475569;">
-                    ${dashData.section}
-                </span>
+<!-- Header Info Banner -->
+            <div style="margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
                 
-                <!-- Language Filter Segment -->
-                <div class="td-segment-group" style="margin-left: 0.5rem;" id="td-header-lang-filter">
-                    <button class="td-segment-btn ${currentTeacherDashLanguage === 'all' ? 'active' : ''}" data-lang="all">Overall</button>
-                    <button class="td-segment-btn ${currentTeacherDashLanguage === 'english' ? 'active' : ''}" data-lang="english">English</button>
-                    <button class="td-segment-btn ${currentTeacherDashLanguage === 'filipino' ? 'active' : ''}" data-lang="filipino">Filipino</button>
+                <!-- Top Row: Title & Language -->
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                        <span style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: #1e4d8c;">
+                            ${dashData.teacherName}
+                        </span>
+                        <span style="color: #cbd5e1; font-size: 1.25rem;">|</span>
+                        <span style="font-size: 1rem; font-weight: 500; color: #475569;">
+                            ${dashData.grade}
+                        </span>
+                        <span style="color: #cbd5e1; font-size: 1rem;">•</span>
+                        <span style="font-size: 1rem; font-weight: 500; color: #475569;">
+                            ${dashData.section}
+                        </span>
+                    </div>
+
+                    <!-- Language Filter Segment -->
+                    <div class="td-segment-group" id="td-header-lang-filter">
+                        <button class="td-segment-btn ${currentTeacherDashLanguage === 'all' ? 'active' : ''}" data-lang="all">Overall</button>
+                        <button class="td-segment-btn ${currentTeacherDashLanguage === 'english' ? 'active' : ''}" data-lang="english">English</button>
+                        <button class="td-segment-btn ${currentTeacherDashLanguage === 'filipino' ? 'active' : ''}" data-lang="filipino">Filipino</button>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: Global Date Filters -->
+                <div style="display: flex; align-items: center; gap: 1rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; flex-wrap: wrap;">
+                    <span style="font-size: 0.875rem; font-weight: 600; color: #475569;">Timeframe Filter:</span>
+                    <div class="td-segment-group" id="td-date-filter-group">
+                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'day' ? 'active' : ''}" data-filter="day">Day</button>
+                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'week' ? 'active' : ''}" data-filter="week">Week</button>
+                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'month' ? 'active' : ''}" data-filter="month">Month</button>
+                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'custom' ? 'active' : ''}" data-filter="custom">Custom</button>
+                    </div>
+                    
+                    <!-- Hidden by default unless 'custom' is active -->
+                    <div id="td-custom-date-inputs" style="display: ${currentTeacherDashDateFilter === 'custom' ? 'flex' : 'none'}; align-items: center; gap: 0.5rem; border-left: 1px solid #e2e8f0; padding-left: 1rem;">
+                        <input type="date" id="td-start-date" value="${currentTeacherDashStartDate}" style="border: 1px solid rgba(26,31,54,0.2); border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #0f172a; outline: none;">
+                        <span class="td-text-muted" style="font-size: 0.75rem;">to</span>
+                        <input type="date" id="td-end-date" value="${currentTeacherDashEndDate}" style="border: 1px solid rgba(26,31,54,0.2); border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #0f172a; outline: none;">
+                        <button id="td-btn-apply-filters" class="td-btn-solid-navy" style="padding: 0.35rem 1rem;">Apply</button>
+                    </div>
                 </div>
             </div>
 
@@ -210,32 +236,6 @@ function getTeacherDashTabContent(tab, dashData) {
 
     if (tab === 'summary') {
         return `
-            <!-- Filter Panel -->
-            <div class="td-card" style="padding: 1rem; margin-bottom: 1.5rem;">
-                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
-                    <div class="td-segment-group" id="td-date-filter-group">
-                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'day' ? 'active' : ''}" data-filter="day">Day</button>
-                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'week' ? 'active' : ''}" data-filter="week">Week</button>
-                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'month' ? 'active' : ''}" data-filter="month">Month</button>
-                        <button class="td-segment-btn ${currentTeacherDashDateFilter === 'custom' ? 'active' : ''}" data-filter="custom">Custom</button>
-                    </div>
-                    <input type="date" id="td-start-date" value="${currentTeacherDashStartDate}" style="border: 1px solid rgba(26,31,54,0.2); border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #0f172a; outline: none;">
-                    <span class="td-text-muted" style="font-size: 0.75rem;">to</span>
-                    <input type="date" id="td-end-date" value="${currentTeacherDashEndDate}" style="border: 1px solid rgba(26,31,54,0.2); border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #0f172a; outline: none;">
-                    <button id="td-btn-apply-filters" class="td-btn-solid-navy" style="padding: 0.35rem 1rem;">Apply Filters</button>
-                </div>
-                <div style="display: flex; gap: 0.5rem;">
-                    <span class="td-badge td-badge-grey">${safeEscape(dashData?.language || 'Overall')}</span>
-                    <span class="td-badge td-badge-grey">
-                        ${currentTeacherDashDateFilter === 'custom' && currentTeacherDashStartDate && currentTeacherDashEndDate 
-                            ? `${currentTeacherDashStartDate} to${currentTeacherDashEndDate}` 
-                            : currentTeacherDashDateFilter === 'custom' ? 'All Time' 
-                            : currentTeacherDashDateFilter.charAt(0).toUpperCase() + currentTeacherDashDateFilter.slice(1)}
-                    </span>
-                    <span class="td-badge td-badge-grey">${safeEscape(dashData?.section || 'N/A')}</span>
-                </div>
-            </div>
-
             <!-- KPI Cards -->
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem;">
                 <div class="td-card">
@@ -709,7 +709,7 @@ function attachTeacherDashboardListeners() {
         });
     }
 
-    // 4. Date Filter Group
+// 4. Date Filter Group
     const dateFilterGroup = document.getElementById('td-date-filter-group');
     if (dateFilterGroup) {
         dateFilterGroup.addEventListener('click', (e) => {
@@ -719,30 +719,49 @@ function attachTeacherDashboardListeners() {
                 currentTeacherDashDateFilter = filter;
                 
                 if (filter !== 'custom') {
+                    // Instantly fetch data for Day/Week/Month
                     currentTeacherDashStartDate = '';
                     currentTeacherDashEndDate = '';
                     renderTeacherDashboard();
                 } else {
+                    // Update active button state instantly
                     document.querySelectorAll('#td-date-filter-group .td-segment-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
+                    
+                    // Reveal the custom date inputs
+                    const customInputs = document.getElementById('td-custom-date-inputs');
+                    if (customInputs) {
+                        customInputs.style.display = 'flex';
+                    }
                 }
             }
         });
     }
 
-    // 5. Apply Custom Date Filters
+// 5. Apply Custom Date Filters
     const btnApplyFilters = document.getElementById('td-btn-apply-filters');
     if (btnApplyFilters) {
         btnApplyFilters.addEventListener('click', () => {
             const start = document.getElementById('td-start-date')?.value || '';
             const end = document.getElementById('td-end-date')?.value || '';
+            
+            // Prevent empty or invalid date ranges
+            if (!start || !end) {
+                alert("Please select both a start and end date.");
+                return;
+            }
+            if (start > end) {
+                alert("The start date cannot be later than the end date.");
+                return;
+            }
+
             currentTeacherDashDateFilter = 'custom';
             currentTeacherDashStartDate = start;
             currentTeacherDashEndDate = end;
             renderTeacherDashboard();
         });
     }
-
+    
     // 6. Export Modal Event Handlers & Export Language Selection
     const exportBtn = document.getElementById('td-btn-export');
     const exportModal = document.getElementById('td-export-modal');
@@ -785,11 +804,11 @@ function attachTeacherDashboardListeners() {
 
     if (confirmDownloadBtn) {
         confirmDownloadBtn.addEventListener('click', () => {
-            window.location.href = `export_excel.php?language=${currentTeacherDashLanguage}`;
+            // Append language and date filters to the export URL
+            window.location.href = `export-class-report.php?language=${currentTeacherDashLanguage}&dateFilter=${currentTeacherDashDateFilter}&startDate=${currentTeacherDashStartDate}&endDate=${currentTeacherDashEndDate}`;
             hideModal();
         });
     }
-
     // 7. Class Record Live Search Handler
     const searchInput = document.getElementById('td-record-search');
     if (searchInput) {

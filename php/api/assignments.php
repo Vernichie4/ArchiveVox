@@ -1171,70 +1171,44 @@ if ($method === 'GET' && $uri === '/api/health') {
         $pdo = null;
     }
 
-} elseif ($method === 'GET' && preg_match('#^/api/shared/activity/(\d+)/details$#', $uri, $matches)) {
-    $activity_id = (int)$matches[1];
-    
-    $pdo = get_db();
-    try {
-        // 1. Fetch activity details, complete assessment results, and material file path
-        $stmt = $pdo->prepare("
-            SELECT ra.*, s.student_id, s.first_name, s.last_name, 
-                   rm.title AS material_title, rm.file_path,
-                   ar.*
-            FROM reading_activity ra
-            INNER JOIN student s ON s.student_id = ra.student_id
-            INNER JOIN reading_material rm ON rm.material_id = ra.material_id
-            LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
-            WHERE ra.activity_id = ?
-        ");
-        $stmt->execute([$activity_id]);
-        $activity = $stmt->fetch();
-
-        if (!$activity) error("Activity not found.", 404);
-
-        // 2. Fetch quiz questions and student's submitted answers for the LATEST attempt
-        $qStmt = $pdo->prepare("
-            SELECT qq.question_number, qq.question_text, qa.is_correct, 
-                   qc.choice_text AS student_answer
-            FROM quiz_attempt qatt
-            INNER JOIN quiz_answer qa ON qa.attempt_id = qatt.attempt_id
-            INNER JOIN quiz_question qq ON qq.question_id = qa.question_id
-            LEFT JOIN quiz_choice qc ON qc.choice_id = qa.selected_choice_id
-            WHERE qatt.attempt_id = (
-                SELECT attempt_id 
-                FROM quiz_attempt 
-                WHERE student_id = ? AND assignment_material_id = ? AND status = 'completed'
-                ORDER BY attempt_id DESC 
-                LIMIT 1
-            )
-            ORDER BY qq.question_number ASC
-        ");
-        $qStmt->execute([$activity['student_id'], $activity['assignment_material_id']]);
-        $quiz_details = $qStmt->fetchAll();
-
-        // 3. Return keys expected by frontend JavaScript
-        success([
-            'assessment' => $activity,
-            'quiz_details' => $quiz_details
-        ]);
-    } finally {
-        $pdo = null;
-    }
-
-    } elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'teacher/class-materials-report') {
+} elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'teacher/class-materials-report') {
     $teacher_id = $_GET['teacher_id'] ?? null;
     $class_id = $_GET['class_id'] ?? null;
     
+    // 1. Capture Date Filters from Frontend
+    $dateFilter = strtolower($_GET['dateFilter'] ?? 'custom');
+    $startDate = $_GET['startDate'] ?? '';
+    $endDate = $_GET['endDate'] ?? '';
+
     if (!$teacher_id || !$class_id) error("teacher_id and class_id are required.");
 
     $pdo = get_db();
     try {
-        // 1. Verify ownership
         if (!teacher_owns_class($pdo, $teacher_id, $class_id)) {
             error("Access denied or class not found.", 403);
         }
 
-        // 2. Get distinct materials assigned to this class
+        // 2. Build the SQL Date Conditions
+        $dateConditionReading = "";
+        $dateConditionQuiz = "";
+        
+        if ($dateFilter === 'day') {
+            $dateConditionReading = " AND DATE(ar.assessed_at) = CURDATE() ";
+            $dateConditionQuiz = " AND DATE(qa.completed_at) = CURDATE() ";
+        } elseif ($dateFilter === 'week') {
+            $dateConditionReading = " AND ar.assessed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) ";
+            $dateConditionQuiz = " AND qa.completed_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) ";
+        } elseif ($dateFilter === 'month') {
+            $dateConditionReading = " AND MONTH(ar.assessed_at) = MONTH(CURDATE()) AND YEAR(ar.assessed_at) = YEAR(CURDATE()) ";
+            $dateConditionQuiz = " AND MONTH(qa.completed_at) = MONTH(CURDATE()) AND YEAR(qa.completed_at) = YEAR(CURDATE()) ";
+        } elseif ($dateFilter === 'custom' && !empty($startDate) && !empty($endDate)) {
+            $start = date('Y-m-d', strtotime($startDate));
+            $end = date('Y-m-d', strtotime($endDate));
+            $dateConditionReading = " AND DATE(ar.assessed_at) BETWEEN '$start' AND '$end' ";
+            $dateConditionQuiz = " AND DATE(qa.completed_at) BETWEEN '$start' AND '$end' ";
+        }
+
+        // 3. Get distinct materials assigned to this class
         $stmt = $pdo->prepare("
             SELECT DISTINCT rm.material_id, rm.title, rm.language, rm.grade_level,
                    (SELECT COUNT(student_id) FROM student WHERE class_id = ? AND is_active = 1) AS total_assigned
@@ -1247,11 +1221,11 @@ if ($method === 'GET' && $uri === '/api/health') {
         $stmt->execute([$class_id, $class_id, $teacher_id]);
         $materials = $stmt->fetchAll();
 
-        // 3. Process aggregates per material
+        // 4. Process aggregates per material (with date filters applied)
         foreach ($materials as &$m) {
             $mat_id = $m['material_id'];
 
-            // Get max reading stats per student for this specific material
+            // Reading Stats Query
             $rStmt = $pdo->prepare("
                 SELECT MAX(ar.accuracy_percentage) AS best_acc, MAX(ar.wcpm) AS best_wcpm
                 FROM reading_activity ract
@@ -1259,24 +1233,26 @@ if ($method === 'GET' && $uri === '/api/health') {
                 INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ract.assignment_material_id
                 INNER JOIN reading_assignment ra ON ra.assignment_id = ram.assignment_id
                 WHERE ram.material_id = ? AND ra.class_id = ? AND ract.activity_status = 'Completed'
+                $dateConditionReading
                 GROUP BY ract.student_id
             ");
             $rStmt->execute([$mat_id, $class_id]);
             $reading_stats = $rStmt->fetchAll();
 
-            // Get max quiz stats per student for this specific material
+            // Quiz Stats Query
             $qStmt = $pdo->prepare("
                 SELECT MAX(qa.percentage) AS best_comp
                 FROM quiz_attempt qa
                 INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = qa.assignment_material_id
                 INNER JOIN reading_assignment ra ON ra.assignment_id = ram.assignment_id
                 WHERE ram.material_id = ? AND ra.class_id = ? AND qa.status = 'completed'
+                $dateConditionQuiz
                 GROUP BY qa.student_id
             ");
             $qStmt->execute([$mat_id, $class_id]);
             $quiz_stats = $qStmt->fetchAll();
 
-            // Calculate averages (safely dividing to avoid NaN)
+            // Calculate averages safely
             $completed_count = count($reading_stats);
             $quiz_completed_count = count($quiz_stats);
 
@@ -1292,56 +1268,8 @@ if ($method === 'GET' && $uri === '/api/health') {
     } finally {
         $pdo = null;
     }
-
-    } elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'teacher/material-breakdown') {
-    $teacher_id = $_GET['teacher_id'] ?? null;
-    $class_id = $_GET['class_id'] ?? null;
-    $material_id = $_GET['material_id'] ?? null;
-
-    if (!$teacher_id || !$class_id || !$material_id) error("teacher_id, class_id, and material_id are required.");
-
-    $pdo = get_db();
-    try {
-        if (!teacher_owns_class($pdo, $teacher_id, $class_id)) error("Access denied.", 403);
-
-        // 1. Get Material Info
-        $stmt = $pdo->prepare("SELECT title, language, grade_level FROM reading_material WHERE material_id = ?");
-        $stmt->execute([$material_id]);
-        $material = $stmt->fetch();
-        if (!$material) error("Material not found.", 404);
-
-        // 2. Get Student Breakdown for this material
-        $stmt = $pdo->prepare("
-            SELECT s.student_id, s.first_name, s.last_name, s.lrn,
-                   MAX(ar.accuracy_percentage) AS best_acc,
-                   MAX(ar.wcpm) AS best_wcpm,
-                   MAX(qa.percentage) AS best_comp,
-                   MAX(qa.score) AS best_score,
-                   MAX(qa.total_questions) AS quiz_total
-            FROM student s
-            LEFT JOIN reading_assignment ra ON ra.class_id = s.class_id AND ra.teacher_id = ? AND ra.status != 'deleted'
-            LEFT JOIN reading_assignment_material ram ON ram.assignment_id = ra.assignment_id AND ram.material_id = ?
-            LEFT JOIN reading_activity ract ON ract.student_id = s.student_id AND ract.assignment_material_id = ram.assignment_material_id AND ract.activity_status = 'Completed'
-            LEFT JOIN assessment_result ar ON ar.activity_id = ract.activity_id
-            LEFT JOIN quiz_attempt qa ON qa.student_id = s.student_id AND qa.assignment_material_id = ram.assignment_material_id AND qa.status = 'completed'
-            WHERE s.class_id = ? AND s.is_active = 1
-            GROUP BY s.student_id, s.first_name, s.last_name, s.lrn
-            ORDER BY s.last_name, s.first_name
-        ");
-        $stmt->execute([$teacher_id, $material_id, $class_id]);
-        $students = $stmt->fetchAll();
-
-        success([
-            'material' => $material,
-            'breakdown' => $students
-        ]);
-    } catch (Exception $e) {
-        error("Failed to load breakdown: " . $e->getMessage(), 500);
-    } finally {
-        $pdo = null;
-    }
-
-} else {
+    
+}    else {
     // Fallback error for unmatched routes
     error("API endpoint not found.", 404);
 }

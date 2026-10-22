@@ -41,11 +41,13 @@ header('Content-Type: text/html; charset=utf-8');
     <!-- APP SHELL (Hidden until login) -->
     <!-- ============================================ -->
     <div id="app-shell" class="hidden">
+
         <!-- ========================================== -->
-        <!-- TOPBAR - Fixed at top of app shell        -->
+        <!-- TOPBAR - Fixed at top of app shell         -->
         <!-- ========================================== -->
+
         <header class="topbar" id="topbar">
-            <!-- ADDED: Mobile Hamburger Menu Button -->
+            <!-- Mobile Hamburger Menu Button -->
             <button id="sidebar-toggle-mobile" class="sidebar-toggle-mobile icon-btn" aria-label="Open Navigation" style="margin-right: 12px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -53,8 +55,42 @@ header('Content-Type: text/html; charset=utf-8');
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
+            
             <div id="topbar-content" class="topbar-content">
-                <!-- Dynamic content rendered by JavaScript -->
+                <!-- Dynamic content rendered by JavaScript (e.g., Dashboard title) -->
+            </div>
+
+            <!-- RIGHT ALIGNED CONTAINER: Filters + Notification Bell -->
+            <div class="topbar-right" style="display: flex; align-items: center; margin-left: auto; gap: 16px; overflow-x: auto;">
+                
+                <!-- GLOBAL DATE FILTERS -->
+                <div id="global-date-filters" class="date-filter-container" style="display: flex; gap: 12px; align-items: center; white-space: nowrap;">
+                    
+                    <!-- Quick Filters -->
+                    <div class="quick-filters" style="display: flex; gap: 4px;">
+                        <button id="btn-filter-today" class="btn-secondary btn-sm" style="height: 32px; padding: 0 12px; white-space: nowrap;">Today</button>
+                        <button id="btn-filter-week" class="btn-secondary btn-sm" style="height: 32px; padding: 0 12px; white-space: nowrap;">This Week</button>
+                        <button id="btn-filter-month" class="btn-secondary btn-sm" style="height: 32px; padding: 0 12px; white-space: nowrap;">This Month</button>
+                    </div>
+                    
+                    <!-- Date Range & Apply -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="date" id="global-start-date" class="input-inline" style="height: 32px; padding: 0 8px;">
+                        <span style="font-size: 14px; color: #666;">to</span>
+                        <input type="date" id="global-end-date" class="input-inline" style="height: 32px; padding: 0 8px;">
+                        <button id="global-filter-btn" class="btn-primary btn-sm" style="height: 32px; padding: 0 16px; width: auto; flex-shrink: 0;">Apply</button>
+                    </div>
+
+                </div>
+
+                <!-- NOTIFICATION BELL -->
+                <button id="notification-bell-btn" class="icon-btn" aria-label="Notifications" style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                </button>
+                
             </div>
         </header>
 
