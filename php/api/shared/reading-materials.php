@@ -86,14 +86,30 @@ try {
             if (!empty($_FILES) && isset($_FILES['image'])) {
                 $file = $_FILES['image'];
                 $uploadDir = __DIR__ . '/../../../uploads/materials/';
-                
+
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0777, true);
                 }
-                
+
+                // Check for upload errors
+                if ($file['error'] !== UPLOAD_ERR_OK) {
+                    $errorMessages = [
+                        UPLOAD_ERR_INI_SIZE => 'File is too large (exceeds upload_max_filesize directive).',
+                        UPLOAD_ERR_FORM_SIZE => 'File is too large (exceeds MAX_FILE_SIZE directive).',
+                        UPLOAD_ERR_PARTIAL => 'File was only partially uploaded.',
+                        UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+                        UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder.',
+                        UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+                        UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.'
+                    ];
+                    $errorMsg = $errorMessages[$file['error']] ?? 'Unknown upload error.';
+                    echo json_encode(['success' => false, 'message' => 'Upload error: ' . $errorMsg]);
+                    break;
+                }
+
                 $filename = time() . '_' . basename($file['name']);
                 $filePath = $uploadDir . $filename;
-                
+
                 if (move_uploaded_file($file['tmp_name'], $filePath)) {
                     $language = $_POST['language'] ?? 'English';
                     $ocrLanguage = ($language === 'Filipino') ? 'fil' : 'eng';

@@ -4,15 +4,29 @@ require_once __DIR__ . '/../auth/config.php';
 
 function uploadReadingMaterial(array $data): array {
     global $pdo;
-    
+
     if (!isset($pdo)) {
         return ['success' => false, 'message' => 'Database connection not established'];
     }
 
     try {
+        // Check for duplicate title for the same teacher (case-insensitive)
+        $checkStmt = $pdo->prepare('SELECT material_id FROM reading_material WHERE LOWER(title) = LOWER(:title) AND teacher_id = :teacher_id');
+        $checkStmt->execute([
+            ':title' => $data['title'],
+            ':teacher_id' => $data['teacher_id']
+        ]);
+
+        if ($checkStmt->fetch()) {
+            return [
+                'success' => false,
+                'message' => 'A material with this title already exists. Please use a different title.'
+            ];
+        }
+
         // ✅ UPDATED SQL: Added :total_words to the columns and VALUES
         $stmt = $pdo->prepare(
-            'INSERT INTO reading_material (teacher_id, title, description, language, material_type, grade_level, difficulty, original_filename, file_path, ocr_text, total_words, status) 
+            'INSERT INTO reading_material (teacher_id, title, description, language, material_type, grade_level, difficulty, original_filename, file_path, ocr_text, total_words, status)
              VALUES (:teacher_id, :title, :description, :language, :material_type, :grade_level, :difficulty, :original_filename, :file_path, :ocr_text, :total_words, :status)'
         );
 
@@ -32,13 +46,13 @@ function uploadReadingMaterial(array $data): array {
         ]);
 
         return [
-            'success' => true, 
+            'success' => true,
             'material_id' => (int) $pdo->lastInsertId(),
             'message' => 'Material saved successfully'
         ];
     } catch (PDOException $e) {
         return [
-            'success' => false, 
+            'success' => false,
             'message' => 'Database error: ' . $e->getMessage()
         ];
     }
@@ -49,6 +63,23 @@ function editReadingMaterial(int $materialId, array $data): array {
 
     if (!isset($pdo)) {
         return ['success' => false, 'message' => 'Database connection not established'];
+    }
+
+    // Check for duplicate title (excluding current material, case-insensitive)
+    if (isset($data['title'])) {
+        $checkStmt = $pdo->prepare('SELECT material_id FROM reading_material WHERE LOWER(title) = LOWER(:title) AND teacher_id = :teacher_id AND material_id != :material_id');
+        $checkStmt->execute([
+            ':title' => $data['title'],
+            ':teacher_id' => $data['teacher_id'] ?? $_SESSION['user']['teacher_id'] ?? null,
+            ':material_id' => $materialId
+        ]);
+
+        if ($checkStmt->fetch()) {
+            return [
+                'success' => false,
+                'message' => 'A material with this title already exists. Please use a different title.'
+            ];
+        }
     }
 
     $allowed = ['title','description','language','material_type','grade_level','difficulty','original_filename','file_path','ocr_text','status','total_words'];
