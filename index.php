@@ -64,8 +64,7 @@ header('Content-Type: text/html; charset=utf-8');
             <div class="topbar-right" style="display: flex; align-items: center; margin-left: auto; gap: 16px; overflow-x: auto;">
                 
                 <!-- GLOBAL DATE FILTERS -->
-                <div id="global-date-filters" class="date-filter-container" style="display: flex; gap: 12px; align-items: center; white-space: nowrap;">
-                    
+                    <div id="global-date-filters" class="date-filter-container" style="display: none; gap: 12px; align-items: center; white-space: nowrap;">                    
                     <!-- Quick Filters -->
                     <div class="quick-filters" style="display: flex; gap: 4px;">
                         <button id="btn-filter-today" class="btn-secondary btn-sm" style="height: 32px; padding: 0 12px; white-space: nowrap;">Today</button>

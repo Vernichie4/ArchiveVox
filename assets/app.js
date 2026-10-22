@@ -889,6 +889,12 @@ function showApp() {
 }
 
 function setActiveView(viewName) {
+    // Hide date filters whenever navigating away from teacher home
+    const dateFiltersContainer = document.getElementById('global-date-filters');
+    if (dateFiltersContainer && viewName !== 'teacher' && viewName !== 'dashboard') {
+        dateFiltersContainer.style.display = 'none';
+    }
+    
     if (state.activeView === 'assessment' && viewName !== 'assessment') {
         cleanupAssessmentOnLeave();
     }
@@ -1157,6 +1163,12 @@ function renderView() {
 }
 
 function renderTeacherDashboard() {
+    // Show topbar date filters specifically for Teacher Dashboard Home
+    const dateFiltersContainer = document.getElementById('global-date-filters');
+    if (dateFiltersContainer) {
+        dateFiltersContainer.style.display = 'flex';
+    }
+
     const dashboard = state.dashboard || {};
     const recent = Array.isArray(dashboard.recent_assessments) ? dashboard.recent_assessments : [];
     const classPerf = Array.isArray(dashboard.class_performance) ? dashboard.class_performance : [];
