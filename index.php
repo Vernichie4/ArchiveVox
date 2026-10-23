@@ -78,6 +78,7 @@ header('Content-Type: text/html; charset=utf-8');
                         <span style="font-size: 14px; color: #666;">to</span>
                         <input type="date" id="global-end-date" class="input-inline" style="height: 32px; padding: 0 8px;">
                         <button id="global-filter-btn" class="btn-primary btn-sm" style="height: 32px; padding: 0 16px; width: auto; flex-shrink: 0;">Apply</button>
+                        <button id="global-filter-reset" class="btn-secondary btn-sm" style="height: 32px; padding: 0 12px; width: auto; flex-shrink: 0;">Reset</button>
                     </div>
 
                 </div>

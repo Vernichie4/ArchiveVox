@@ -1329,7 +1329,14 @@ function renderTeacherDashboard() {
             <div class="panel u-mt-16">
                 <div class="panel-header">
                     <h3>Class Performance</h3>
-                    <span class="chart-subtitle">Student reading fluency progress</span>
+                    <span class="chart-subtitle">Average performance by assignment</span>
+                </div>
+                <div class="panel-header u-mt-8">
+                    <label style="font-size: 13px; color: #64748b;">Filter by Assignment:</label>
+                    <select id="class-performance-assignment-filter" style="margin-left: 8px; padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 13px;">
+                        <option value="">All Assignments</option>
+                        ${classPerf.map(item => `<option value="${escapeAssessmentHtml(item.assignment)}">${escapeAssessmentHtml(item.assignment)}</option>`).join('')}
+                    </select>
                 </div>
                 <div class="chart-container chart-h-300">
                     ${hasPerformanceData ? `
@@ -1337,7 +1344,7 @@ function renderTeacherDashboard() {
                     ` : `
                         <div class="empty-state u-text-center u-py-20">
                             <p class="u-text-muted">No performance data available yet.</p>
-                            <p class="u-text-muted-xs">Complete assessments to see class performance trends.</p>
+                            <p class="u-text-muted-xs">Complete assessments to see class performance by assignment.</p>
                         </div>
                     `}
                 </div>
@@ -1453,12 +1460,24 @@ function renderTeacherDashboard() {
         setActiveView('assessment');
     });
 
+    // Store full class performance data for filtering
+    state.classPerformanceData = classPerf;
+
     // 3. PRESERVED CHART INITIALIZATION
     if (hasPerformanceData && typeof Chart !== 'undefined') {
         setTimeout(() => {
             initClassPerformanceChart(classPerf);
         }, 200);
     }
+
+    // Class performance filter event listener
+    document.getElementById('class-performance-assignment-filter')?.addEventListener('change', (e) => {
+        const selectedAssignment = e.target.value;
+        const filteredData = selectedAssignment
+            ? classPerf.filter(item => item.assignment === selectedAssignment)
+            : classPerf;
+        initClassPerformanceChart(filteredData);
+    });
 
     // Modal Close buttons
     document.querySelectorAll('.close-modal').forEach(btn => {
@@ -2074,12 +2093,11 @@ function initClassPerformanceChart(data) {
         delete state.chartInstances.classPerformance;
     }
 
-    // 1. Prepare data - map the time-series data from our backend
+    // 1. Prepare data - map the assignment data from our backend
     const labels = data.map(item => {
-        if (!item.date) return 'Unknown';
-        // Format date nicely (e.g., "Sep 9")
-        const d = new Date(item.date);
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        if (!item.assignment) return 'Unknown';
+        // Truncate long assignment titles if needed
+        return item.assignment.length > 30 ? item.assignment.substring(0, 30) + '...' : item.assignment;
     });
     
     // 2. Read the new average keys from the PHP API
@@ -6871,6 +6889,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const globalStartDate = document.getElementById('global-start-date');
     const globalEndDate = document.getElementById('global-end-date');
     const globalApplyBtn = document.getElementById('global-filter-btn');
+    const globalResetBtn = document.getElementById('global-filter-reset');
 
     // Helper to format dates to YYYY-MM-DD
     const formatDate = (date) => {
@@ -6894,8 +6913,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-filter-week')?.addEventListener('click', () => {
         const curr = new Date();
-        const first = curr.getDate() - curr.getDay(); 
-        const last = first + 6; 
+        const first = curr.getDate() - curr.getDay();
+        const last = first + 6;
         const firstDay = formatDate(new Date(curr.setDate(first)));
         const lastDay = formatDate(new Date(curr.setDate(last)));
         applyGlobalFilter(firstDay, lastDay);
@@ -6906,6 +6925,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstDay = formatDate(new Date(date.getFullYear(), date.getMonth(), 1));
         const lastDay = formatDate(new Date(date.getFullYear(), date.getMonth() + 1, 0));
         applyGlobalFilter(firstDay, lastDay);
+    });
+
+    globalResetBtn?.addEventListener('click', async () => {
+        if (globalStartDate && globalEndDate) {
+            globalStartDate.value = '';
+            globalEndDate.value = '';
+        }
+        // Reload dashboard without date filters
+        await loadDashboardData();
     });
 
     globalApplyBtn?.addEventListener('click', async () => {
