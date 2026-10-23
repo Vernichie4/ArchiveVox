@@ -5566,22 +5566,32 @@ async function renderStudentDetail(studentId) {
 
 async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) {
     try {
-        // Get teacher_id from logged-in user
-        const teacherId = state.user?.teacher_id;
-        if (!teacherId) {
-            alert('Teacher ID not found. Please ensure you are logged in as a teacher.');
+        const userRole = state.user?.role || (state.user?.principal_id ? 'principal' : 'teacher');
+
+        // Retrieve ID for teacher or principal / admin
+        // CRITICAL FIX: If the user is a principal/admin, send the ID of the teacher 
+        // whose class is currently being viewed so backend ownership checks pass.
+        let userId = state.user?.teacher_id;
+        
+        if (userRole === 'principal' || userRole === 'admin') {
+            userId = state.selectedTeacherId || state.user?.principal_id || state.user?.id;
+        } else {
+            userId = userId || state.user?.user_id || state.user?.id;
+        }
+
+        if (!userId) {
+            alert('User ID not found. Please ensure you are logged in.');
             return;
         }
 
-        const response = await fetchJson(`php/api/assignments.php?action=teacher/student-attempts&assignment_id=${assignmentId}&student_id=${studentId}&teacher_id=${teacherId}`);
+        // Pass user_id and role (or fallback teacher_id parameter)
+        const response = await fetchJson(
+            `php/api/assignments.php?action=teacher/student-attempts&assignment_id=${assignmentId}&student_id=${studentId}&teacher_id=${userId}&role=${userRole}`
+        );
 
-        // Backend now returns grouped attempts directly
         const allAttempts = response.attempts || [];
-
-        // Sort by attempt number
         allAttempts.sort((a, b) => a.attempt_number - b.attempt_number);
 
-        // Create modal HTML - merged view like main assignment tab
         const modalHtml = `
             <div id="assignmentAttemptsModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
                 <div style="background: white; border-radius: 12px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 24px;">
@@ -5603,28 +5613,25 @@ async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) 
                             <tbody>
                                 ${allAttempts.map(attempt => {
                                     const attemptTypeBadge = attempt.attempt_type === 'final'
-                                        ? `<span style="background: #dc2626; color: #1e293b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Final Score (#${attempt.attempt_number})</span>`
-                                        : `<span style="background: #64748b; color: #1e293b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Practice (#${attempt.attempt_number})</span>`;
+                                        ? `<span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Final Score (#${attempt.attempt_number})</span>`
+                                        : `<span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Practice (#${attempt.attempt_number})</span>`;
 
-                                    // Reading metrics - use the latest/most recent reading attempt
                                     let readHtml = '<span style="color: #94a3b8; font-size: 13px;">-</span>';
                                     if (attempt.reading_attempts && attempt.reading_attempts.length > 0) {
-                                        const ra = attempt.reading_attempts[attempt.reading_attempts.length - 1]; // Latest reading
+                                        const ra = attempt.reading_attempts[attempt.reading_attempts.length - 1];
                                         const acc = ra.accuracy_percentage ? Math.round(ra.accuracy_percentage) : 0;
                                         const wcpm = ra.wcpm ? Math.round(ra.wcpm) : 0;
                                         readHtml = `<strong style="color: #059669;">${acc}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${wcpm} WCPM</span>`;
                                     }
 
-                                    // Quiz score - use the latest/most recent quiz attempt
                                     let quizHtml = '<span style="color: #94a3b8; font-size: 13px;">-</span>';
                                     if (attempt.quiz_attempts && attempt.quiz_attempts.length > 0) {
-                                        const qa = attempt.quiz_attempts[attempt.quiz_attempts.length - 1]; // Latest quiz
+                                        const qa = attempt.quiz_attempts[attempt.quiz_attempts.length - 1];
                                         const perc = Math.round(qa.percentage);
                                         const color = perc >= 80 ? '#059669' : (perc >= 60 ? '#d97706' : '#dc2626');
                                         quizHtml = `<strong style="color: ${color}; font-size: 15px;">${qa.score}/${qa.total_questions}</strong><br><span style="font-size: 12px; color: #475569;">${perc}%</span>`;
                                     }
 
-                                    // Status - use the most recent status
                                     const allStatuses = [...(attempt.reading_attempts || []), ...(attempt.quiz_attempts || [])].map(r => r.activity_status || r.status);
                                     const latestStatus = allStatuses.length > 0 ? allStatuses[allStatuses.length - 1] : 'Completed';
 
@@ -5647,7 +5654,6 @@ async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) 
             </div>
         `;
 
-        // Add modal to DOM
         const modalDiv = document.createElement('div');
         modalDiv.innerHTML = modalHtml;
         document.body.appendChild(modalDiv);
