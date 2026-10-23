@@ -894,7 +894,7 @@ function setActiveView(viewName) {
     if (dateFiltersContainer && viewName !== 'teacher' && viewName !== 'dashboard') {
         dateFiltersContainer.style.display = 'none';
     }
-    
+
     if (state.activeView === 'assessment' && viewName !== 'assessment') {
         cleanupAssessmentOnLeave();
     }
@@ -5518,13 +5518,13 @@ async function renderStudentDetail(studentId) {
 
         // 2. Fetch Assignments & Quizzes (Python API)
         let assignments = [];
-        let assignmentsError = null; // NEW: Track if the fetch fails
+        let assignmentsError = null;
         try {
             const assignData = await fetchAssignmentApi(`/student/assignments?student_id=${studentId}`);
             assignments = assignData.assignments || [];
         } catch (e) {
             console.warn("Could not load Python assignments:", e);
-            assignmentsError = e.message || "Failed to connect to the assignment server."; // NEW: Capture the error
+            assignmentsError = e.message || "Failed to connect to the assignment server.";
         }
 
         // 3. Compute aggregate stats purely from completed Python Assignments
@@ -5540,109 +5540,137 @@ async function renderStudentDetail(studentId) {
         const avgWcpm = totalAssessments ? completedReadings.reduce((sum, m) => sum + (Number(m.reading_result.wcpm) || 0), 0) / totalAssessments : 0;
         const avgAccuracy = totalAssessments ? completedReadings.reduce((sum, m) => sum + (Number(m.reading_result.accuracy_percentage) || 0), 0) / totalAssessments : 0;
 
-        // Render the UI
+        // Render the UI with ArchiveVox Design Tokens
         viewContainer.innerHTML = `
-            <div class="student-detail-shell">
-                <div class="u-row-between u-mb-16">
-                    <button class="btn-secondary" id="back-to-roster" style="padding: 8px 16px;">Back</button>
-                    <div style="text-align: right;">
-                        <h2 class="u-m-0" style="color: #0f172a; font-family: 'Inter', sans-serif;">${escapeAssessmentHtml(student.first_name)} ${escapeAssessmentHtml(student.last_name)}</h2>
-                        <span class="u-text-muted">LRN: ${escapeAssessmentHtml(student.lrn || '-')}</span>
+            <div class="student-detail-shell mobile-polished">
+                <!-- Navigation & Student Header -->
+                <div class="panel-header u-mb-16" style="display: flex; justify-content: space-between; align-items: center;">
+                    <button class="btn-secondary btn-sm" id="back-to-roster">← Back</button>
+                    <div class="u-ta-right">
+                        <h2 class="u-m-0">${escapeAssessmentHtml(student.first_name)} ${escapeAssessmentHtml(student.last_name)}</h2>
+                        <span class="u-text-muted-sm">LRN: ${escapeAssessmentHtml(student.lrn || '-')}</span>
                     </div>
                 </div>
 
-                <!-- Basic Info Bar -->
-                <div class="panel u-mb-16" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px 24px;">
-                    <div class="u-grid-3 u-gap-16">
-                        <div><strong style="color: #64748b;">Grade:</strong> <span style="color: #0f172a; font-weight: 600; font-size: 16px;">${escapeAssessmentHtml(student.grade_level || '-')}</span></div>
-                        <div><strong style="color: #64748b;">Section:</strong> <span style="color: #0f172a; font-weight: 600; font-size: 16px;">${escapeAssessmentHtml(student.section || '-')}</span></div>
-                        <div><strong style="color: #64748b;">Birthdate:</strong> <span style="color: #0f172a; font-weight: 600; font-size: 16px;">${student.birthdate ? new Date(student.birthdate).toLocaleDateString() : '-'}</span></div>
-                    </div>
-                </div>
-
-                <!-- Aggregate Stat Cards (Powered by Python API) -->
-                <div class="grid three u-mb-16">
-                    <div class="stat-card" style="padding: 16px;">
-                        <h4 style="font-size: 13px;">Completed Assignments</h4>
-                        <div class="stat-number" style="font-size: 24px;">${totalAssessments}</div>
-                    </div>
-                    <div class="stat-card" style="padding: 16px; border-top-color: #3b82f6;">
-                        <h4 style="font-size: 13px;">Avg WCPM</h4>
-                        <div class="stat-number" style="font-size: 24px; color: #1d4ed8;">${avgWcpm.toFixed(1)}</div>
-                    </div>
-                    <div class="stat-card" style="padding: 16px; border-top-color: #10b981;">
-                        <h4 style="font-size: 13px;">Avg Accuracy</h4>
-                        <div class="stat-number" style="font-size: 24px; color: #059669;">${avgAccuracy.toFixed(1)}%</div>
-                    </div>
-                </div>
-
-                <!-- Python API Assignments & Quizzes -->
+                <!-- Basic Student Information Card -->
                 <div class="panel u-mb-16">
-                    <div class="panel-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <h3 style="margin: 0;">Assignments & Quizzes</h3>
+                    <div class="grid three">
+                        <div>
+                            <span class="u-text-muted-sm" style="display: block;">Grade Level</span>
+                            <strong>${escapeAssessmentHtml(student.grade_level || '-')}</strong>
+                        </div>
+                        <div>
+                            <span class="u-text-muted-sm" style="display: block;">Section</span>
+                            <strong>${escapeAssessmentHtml(student.section || '-')}</strong>
+                        </div>
+                        <div>
+                            <span class="u-text-muted-sm" style="display: block;">Birthdate</span>
+                            <strong>${student.birthdate ? new Date(student.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</strong>
                         </div>
                     </div>
+                </div>
+
+                <!-- Aggregate Stat Cards (ArchiveVox 2x2/3x1 Stats Grid) -->
+                <div class="stats-grid u-mb-16">
+                    <div class="stat-box">
+                        <div class="stat-icon bg-purple">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+                        </div>
+                        <div class="stat-text">
+                            <span class="stat-title">Completed Readings</span>
+                            <span class="stat-val">${totalAssessments}</span>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon bg-blue">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        </div>
+                        <div class="stat-text">
+                            <span class="stat-title">Avg WCPM</span>
+                            <span class="stat-val">${avgWcpm.toFixed(1)}</span>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon bg-green">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div class="stat-text">
+                            <span class="stat-title">Avg Accuracy</span>
+                            <span class="stat-val">${avgAccuracy.toFixed(1)}<span class="stat-unit">%</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignments & Quizzes Section -->
+                <div class="panel u-mb-16">
+                    <div class="panel-header">
+                        <h3>Assignments & Quizzes</h3>
+                        <span class="chart-subtitle">Individual reading progress and quiz records</span>
+                    </div>
                     
-                    <!-- NEW: Check for API error first, then length, then standard empty state -->
                     ${assignmentsError ? `
-                        <div class="empty-state" style="background: #fef2f2; border: 1px dashed #fca5a5;">
-                            <p style="margin: 0; font-size: 15px; color: #dc2626;">⚠️ Unable to load assignments</p>
-                            <p class="u-text-muted-xs" style="margin-top: 4px; color: #ef4444;">${escapeAssessmentHtml(assignmentsError)}</p>
+                        <div class="empty-state status-callout warning u-my-16">
+                            <p class="u-m-0 text-red">⚠️ Unable to load assignments</p>
+                            <p class="u-text-muted-xs u-mt-4">${escapeAssessmentHtml(assignmentsError)}</p>
                         </div>
                     ` : assignments.length ? `
                         <div class="u-scroll-x">
                             <table class="table-clean">
                                 <thead>
-                                    <tr style="background: #f8fafc;">
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">ASSIGNMENT TITLE</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">DUE DATE</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">READING METRICS</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">QUIZ SCORE</th>
-                                        <th style="padding: 12px; color: #64748b; font-size: 12px;">STATUS</th>
+                                    <tr class="table-head-accent">
+                                        <th class="u-ta-left">Assignment Title</th>
+                                        <th class="u-ta-left">Due Date</th>
+                                        <th class="u-ta-center">Reading Metrics</th>
+                                        <th class="u-ta-center">Quiz Score</th>
+                                        <th class="u-ta-center">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${assignments.map(a => {
-                                        // Look inside the materials array for results in THIS assignment
                                         const materialWithReading = a.materials?.find(m => m.reading_result);
                                         const materialWithQuiz = a.materials?.find(m => m.quiz_attempt && m.quiz_attempt.status === 'completed');
 
-                                        // Process Reading Result
-                                        let readHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
+                                        // Reading Metric formatting with accuracy badge colors
+                                        let readHtml = '<span class="u-text-muted-sm">Pending</span>';
                                         if (materialWithReading) {
                                             const rr = materialWithReading.reading_result;
                                             const acc = rr.accuracy_percentage ? Math.round(rr.accuracy_percentage) : 0;
                                             const wcpm = rr.wcpm ? Math.round(rr.wcpm) : 0;
-                                            readHtml = `<strong style="color: #059669;">${acc}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${wcpm} WCPM</span>`;
+                                            const accColor = acc >= 80 ? 'text-green' : (acc >= 60 ? 'text-orange' : 'text-red');
+                                            readHtml = `<strong class="${accColor}">${acc}% Acc</strong><br><span class="u-text-muted-xs">${wcpm} WCPM</span>`;
                                         }
 
-                                        // Process Quiz Result
-                                        let quizHtml = '<span style="color: #94a3b8; font-size: 13px;">Pending</span>';
+                                        // Quiz Result formatting
+                                        let quizHtml = '<span class="u-text-muted-sm">Pending</span>';
                                         if (materialWithQuiz) {
                                             const qa = materialWithQuiz.quiz_attempt;
                                             const perc = Math.round((qa.score / qa.total_questions) * 100);
-                                            const color = perc >= 80 ? '#059669' : (perc >= 60 ? '#d97706' : '#dc2626');
-                                            quizHtml = `<strong style="color: ${color}; font-size: 15px;">${qa.score}/${qa.total_questions}</strong><br><span style="font-size: 12px; color: #475569;">${perc}%</span>`;
+                                            const qColor = perc >= 80 ? 'text-green' : (perc >= 60 ? 'text-orange' : 'text-red');
+                                            quizHtml = `<strong class="${qColor}">${qa.score}/${qa.total_questions}</strong> <span class="u-text-muted-xs">(${perc}%)</span>`;
                                         }
 
-                                        // Smart Status Badges
-                                        let statusBadge = '<span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Assigned</span>';
+                                        // ArchiveVox status badges
+                                        let badgeClass = 'status-default';
+                                        let statusText = 'Assigned';
 
                                         if (a.status === 'completed' || (materialWithReading && materialWithQuiz)) {
-                                            statusBadge = '<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Completed</span>';
-                                        }
-                                        else if (a.status === 'in_progress' || materialWithReading || materialWithQuiz) {
-                                            statusBadge = '<span style="background: #fef9c3; color: #854d0e; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">In Progress</span>';
+                                            badgeClass = 'status-success';
+                                            statusText = 'Completed';
+                                        } else if (a.status === 'in_progress' || materialWithReading || materialWithQuiz) {
+                                            badgeClass = 'status-warning';
+                                            statusText = 'In Progress';
                                         }
 
                                         return `
-                                        <tr style="border-bottom: 1px solid #f1f5f9; cursor: pointer;" onclick="showAssignmentAttempts(${studentId}, ${a.assignment_id || a.id}, '${escapeAssessmentHtml(a.title)}')">
-                                            <td style="padding: 16px 12px;"><strong>${escapeAssessmentHtml(a.title)}</strong> <span style="color: #3b82f6; font-size: 12px;">↓ View Attempts</span></td>
-                                            <td style="padding: 16px 12px; color: #64748b; font-size: 14px;">${a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No Due Date'}</td>
-                                            <td style="padding: 16px 12px;">${readHtml}</td>
-                                            <td style="padding: 16px 12px;">${quizHtml}</td>
-                                            <td style="padding: 16px 12px;">${statusBadge}</td>
+                                        <tr class="table-row" style="cursor: pointer;" onclick="showAssignmentAttempts(${studentId}, ${a.assignment_id || a.id}, '${escapeAssessmentHtml(a.title)}')">
+                                            <td class="u-ta-left">
+                                                <strong>${escapeAssessmentHtml(a.title)}</strong> 
+                                                <span class="u-text-muted-xs" style="color: var(--color-primary, #2563eb); display: block;">↓ View Attempts</span>
+                                            </td>
+                                            <td class="u-ta-left u-text-muted-sm">${a.due_date ? new Date(a.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No Due Date'}</td>
+                                            <td class="u-ta-center">${readHtml}</td>
+                                            <td class="u-ta-center">${quizHtml}</td>
+                                            <td class="u-ta-center"><span class="status-badge ${badgeClass}">${statusText}</span></td>
                                         </tr>
                                         `;
                                     }).join('')}
@@ -5650,9 +5678,9 @@ async function renderStudentDetail(studentId) {
                             </table>
                         </div>
                     ` : `
-                        <div class="empty-state">
-                            <p style="margin: 0; font-size: 15px;">No assignments found for this student.</p>
-                            <p class="u-text-muted-xs" style="margin-top: 4px;">Assign them reading materials from the Assignments tab.</p>
+                        <div class="empty-state u-text-center u-py-20">
+                            <p class="u-text-muted">No assignments found for this student.</p>
+                            <p class="u-text-muted-xs">Assign them reading materials from the Assignments tab.</p>
                         </div>
                     `}
                 </div>
