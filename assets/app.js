@@ -941,10 +941,6 @@ function renderNavigation() {
         assignments: {
             inactive: `<svg viewBox="0 0 24 24" ...><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 2h8v2H8V8zm0 4h8v2H8v-2zm0 4h5v2H8v-2z"/></svg>`,
             active: `<svg viewBox="0 0 24 24" ...><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h8v2H7V7zm0 4h8v2H7v-2zm0 4h5v2H7v-2z"/></svg>`
-        },
-        reports: {
-            inactive: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 2h14a3 3 0 0 1 3 3v17h-6v-2h4V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v15h4v2H2V5a3 3 0 0 1 3-3Zm4 16h2V10H9v8Zm4 0h2V8h-2v10Zm4 0h2v-6h-2v6Z"/></svg>',
-            active: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h14a2 2 0 0 1 2 2v14h-4v-2h2V5H5v14h2v2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm4 14h2V9H9v8Zm4 0h2V7h-2v10Zm4 0h2v-5h-2v5Z"/></svg>'
         }
     };
 
@@ -953,29 +949,22 @@ function renderNavigation() {
             { key: 'dashboard', label: 'Home' },
             { key: 'students', label: 'Students' },
             { key: 'materials', label: 'Library' },
-            { key: 'assignments', label: 'Assignments' },
-            { key: 'reports', label: 'Reports' }
+            { key: 'assignments', label: 'Assignments' }
         ],
         principal: [
             { key: 'dashboard', label: 'Home' },
-            { key: 'teachers', label: 'Teachers' },
-            { key: 'reports', label: 'Reports' }
+            { key: 'teachers', label: 'Teachers' }
         ],
         admin: [
             { key: 'dashboard', label: 'Home' },
             { key: 'teachers', label: 'Teachers' },
             { key: 'students', label: 'Students' },
-            { key: 'materials', label: 'Library' },
-            { key: 'reports', label: 'Reports' }
+            { key: 'materials', label: 'Library' }
         ],
         student: [
             { key: 'dashboard', label: 'Home' },
             { key: 'assignments', label: 'Assignments' },
             { key: 'materials', label: 'Library' }
-        ],
-        parent: [
-            { key: 'dashboard', label: 'Home' },
-            { key: 'reports', label: 'Reports' }
         ]
     };
 
@@ -5366,151 +5355,6 @@ async function populateExportClassDropdown() {
         console.warn('Could not load classes:', error);
         select.innerHTML = '<option value="">Error loading classes</option>';
     }
-}
-
-// ============================================================
-// 6. REPORTING & ANALYTICS (Continued)
-// ============================================================
-
-function renderReports() {
-    const role = String(state.user?.role || '').toLowerCase();
-
-    // Unified report view with export class report button
-    viewContainer.innerHTML = `
-        <div class="reports-shell">
-            <div class="reports-toolbar">
-                <div class="u-row-wrap u-gap-8">
-                    <button id="report-school-wide" class="btn-primary">School Overview</button>
-                    <button id="report-by-grade" class="btn-secondary">By Grade Level</button>
-                    <button id="report-materials" class="btn-secondary">Material Usage</button>
-                    <button id="export-class-report-btn" class="btn-export">📊 Export Class Report</button>
-                    <button id="refresh-reports-btn" class="btn-secondary">Refresh</button>
-                </div>
-            </div>
-
-            <div id="report-content" class="u-mt-16">
-                <div class="panel">
-                    <p class="u-text-muted">Select a report type to view</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Export Class Report Modal -->
-        <div id="export-class-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Export Class Report</h3>
-                    <button class="close-modal">x</button>
-                </div>
-                <form id="export-class-form">
-                    <!-- Scope Toggle -->
-                    <div class="form-group" style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                        <label style="margin-bottom: 8px; font-weight: 600;">Report Scope</label>
-                        <div style="display: flex; gap: 16px;">
-                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
-                                <input type="radio" name="export_scope" value="class" checked> Specific Class
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
-                                <input type="radio" name="export_scope" value="grade"> Entire Grade
-                            </label>
-                        </div>
-                    </div>
-                    <!-- Grade Dropdown (Hidden by default) -->
-                    <div class="form-group hidden" id="group-grade-select" style="display: none;">
-                        <label for="export-grade-select">Select Grade Level</label>
-                        <select id="export-grade-select" name="grade_level">
-                            <option value="">All Grades</option>
-                            <option value="Grade 1">Grade 1</option>
-                            <option value="Grade 2">Grade 2</option>
-                            <option value="Grade 3">Grade 3</option>
-                            <option value="Grade 4">Grade 4</option>
-                            <option value="Grade 5">Grade 5</option>
-                            <option value="Grade 6">Grade 6</option>
-                        </select>
-                    </div>
-                    <!-- Language Filter (Always visible) -->
-                    <div class="form-group">
-                        <label for="export-language-select">Target Language</label>
-                        <select id="export-language-select" name="language">
-                            <option value="">All Languages</option>
-                            <option value="English">English</option>
-                            <option value="Filipino">Filipino</option>
-                        </select>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button type="submit" class="btn-primary">Generate & Download CSV</button>
-                        <button type="button" class="btn-secondary close-modal">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    `;
-
-    // Event listeners for existing buttons
-    document.getElementById('report-school-wide')?.addEventListener('click', () => loadAndDisplayReport('school-wide'));
-    document.getElementById('report-by-grade')?.addEventListener('click', () => loadAndDisplayReport('class-performance'));
-    document.getElementById('report-materials')?.addEventListener('click', () => loadAndDisplayReport('material-usage'));
-    document.getElementById('refresh-reports-btn')?.addEventListener('click', () => renderReports());
-
-// Export button
-    document.getElementById('export-class-report-btn')?.addEventListener('click', () => {
-        populateExportClassDropdown();
-        showModal('export-class-modal');
-    });
-
-    // Close modal
-    document.querySelectorAll('#export-class-modal .close-modal').forEach(btn => {
-        btn.addEventListener('click', () => closeModal('export-class-modal'));
-    });
-
-    // Handle scope toggle (Class vs Grade)
-    document.querySelectorAll('input[name="export_scope"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            const classGroup = document.getElementById('group-class-select');
-            const gradeGroup = document.getElementById('group-grade-select');
-            
-            if (e.target.value === 'class') {
-                classGroup.style.display = 'block';
-                gradeGroup.style.display = 'none';
-                document.getElementById('export-grade-select').value = ""; // Reset hidden field
-            } else {
-                classGroup.style.display = 'none';
-                gradeGroup.style.display = 'block';
-                document.getElementById('export-class-select').value = ""; // Reset hidden field
-            }
-        });
-    });
-
-    // Form submit
-    document.getElementById('export-class-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const classId = document.getElementById('export-class-select').value;
-        const gradeLevel = document.getElementById('export-grade-select').value;
-        const language = document.getElementById('export-language-select').value;
-
-        // Build URL with parameters
-        let url = 'php/api/teacher/export-class-report.php?';
-        if (classId) url += `class_id=${encodeURIComponent(classId)}&`;
-        if (gradeLevel) url += `grade_level=${encodeURIComponent(gradeLevel)}&`;
-        if (language) url += `language=${encodeURIComponent(language)}&`;
-        // Remove trailing & if any
-        url = url.replace(/&$/, '');
-
-        // Trigger download via hidden iframe or window.open
-        // Using window.open to start download
-        window.open(url, '_blank');
-        closeModal('export-class-modal');
-    });
-}
-
-function renderDefaultReports() {
-    viewContainer.innerHTML = `
-        <div class="panel">
-            <h3>📃 Reports</h3>
-            <p>Reports not available for your role</p>
-        </div>
-    `;
 }
 
 // ============================================================
