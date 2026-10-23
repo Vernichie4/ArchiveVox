@@ -122,14 +122,16 @@ try {
         ");
         $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Class Performance Time Series
+        // Class Performance by Assignment
         $stmt = $pdo->query("
-            SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
-            FROM assessment_result ar 
+            SELECT ra2.title as assignment, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy
+            FROM assessment_result ar
             JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+            JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+            JOIN reading_assignment ra2 ON ram.assignment_id = ra2.assignment_id
             WHERE 1=1 $langFilterRa $dateFilterSql
-            GROUP BY DATE(ar.assessed_at) 
-            ORDER BY DATE(ar.assessed_at) ASC LIMIT 7
+            GROUP BY ra2.assignment_id, ra2.title
+            ORDER BY ra2.assignment_id DESC LIMIT 7
         ");
         $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -272,17 +274,19 @@ try {
             ");
             $dashboard['recent_assessments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Class Performance
+            // Class Performance by Assignment
             $stmt = $pdo->query("
-                SELECT DATE(ar.assessed_at) as date, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy 
-                FROM assessment_result ar 
-                JOIN reading_activity ra ON ar.activity_id = ra.activity_id 
-                JOIN student s ON ra.student_id = s.student_id 
-                WHERE s.teacher_id = $teacherId 
+                SELECT ra2.title as assignment, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy
+                FROM assessment_result ar
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                JOIN student s ON ra.student_id = s.student_id
+                JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+                JOIN reading_assignment ra2 ON ram.assignment_id = ra2.assignment_id
+                WHERE s.teacher_id = $teacherId
                 $langFilterRa
                 $dateFilterSql
-                GROUP BY DATE(ar.assessed_at) 
-                ORDER BY DATE(ar.assessed_at) ASC LIMIT 7
+                GROUP BY ra2.assignment_id, ra2.title
+                ORDER BY ra2.assignment_id DESC LIMIT 7
             ");
             $dashboard['class_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
