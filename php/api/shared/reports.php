@@ -124,7 +124,11 @@ try {
 
         // Class Performance by Assignment
         $stmt = $pdo->query("
-            SELECT ra2.title as assignment, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy
+            SELECT ra2.title as assignment, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy,
+                   SUM(ar.substitutions) as total_substitutions,
+                   SUM(ar.omissions) as total_omissions,
+                   SUM(ar.insertions) as total_insertions,
+                   SUM(ar.repetitions) as total_repetitions
             FROM assessment_result ar
             JOIN reading_activity ra ON ar.activity_id = ra.activity_id
             JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
@@ -276,7 +280,11 @@ try {
 
             // Class Performance by Assignment
             $stmt = $pdo->query("
-                SELECT ra2.title as assignment, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy
+                SELECT ra2.title as assignment, AVG(ar.wcpm) as avg_wcpm, AVG(ar.accuracy_percentage) as avg_accuracy,
+                       SUM(ar.substitutions) as total_substitutions,
+                       SUM(ar.omissions) as total_omissions,
+                       SUM(ar.insertions) as total_insertions,
+                       SUM(ar.repetitions) as total_repetitions
                 FROM assessment_result ar
                 JOIN reading_activity ra ON ar.activity_id = ra.activity_id
                 JOIN student s ON ra.student_id = s.student_id

@@ -1162,6 +1162,19 @@ function renderTeacherDashboard() {
     const recent = Array.isArray(dashboard.recent_assessments) ? dashboard.recent_assessments : [];
     const classPerf = Array.isArray(dashboard.class_performance) ? dashboard.class_performance : [];
     const recentStudents = Array.isArray(dashboard.recent_students) ? dashboard.recent_students : [];
+
+    // Get filter values from state (default to empty string)
+    const tagalogFilter = state.tagalogAssignmentFilter || '';
+    const englishFilter = state.englishAssignmentFilter || '';
+
+    // Filter recent assessments based on selected assignment
+    const tagalogAssessments = tagalogFilter
+        ? recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog' && item.material_title === tagalogFilter)
+        : recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog');
+
+    const englishAssessments = englishFilter
+        ? recent.filter(item => (item.language || '').toLowerCase() === 'english' && item.material_title === englishFilter)
+        : recent.filter(item => (item.language || '').toLowerCase() === 'english');
     
     // Calculate real stats from database with safe defaults
     const myStudents = Number(dashboard.my_students || 0);
@@ -1226,10 +1239,17 @@ function renderTeacherDashboard() {
                 <div class="recent-assessments-panel">
                     <div class="panel-header u-mb-0" style="padding-bottom: 8px;">
                         <h3 class="panel-heading" style="margin:0;">Tagalog Assessments</h3>
-                        ${recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog').length > 0 ? `<button class="btn-secondary btn-sm view-all-modal-btn" data-language="tagalog" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
+                        ${tagalogAssessments.length > 0 ? `<button class="btn-secondary btn-sm view-all-modal-btn" data-language="tagalog" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
+                    </div>
+                    <div class="panel-header u-mb-0" style="padding-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 12px; color: #64748b; margin: 0;">Filter:</label>
+                        <select id="tagalog-assignment-filter" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; min-width: 180px;">
+                            <option value="">All Assignments</option>
+                            ${[...new Set(recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog').map(item => item.material_title))].map(title => `<option value="${escapeAssessmentHtml(title)}" ${state.tagalogAssignmentFilter === title ? 'selected' : ''}>${escapeAssessmentHtml(title)}</option>`).join('')}
+                        </select>
                     </div>
                     <div class="recent-list">
-                        ${recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog').length ? recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog').slice(0, 4).map(item => {
+                        ${tagalogAssessments.length ? tagalogAssessments.slice(0, 4).map(item => {
                             const initials = (item.student_name || 'S').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                             const acc = Number(item.accuracy_percentage || 0);
                             const accColor = acc >= 80 ? 'text-green' : (acc >= 60 ? 'text-orange' : 'text-red');
@@ -1256,10 +1276,17 @@ function renderTeacherDashboard() {
                 <div class="recent-assessments-panel">
                     <div class="panel-header u-mb-0" style="padding-bottom: 8px;">
                         <h3 class="panel-heading" style="margin:0;">English Assessments</h3>
-                        ${recent.filter(item => (item.language || '').toLowerCase() === 'english').length > 0 ? `<button class="btn-secondary btn-sm view-all-modal-btn" data-language="english" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
+                        ${englishAssessments.length > 0 ? `<button class="btn-secondary btn-sm view-all-modal-btn" data-language="english" style="border:none; padding:4px 8px; font-size:13px;">View All</button>` : ''}
+                    </div>
+                    <div class="panel-header u-mb-0" style="padding-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 12px; color: #64748b; margin: 0;">Filter:</label>
+                        <select id="english-assignment-filter" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; min-width: 180px;">
+                            <option value="">All Assignments</option>
+                            ${[...new Set(recent.filter(item => (item.language || '').toLowerCase() === 'english').map(item => item.material_title))].map(title => `<option value="${escapeAssessmentHtml(title)}" ${state.englishAssignmentFilter === title ? 'selected' : ''}>${escapeAssessmentHtml(title)}</option>`).join('')}
+                        </select>
                     </div>
                     <div class="recent-list">
-                        ${recent.filter(item => (item.language || '').toLowerCase() === 'english').length ? recent.filter(item => (item.language || '').toLowerCase() === 'english').slice(0, 4).map(item => {
+                        ${englishAssessments.length ? englishAssessments.slice(0, 4).map(item => {
                             const initials = (item.student_name || 'S').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                             const acc = Number(item.accuracy_percentage || 0);
                             const accColor = acc >= 80 ? 'text-green' : (acc >= 60 ? 'text-orange' : 'text-red');
@@ -1327,15 +1354,27 @@ function renderTeacherDashboard() {
                         ${classPerf.map(item => `<option value="${escapeAssessmentHtml(item.assignment)}">${escapeAssessmentHtml(item.assignment)}</option>`).join('')}
                     </select>
                 </div>
-                <div class="chart-container chart-h-300">
-                    ${hasPerformanceData ? `
-                        <canvas id="classPerformanceChart"></canvas>
-                    ` : `
-                        <div class="empty-state u-text-center u-py-20">
-                            <p class="u-text-muted">No performance data available yet.</p>
-                            <p class="u-text-muted-xs">Complete assessments to see class performance by assignment.</p>
-                        </div>
-                    `}
+                <div class="grid two">
+                    <div class="chart-container chart-h-300">
+                        ${hasPerformanceData ? `
+                            <canvas id="classPerformanceChart"></canvas>
+                        ` : `
+                            <div class="empty-state u-text-center u-py-20">
+                                <p class="u-text-muted">No performance data available yet.</p>
+                                <p class="u-text-muted-xs">Complete assessments to see class performance by assignment.</p>
+                            </div>
+                        `}
+                    </div>
+                    <div class="chart-container chart-h-300">
+                        ${hasPerformanceData ? `
+                            <canvas id="miscuePieChart"></canvas>
+                        ` : `
+                            <div class="empty-state u-text-center u-py-20">
+                                <p class="u-text-muted">No miscue data available yet.</p>
+                                <p class="u-text-muted-xs">Complete assessments to see miscue analysis.</p>
+                            </div>
+                        `}
+                    </div>
                 </div>
             </div>
 
@@ -1438,6 +1477,17 @@ function renderTeacherDashboard() {
         });
     });
 
+    // Recent assessments assignment filters
+    document.getElementById('tagalog-assignment-filter')?.addEventListener('change', (e) => {
+        state.tagalogAssignmentFilter = e.target.value;
+        renderTeacherDashboard(); // Re-render to apply filter
+    });
+
+    document.getElementById('english-assignment-filter')?.addEventListener('change', (e) => {
+        state.englishAssignmentFilter = e.target.value;
+        renderTeacherDashboard(); // Re-render to apply filter
+    });
+
     // Allow pressing "Enter" in the search box
     document.getElementById('student-id-input')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchStudent();
@@ -1456,6 +1506,7 @@ function renderTeacherDashboard() {
     if (hasPerformanceData && typeof Chart !== 'undefined') {
         setTimeout(() => {
             initClassPerformanceChart(classPerf);
+            initMiscuePieChart(classPerf);
         }, 200);
     }
 
@@ -1466,6 +1517,7 @@ function renderTeacherDashboard() {
             ? classPerf.filter(item => item.assignment === selectedAssignment)
             : classPerf;
         initClassPerformanceChart(filteredData);
+        initMiscuePieChart(filteredData);
     });
 
     // Modal Close buttons
@@ -1481,9 +1533,16 @@ async function openViewAllAssessmentsModal(language) {
     const dashboard = state.dashboard || {};
     const recent = Array.isArray(dashboard.recent_assessments) ? dashboard.recent_assessments : [];
 
+    const filter = language === 'tagalog' ? state.tagalogAssignmentFilter : state.englishAssignmentFilter;
+
     const filtered = language === 'tagalog'
         ? recent.filter(item => (item.language || '').toLowerCase() === 'filipino' || (item.language || '').toLowerCase() === 'tagalog')
         : recent.filter(item => (item.language || '').toLowerCase() === 'english');
+
+    // Apply assignment filter if selected
+    const finalFiltered = filter
+        ? filtered.filter(item => item.material_title === filter)
+        : filtered;
 
     const contentEl = document.getElementById('view-all-assessments-content');
     const titleEl = document.getElementById('view-all-assessments-title');
@@ -1505,7 +1564,7 @@ async function openViewAllAssessmentsModal(language) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${filtered.length ? filtered.map(item => {
+                        ${finalFiltered.length ? finalFiltered.map(item => {
                             const acc = Number(item.accuracy_percentage || 0);
                             const accColor = acc >= 80 ? '#10b981' : (acc >= 60 ? '#f59e0b' : '#ef4444');
                             const dateStr = item.assessed_at ? new Date(item.assessed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -2156,6 +2215,95 @@ function initClassPerformanceChart(data) {
                     ticks: {
                         maxRotation: 45,
                         minRotation: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+function initMiscuePieChart(data) {
+    const ctx = document.getElementById('miscuePieChart');
+    if (!ctx) return;
+
+    // Destroy existing chart instance
+    if (state.chartInstances.miscuePie) {
+        state.chartInstances.miscuePie.destroy();
+        delete state.chartInstances.miscuePie;
+    }
+
+    // Aggregate miscue counts across all assignments
+    const totalSubstitutions = data.reduce((sum, item) => sum + Number(item.total_substitutions || 0), 0);
+    const totalOmissions = data.reduce((sum, item) => sum + Number(item.total_omissions || 0), 0);
+    const totalInsertions = data.reduce((sum, item) => sum + Number(item.total_insertions || 0), 0);
+    const totalRepetitions = data.reduce((sum, item) => sum + Number(item.total_repetitions || 0), 0);
+
+    const totalMiscues = totalSubstitutions + totalOmissions + totalInsertions + totalRepetitions;
+
+    const formatLabel = (label, value) => {
+        const percentage = totalMiscues > 0 ? ((value / totalMiscues) * 100).toFixed(1) : 0;
+        return `${label} (${percentage}%)`;
+    };
+
+    state.chartInstances.miscuePie = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: [
+                formatLabel('Substitutions', totalSubstitutions),
+                formatLabel('Omissions', totalOmissions),
+                formatLabel('Insertions', totalInsertions),
+                formatLabel('Repetitions', totalRepetitions)
+            ],
+            datasets: [{
+                data: [totalSubstitutions, totalOmissions, totalInsertions, totalRepetitions],
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.7)',   // Red for substitutions
+                    'rgba(249, 115, 22, 0.7)',  // Orange for omissions
+                    'rgba(34, 197, 94, 0.7)',   // Green for insertions
+                    'rgba(59, 130, 246, 0.7)'   // Blue for repetitions
+                ],
+                borderColor: [
+                    '#ef4444',
+                    '#f97316',
+                    '#22c55e',
+                    '#3b82f6'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Miscue Analysis',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const rawLabel = ['Substitutions', 'Omissions', 'Insertions', 'Repetitions'][context.dataIndex] || '';
+                            const value = context.parsed || 0;
+                            const descriptions = {
+                                'Substitutions': 'Student replaces a word with another word',
+                                'Omissions': 'Student skips or omits a word while reading',
+                                'Insertions': 'Student adds a word that is not in the text',
+                                'Repetitions': 'Student repeats a word or phrase'
+                            };
+                            return `${rawLabel}: ${value} - ${descriptions[rawLabel] || ''}`;
+                        }
                     }
                 }
             }
