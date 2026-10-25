@@ -2399,9 +2399,29 @@ function startAssessment() {
 // 3. VIEW ROUTING (Continued: Dashboards)
 // ============================================================
 
-async function loadPrincipalDashboard() {
+async function loadPrincipalDashboard(arg1 = '', arg2 = '', arg3 = '') {
     try {
-        const data = await fetchJson('php/api/modules/principal-dashboard.php');
+        let startDate = '';
+        let endDate = '';
+
+        // Detect if the app is passing 3 arguments (filter, start, end) or just 2 (start, end)
+        if (arg3 && arg3.includes('-')) {
+            startDate = arg2;
+            endDate = arg3;
+        } else if (arg1 && arg1.includes('-')) {
+            startDate = arg1;
+            endDate = arg2;
+        }
+
+        // Construct the URL
+        let url = 'php/api/modules/principal-dashboard.php';
+        
+        // Append query parameters only if we successfully captured valid dates
+        if (startDate && endDate) {
+            url += `?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+        }
+
+        const data = await fetchJson(url);
         if (data.success && data.dashboard) {
             state.principalDashboard = data.dashboard;
             if (state.activeView === 'dashboard') {
@@ -2414,7 +2434,13 @@ async function loadPrincipalDashboard() {
 }
 
 function renderPrincipalDashboard() {
-    // 1. DATA PREPARATION (Unchanged)
+    // 1. SHOW GLOBAL DATE FILTERS FOR PRINCIPAL DASHBOARD
+    const dateFiltersContainer = document.getElementById('global-date-filters');
+    if (dateFiltersContainer) {
+        dateFiltersContainer.style.display = 'flex';
+    }
+
+    // 2. DATA PREPARATION (Unchanged)
     const dashboard = state.principalDashboard || {
         total_students: 0,
         total_materials: 0,
@@ -2447,7 +2473,7 @@ function renderPrincipalDashboard() {
     const assessmentsTrendText = `${safeNumber(dashboard.assessments_this_month, 0)} this month`;
     const accuracyTrendText = `${safeNumber(dashboard.accuracy_trend, 1)}% from last mo.`;
 
-    // 2. GENERATE HTML BLOCKS OUTSIDE OF INNERHTML (Fixes the red IDE errors)
+    // 3. GENERATE HTML BLOCKS OUTSIDE OF INNERHTML
     const riskStudentsHtml = riskStudents.length ? riskStudents.slice(0, 5).map(student => {
         const fName = student.first_name || '';
         const lName = student.last_name || '';
@@ -2490,7 +2516,7 @@ function renderPrincipalDashboard() {
     }).join('') : '<p class="u-text-muted u-text-center u-py-20">No assessments yet.</p>';
 
 
-    // 3. APPLY UI (Cleanly interpolated)
+    // 4. APPLY UI
     viewContainer.innerHTML = `
         <div class="principal-dashboard mobile-polished">
             
@@ -2601,7 +2627,7 @@ function renderPrincipalDashboard() {
         </div>
     `;
 
-    // 4. EVENT LISTENERS
+    // 5. EVENT LISTENERS
     document.getElementById('hero-view-reports-btn')?.addEventListener('click', () => {
         if (typeof setActiveView === 'function') setActiveView('reports');
     });
@@ -6012,9 +6038,9 @@ async function loadDashboardData(startDate = null, endDate = null) {
         let data;
         let queryParams = '';
 
-        // Build query string if date parameters are passed
+        // Explicitly set dateFilter=custom along with the dates
         if (startDate && endDate) {
-            queryParams = `&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+            queryParams = `&dateFilter=custom&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
         }
 
         if (role === 'teacher') {
@@ -6953,13 +6979,19 @@ document.addEventListener('DOMContentLoaded', () => {
         applyGlobalFilter(firstDay, lastDay);
     });
 
-    globalResetBtn?.addEventListener('click', async () => {
+globalResetBtn?.addEventListener('click', async () => {
         if (globalStartDate && globalEndDate) {
             globalStartDate.value = '';
             globalEndDate.value = '';
         }
-        // Reload dashboard without date filters
-        await loadDashboardData();
+        
+        // Reload the correct dashboard without date filters
+        const role = String(state.user?.role || '').toLowerCase();
+        if (role === 'principal' || role === 'admin') {
+            await loadPrincipalDashboard('all', '', '');
+        } else {
+            await loadDashboardData('', '');
+        }
     });
 
     globalApplyBtn?.addEventListener('click', async () => {
@@ -6970,8 +7002,13 @@ document.addEventListener('DOMContentLoaded', () => {
             globalApplyBtn.disabled = true;
             globalApplyBtn.textContent = 'Loading...';
             
-            // Pass dates directly to existing function
-            await loadDashboardData(start, end); 
+            // Route the dates to the correct dashboard API
+            const role = String(state.user?.role || '').toLowerCase();
+            if (role === 'principal' || role === 'admin') {
+                await loadPrincipalDashboard('custom', start, end);
+            } else {
+                await loadDashboardData(start, end); 
+            }
             
             globalApplyBtn.disabled = false;
             globalApplyBtn.textContent = 'Apply';
@@ -6979,5 +7016,4 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please select both a start and end date.");
         }
     });
-
 });
