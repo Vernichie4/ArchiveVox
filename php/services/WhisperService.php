@@ -17,23 +17,24 @@ class WhisperService
     public function __construct(string $language = 'auto')
     {
         // Try to find Python in system PATH (works on both local and production)
-        $pythonPaths = [
+        // On Windows, prioritize 'python' over 'python3'
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $pythonPaths = $isWindows ? [
+            'python', // Windows - try this first
+            'py', // Windows Python launcher
+            'python3', // Windows - less common
+        ] : [
             '/opt/whisper-venv/bin/python3', // Docker virtual environment
             'python3', // Linux/Railway
-            'python', // Windows/Linux
-            'python3.14',
-            'python3.13',
-            'python3.12',
+            'python', // Linux
         ];
 
-        $this->pythonPath = 'python3'; // Default for production
+        $this->pythonPath = $isWindows ? 'python' : 'python3'; // Default based on OS
         foreach ($pythonPaths as $path) {
-            if (file_exists($path) || $path === 'python3' || $path === 'python') {
-                $output = shell_exec($path . ' --version 2>&1');
-                if ($output !== null && strpos($output, 'Python') !== false) {
-                    $this->pythonPath = $path;
-                    break;
-                }
+            $output = shell_exec($path . ' --version 2>&1');
+            if ($output !== null && strpos($output, 'Python') !== false) {
+                $this->pythonPath = $path;
+                break;
             }
         }
 
@@ -109,7 +110,9 @@ class WhisperService
         }
 
         // Execute and capture output
+        error_log("Transcription command: " . $command);
         $output = shell_exec($command . ' 2>&1');
+        error_log("Raw output: " . ($output ?? 'NULL'));
         if ($output === null) {
             return [
                 'success' => false,
