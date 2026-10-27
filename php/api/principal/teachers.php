@@ -62,7 +62,6 @@ try {
             
             $stmt = $pdo->prepare('
                 SELECT
-                    s.class_id,
                     t.teacher_id,
                     t.user_id,
                     u.username,

@@ -12243,3 +12243,765 @@ Array
 
 [2026-09-26 17:35:05] Preview complete. Valid: 5, Errors: 0
 
+[2026-10-28 00:44:53] File uploaded: Eunice Effer Section Mayon.xlsx (9433 bytes)
+
+[2026-10-28 00:44:53] Parsing XLSX file: C:\xampp\tmp\phpA2DB.tmp
+
+[2026-10-28 00:44:53] Shared strings loaded: 31
+
+[2026-10-28 00:44:53] Excel rows read: 8
+
+[2026-10-28 00:44:53] normalizeImportRows called with 8 rows
+
+[2026-10-28 00:44:53] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-10-28 00:44:53] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-10-28 00:44:53] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-10-28 00:44:53] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-10-28 00:44:53] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-10-28 00:44:53] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-10-28 00:44:53] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-10-28 00:44:53] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-10-28 00:44:53] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-10-28 00:44:53] Data rows to process: 7
+
+[2026-10-28 00:44:53] Row 1 normalized: Array
+(
+    [lrn] => 108231220001
+    [first_name] => Miguel
+    [last_name] => Santos
+    [middle_name] => Mendoza
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 2 normalized: Array
+(
+    [lrn] => 108231220002
+    [first_name] => Sofia
+    [last_name] => Reyes
+    [middle_name] => Tolentino
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 3 normalized: Array
+(
+    [lrn] => 108231220003
+    [first_name] => Ethan
+    [last_name] => Cruz
+    [middle_name] => Dela Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 4 normalized: Array
+(
+    [lrn] => 108231220004
+    [first_name] => Chloe
+    [last_name] => Bautista
+    [middle_name] => Ilagan
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 5 normalized: Array
+(
+    [lrn] => 108231220005
+    [first_name] => Juan
+    [last_name] => Garcia
+    [middle_name] => De Leon
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 6 normalized: Array
+(
+    [lrn] => 108231210006
+    [first_name] => Maria
+    [last_name] => Villanueva
+    [middle_name] => Alvarez
+    [grade_level] => 3
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 7 normalized: Array
+(
+    [lrn] => 108231210007
+    [first_name] => Liam
+    [last_name] => Torres
+    [middle_name] => Ocampo
+    [grade_level] => 3
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Normalization complete. Returning 7 rows
+
+[2026-10-28 00:44:53] Normalized rows: 7
+
+[2026-10-28 00:44:53] previewStudents called with 7 rows
+
+[2026-10-28 00:44:53] Previewing row 1: Array
+(
+    [lrn] => 108231220001
+    [first_name] => Miguel
+    [last_name] => Santos
+    [middle_name] => Mendoza
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 2 valid: Miguel Santos
+
+[2026-10-28 00:44:53] Previewing row 2: Array
+(
+    [lrn] => 108231220002
+    [first_name] => Sofia
+    [last_name] => Reyes
+    [middle_name] => Tolentino
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 3 valid: Sofia Reyes
+
+[2026-10-28 00:44:53] Previewing row 3: Array
+(
+    [lrn] => 108231220003
+    [first_name] => Ethan
+    [last_name] => Cruz
+    [middle_name] => Dela Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 4 valid: Ethan Cruz
+
+[2026-10-28 00:44:53] Previewing row 4: Array
+(
+    [lrn] => 108231220004
+    [first_name] => Chloe
+    [last_name] => Bautista
+    [middle_name] => Ilagan
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 5 valid: Chloe Bautista
+
+[2026-10-28 00:44:53] Previewing row 5: Array
+(
+    [lrn] => 108231220005
+    [first_name] => Juan
+    [last_name] => Garcia
+    [middle_name] => De Leon
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 6 valid: Juan Garcia
+
+[2026-10-28 00:44:53] Previewing row 6: Array
+(
+    [lrn] => 108231210006
+    [first_name] => Maria
+    [last_name] => Villanueva
+    [middle_name] => Alvarez
+    [grade_level] => 3
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 7 valid: Maria Villanueva
+
+[2026-10-28 00:44:53] Previewing row 7: Array
+(
+    [lrn] => 108231210007
+    [first_name] => Liam
+    [last_name] => Torres
+    [middle_name] => Ocampo
+    [grade_level] => 3
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:44:53] Row 8 valid: Liam Torres
+
+[2026-10-28 00:44:53] Preview complete. Valid: 7, Errors: 0
+
+[2026-10-28 00:53:40] File uploaded: Eunice Effer Section Mayon.xlsx (9434 bytes)
+
+[2026-10-28 00:53:40] Parsing XLSX file: C:\xampp\tmp\phpAF97.tmp
+
+[2026-10-28 00:53:40] Shared strings loaded: 31
+
+[2026-10-28 00:53:40] Excel rows read: 8
+
+[2026-10-28 00:53:40] normalizeImportRows called with 8 rows
+
+[2026-10-28 00:53:40] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-10-28 00:53:40] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-10-28 00:53:40] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-10-28 00:53:40] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-10-28 00:53:40] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-10-28 00:53:40] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-10-28 00:53:40] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-10-28 00:53:40] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-10-28 00:53:40] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-10-28 00:53:40] Data rows to process: 7
+
+[2026-10-28 00:53:40] Row 1 normalized: Array
+(
+    [lrn] => 108231220001
+    [first_name] => Miguel
+    [last_name] => Santos
+    [middle_name] => Mendoza
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 2 normalized: Array
+(
+    [lrn] => 108231220002
+    [first_name] => Sofia
+    [last_name] => Reyes
+    [middle_name] => Tolentino
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 3 normalized: Array
+(
+    [lrn] => 108231220003
+    [first_name] => Ethan
+    [last_name] => Cruz
+    [middle_name] => Dela Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 4 normalized: Array
+(
+    [lrn] => 108231220004
+    [first_name] => Chloe
+    [last_name] => Bautista
+    [middle_name] => Ilagan
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 5 normalized: Array
+(
+    [lrn] => 108231220005
+    [first_name] => Juan
+    [last_name] => Garcia
+    [middle_name] => De Leon
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 6 normalized: Array
+(
+    [lrn] => 108231210006
+    [first_name] => Maria
+    [last_name] => Villanueva
+    [middle_name] => Alvarez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 7 normalized: Array
+(
+    [lrn] => 108231210007
+    [first_name] => Liam
+    [last_name] => Torres
+    [middle_name] => Ocampo
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Normalization complete. Returning 7 rows
+
+[2026-10-28 00:53:40] Normalized rows: 7
+
+[2026-10-28 00:53:40] previewStudents called with 7 rows
+
+[2026-10-28 00:53:40] Previewing row 1: Array
+(
+    [lrn] => 108231220001
+    [first_name] => Miguel
+    [last_name] => Santos
+    [middle_name] => Mendoza
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 2 valid: Miguel Santos
+
+[2026-10-28 00:53:40] Previewing row 2: Array
+(
+    [lrn] => 108231220002
+    [first_name] => Sofia
+    [last_name] => Reyes
+    [middle_name] => Tolentino
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 3 valid: Sofia Reyes
+
+[2026-10-28 00:53:40] Previewing row 3: Array
+(
+    [lrn] => 108231220003
+    [first_name] => Ethan
+    [last_name] => Cruz
+    [middle_name] => Dela Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 4 valid: Ethan Cruz
+
+[2026-10-28 00:53:40] Previewing row 4: Array
+(
+    [lrn] => 108231220004
+    [first_name] => Chloe
+    [last_name] => Bautista
+    [middle_name] => Ilagan
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 5 valid: Chloe Bautista
+
+[2026-10-28 00:53:40] Previewing row 5: Array
+(
+    [lrn] => 108231220005
+    [first_name] => Juan
+    [last_name] => Garcia
+    [middle_name] => De Leon
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 6 valid: Juan Garcia
+
+[2026-10-28 00:53:40] Previewing row 6: Array
+(
+    [lrn] => 108231210006
+    [first_name] => Maria
+    [last_name] => Villanueva
+    [middle_name] => Alvarez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 7 valid: Maria Villanueva
+
+[2026-10-28 00:53:40] Previewing row 7: Array
+(
+    [lrn] => 108231210007
+    [first_name] => Liam
+    [last_name] => Torres
+    [middle_name] => Ocampo
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:53:40] Row 8 valid: Liam Torres
+
+[2026-10-28 00:53:40] Preview complete. Valid: 7, Errors: 0
+
+[2026-10-28 00:55:53] File uploaded: Eunice Effer Section Mayon.xlsx (9434 bytes)
+
+[2026-10-28 00:55:53] Parsing XLSX file: C:\xampp\tmp\phpB5F7.tmp
+
+[2026-10-28 00:55:53] Shared strings loaded: 31
+
+[2026-10-28 00:55:53] Excel rows read: 8
+
+[2026-10-28 00:55:53] normalizeImportRows called with 8 rows
+
+[2026-10-28 00:55:53] Header cells: Array
+(
+    [0] => LRN
+    [1] => First Name
+    [2] => Last Name
+    [3] => Middle Name
+    [4] => Grade Level
+    [5] => Section
+    [6] => Gender
+)
+
+
+[2026-10-28 00:55:53] Exact header mapping: 'lrn' => column 0 ('LRN')
+
+[2026-10-28 00:55:53] Exact header mapping: 'first_name' => column 1 ('First Name')
+
+[2026-10-28 00:55:53] Exact header mapping: 'last_name' => column 2 ('Last Name')
+
+[2026-10-28 00:55:53] Exact header mapping: 'middle_name' => column 3 ('Middle Name')
+
+[2026-10-28 00:55:53] Exact header mapping: 'grade_level' => column 4 ('Grade Level')
+
+[2026-10-28 00:55:53] Exact header mapping: 'section' => column 5 ('Section')
+
+[2026-10-28 00:55:53] Exact header mapping: 'gender' => column 6 ('Gender')
+
+[2026-10-28 00:55:53] headerMap: Array
+(
+    [lrn] => 0
+    [first_name] => 1
+    [last_name] => 2
+    [middle_name] => 3
+    [grade_level] => 4
+    [section] => 5
+    [gender] => 6
+)
+
+
+[2026-10-28 00:55:53] Data rows to process: 7
+
+[2026-10-28 00:55:53] Row 1 normalized: Array
+(
+    [lrn] => 108231220001
+    [first_name] => Miguel
+    [last_name] => Santos
+    [middle_name] => Mendoza
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 2 normalized: Array
+(
+    [lrn] => 108231220002
+    [first_name] => Sofia
+    [last_name] => Reyes
+    [middle_name] => Tolentino
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 3 normalized: Array
+(
+    [lrn] => 108231220003
+    [first_name] => Ethan
+    [last_name] => Cruz
+    [middle_name] => Dela Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 4 normalized: Array
+(
+    [lrn] => 108231220004
+    [first_name] => Chloe
+    [last_name] => Bautista
+    [middle_name] => Ilagan
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 5 normalized: Array
+(
+    [lrn] => 108231220005
+    [first_name] => Juan
+    [last_name] => Garcia
+    [middle_name] => De Leon
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 6 normalized: Array
+(
+    [lrn] => 108231210006
+    [first_name] => Maria
+    [last_name] => Villanueva
+    [middle_name] => Alvarez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 7 normalized: Array
+(
+    [lrn] => 108231210007
+    [first_name] => Liam
+    [last_name] => Torres
+    [middle_name] => Ocampo
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Normalization complete. Returning 7 rows
+
+[2026-10-28 00:55:53] Normalized rows: 7
+
+[2026-10-28 00:55:53] previewStudents called with 7 rows
+
+[2026-10-28 00:55:53] Previewing row 1: Array
+(
+    [lrn] => 108231220001
+    [first_name] => Miguel
+    [last_name] => Santos
+    [middle_name] => Mendoza
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 2 valid: Miguel Santos
+
+[2026-10-28 00:55:53] Previewing row 2: Array
+(
+    [lrn] => 108231220002
+    [first_name] => Sofia
+    [last_name] => Reyes
+    [middle_name] => Tolentino
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 3 valid: Sofia Reyes
+
+[2026-10-28 00:55:53] Previewing row 3: Array
+(
+    [lrn] => 108231220003
+    [first_name] => Ethan
+    [last_name] => Cruz
+    [middle_name] => Dela Cruz
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 4 valid: Ethan Cruz
+
+[2026-10-28 00:55:53] Previewing row 4: Array
+(
+    [lrn] => 108231220004
+    [first_name] => Chloe
+    [last_name] => Bautista
+    [middle_name] => Ilagan
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 5 valid: Chloe Bautista
+
+[2026-10-28 00:55:53] Previewing row 5: Array
+(
+    [lrn] => 108231220005
+    [first_name] => Juan
+    [last_name] => Garcia
+    [middle_name] => De Leon
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 6 valid: Juan Garcia
+
+[2026-10-28 00:55:53] Previewing row 6: Array
+(
+    [lrn] => 108231210006
+    [first_name] => Maria
+    [last_name] => Villanueva
+    [middle_name] => Alvarez
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Female
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 7 valid: Maria Villanueva
+
+[2026-10-28 00:55:53] Previewing row 7: Array
+(
+    [lrn] => 108231210007
+    [first_name] => Liam
+    [last_name] => Torres
+    [middle_name] => Ocampo
+    [grade_level] => 2
+    [section] => Mayon
+    [gender] => Male
+    [birthdate] => 
+)
+
+
+[2026-10-28 00:55:53] Row 8 valid: Liam Torres
+
+[2026-10-28 00:55:53] Preview complete. Valid: 7, Errors: 0
+
