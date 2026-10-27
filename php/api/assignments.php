@@ -1294,6 +1294,98 @@ if ($method === 'GET' && $uri === '/api/health') {
             $pdo = null;
         }
 
+    } elseif ($method === 'GET' && preg_match('#^/api/shared/activity/(\d+)/details$#', $uri, $matches)) {
+    $activity_id = (int)$matches[1];
+    $pdo = get_db();
+    try {
+        // 1. Get the base reading activity to identify student and material
+        $stmt = $pdo->prepare("
+            SELECT ra.student_id, ra.assignment_material_id, ra.attempt_number,
+                   rm.title AS material_title, rm.file_path,
+                   rtitle.title AS assignment_title
+            FROM reading_activity ra
+            INNER JOIN reading_material rm ON rm.material_id = ra.material_id
+            INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ra.assignment_material_id
+            INNER JOIN reading_assignment rtitle ON rtitle.assignment_id = ram.assignment_id
+            WHERE ra.activity_id = ? LIMIT 1
+        ");
+        $stmt->execute([$activity_id]);
+        $base_activity = $stmt->fetch();
+
+        if (!$base_activity) error("Activity not found.", 404);
+
+        $student_id = $base_activity['student_id'];
+        $assignment_material_id = $base_activity['assignment_material_id'];
+
+        // 2. Fetch all reading attempts for this assignment material (up to 3)
+        $allAttemptsStmt = $pdo->prepare("
+            SELECT ra.activity_id, ra.activity_status, ra.attempt_number, ra.attempt_type,
+                   ar.accuracy_percentage, ar.wcpm, ar.reading_time_seconds, ar.final_reading_level, ar.reading_level,
+                   ar.transcript, ar.substitutions, ar.omissions, ar.insertions, ar.repetitions
+            FROM reading_activity ra
+            LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
+            WHERE ra.student_id = ? AND ra.assignment_material_id = ?
+            ORDER BY ra.attempt_number ASC
+        ");
+        $allAttemptsStmt->execute([$student_id, $assignment_material_id]);
+        $all_attempts = $allAttemptsStmt->fetchAll();
+
+        // 3. Fetch quiz attempts and detailed answers
+        $quiz_details = [];
+        foreach ($all_attempts as &$att) {
+            // Match quiz scores to the correct attempt number
+            $attQuizStmt = $pdo->prepare("
+                SELECT attempt_id, score, total_questions 
+                FROM quiz_attempt 
+                WHERE student_id = ? AND assignment_material_id = ? AND attempt_number = ? LIMIT 1
+            ");
+            $attQuizStmt->execute([$student_id, $assignment_material_id, $att['attempt_number']]);
+            $attQuiz = $attQuizStmt->fetch();
+
+            if ($attQuiz) {
+                $att['quiz_score'] = $attQuiz['score'];
+                $att['quiz_total'] = $attQuiz['total_questions'];
+
+                // If this is the specific attempt the user clicked on, grab the detailed Q&A
+                if ($att['attempt_number'] == $base_activity['attempt_number']) {
+                    $qaStmt = $pdo->prepare("
+                        SELECT q.question_number, q.question_text, a.is_correct, c.choice_text AS student_answer
+                        FROM quiz_answer a
+                        INNER JOIN quiz_question q ON q.question_id = a.question_id
+                        LEFT JOIN quiz_choice c ON c.choice_id = a.selected_choice_id
+                        WHERE a.attempt_id = ?
+                        ORDER BY q.question_number
+                    ");
+                    $qaStmt->execute([$attQuiz['attempt_id']]);
+                    $quiz_details = $qaStmt->fetchAll();
+                }
+            }
+        }
+
+        // 4. Format the currently selected assessment for the frontend
+        $assessment_current = null;
+        foreach ($all_attempts as $a) {
+            if ($a['activity_id'] == $activity_id) {
+                $assessment_current = $a;
+                break;
+            }
+        }
+        
+        if ($assessment_current) {
+            $assessment_current['material_title'] = $base_activity['material_title'];
+            $assessment_current['assignment_title'] = $base_activity['assignment_title'];
+            $assessment_current['file_path'] = $base_activity['file_path'];
+        }
+
+        success([
+            'assessment' => $assessment_current,
+            'quiz_details' => $quiz_details,
+            'all_attempts' => $all_attempts
+        ]);
+    } finally {
+        $pdo = null;
+    }
+
     // 2. THE FINAL FALLBACK GOES AT THE VERY END
     } else {
         // Fallback error for unmatched routes

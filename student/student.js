@@ -1631,7 +1631,6 @@ function closeAssignmentModal(force = false) {
 // ============================================================
 
 async function loadCompletedAssignments() {
-    // 1. Define all the container elements here at the top!
     const container = document.getElementById('completed-assignments-container');
     const emptyState = document.getElementById('progressEmptyState');
     const contentState = document.getElementById('progressContentState');
@@ -1644,19 +1643,32 @@ async function loadCompletedAssignments() {
 
         const activities = response.completed_assignments || response.activities || [];
         if (!activities || activities.length === 0) {
-            container.innerHTML = ''; // Clear the loading text
-            if (emptyState) emptyState.style.display = 'flex'; // Show the plant icon
-            if (contentState) contentState.style.display = 'none'; // Hide the grid
+            container.innerHTML = ''; 
+            if (emptyState) emptyState.style.display = 'flex'; 
+            if (contentState) contentState.style.display = 'none'; 
             return;
         }
 
-        // We have data! Swap the views.
+        // --- NEW: DEDUPLICATE ACTIVITIES ---
+        // The API returns every attempt. We group them by Assignment + Material 
+        // to ensure only ONE card shows up per task.
+        const uniqueMaterials = new Map();
+        activities.forEach(item => {
+            const uniqueKey = `${item.assignment_title}_${item.material_title}`;
+            if (!uniqueMaterials.has(uniqueKey)) {
+                uniqueMaterials.set(uniqueKey, item); // Keeps the most recent attempt
+            }
+        });
+        
+        // Convert the map back into an array for rendering
+        const deduplicatedActivities = Array.from(uniqueMaterials.values());
+
         if (emptyState) emptyState.style.display = 'none';
         if (contentState) contentState.style.display = 'block';
 
         let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">';
 
-        activities.forEach(item => {
+        deduplicatedActivities.forEach(item => {
             html += `
                 <div style="background: var(--bg-alt); padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
                     <h4 style="margin: 0 0 4px 0;">${escapeHtml(item.assignment_title || 'Assignment')}</h4>
@@ -1670,7 +1682,7 @@ async function loadCompletedAssignments() {
                         <span>Fluency (WCPM):</span>
                         <strong style="color: var(--primary);">${item.wcpm || 0}</strong>
                     </div>
-                    ${item.score && item.total_questions ? `
+                    ${item.score !== null && item.score !== undefined && item.total_questions ? `
                     <div style="display: flex; justify-content: space-between;">
                         <span>Quiz Score:</span>
                         <strong style="color: var(--primary);">${item.score}/${item.total_questions}</strong>
@@ -1700,7 +1712,6 @@ async function loadCompletedAssignments() {
 
 async function viewActivityDetails(activityId) {
     try {
-        // We will reuse your existing assignment modal to display this!
         const modal = $("#assignmentModal");
         const modalTitle = $("#modalAssignmentTitle");
         const modalBody = modal.querySelector(".modal-body");
@@ -1709,99 +1720,210 @@ async function viewActivityDetails(activityId) {
         modalTitle.textContent = "Assessment Details";
         modalBody.innerHTML = '<div style="text-align:center; padding: 40px;">⏳ Loading details...</div>';
         
-        // Show modal and hide action button since this is just a view
         modal.classList.remove("hidden");
-        startButton.style.display = "none"; 
+        if (startButton) startButton.style.display = "none"; 
 
+        // This will now perfectly hit the new route we just added to assignments.php!
         const response = await fetchJson(`/api/shared/activity/${activityId}/details`);
         
-        // Catch all common API response structures
         const data = response.assessment || response.data?.assessment || response.data || response;
         const quiz = response.quiz_details || response.data?.quiz_details || response.quiz || [];
+        const allAttempts = response.all_attempts || response.data?.all_attempts || [];
 
-        // Stop and show an error inside the modal if data is still completely empty
         if (!data || Object.keys(data).length === 0) {
-            modalBody.innerHTML = `<div style="color: red; padding: 20px; text-align: center;">Error: Assessment data is empty. Press F12 and check the console log.</div>`;
+            modalBody.innerHTML = `<div style="color: red; padding: 20px; text-align: center;">Error: Assessment data is empty.</div>`;
             return;
         }
 
-        // NEW: Uses file_path and adds the correct folder URL!
-        const friendlyImageHtml = data.file_path 
-            ? `<div style="text-align: center; margin-bottom: 20px;">
-                   <img src="../uploads/materials/${data.file_path}" alt="Story Illustration" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-               </div>` 
-            : '';
+        // --- 3-ATTEMPT TABS LOGIC ---
+        const currentAttemptNum = data.attempt_number || 1;
+        
+        state.currentAttemptsMap = { 1: null, 2: null, 3: null };
+        state.currentAttemptsMap[currentAttemptNum] = { ...data, quiz_details: quiz };
 
-            modalBody.innerHTML = `
-            <div style="padding: 16px;">
-                <h3 style="margin-top: 0;">Reading Fluency</h3>
-                
-                <!-- Expanded Grid for 4 Metrics -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
-                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
-                        <span style="font-size: 12px; color: var(--muted);">WCPM</span>
-                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.wcpm || 0}</div>
-                    </div>
-                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
-                        <span style="font-size: 12px; color: var(--muted);">Accuracy</span>
-                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.accuracy_percentage ? Math.round(data.accuracy_percentage) : 0}%</div>
-                    </div>
-                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
-                        <span style="font-size: 12px; color: var(--muted);">Time Taken</span>
-                        <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${data.reading_time_seconds || 0}s</div>
-                    </div>
-                    <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
-                        <span style="font-size: 12px; color: var(--muted);">Reading Level</span>
-                        <!-- Slightly smaller font size to accommodate longer text like 'Transitioning Reader' -->
-                        <div style="font-size: 18px; font-weight: bold; color: var(--primary); margin-top: 4px;">${data.final_reading_level || data.reading_level || 'Pending'}</div>
-                    </div>
-                </div>
+        if (Array.isArray(allAttempts) && allAttempts.length > 0) {
+            allAttempts.forEach(att => {
+                const num = att.attempt_number;
+                if (num >= 1 && num <= 3) {
+                    // Do not overwrite the current tab (which has the detailed quiz breakdown)
+                    if (!state.currentAttemptsMap[num] || num !== currentAttemptNum) {
+                        state.currentAttemptsMap[num] = att;
+                    }
+                }
+            });
+        }
 
-                <h4 style="margin-bottom: 8px;">Miscue Breakdown (AI Analysis)</h4>
-                <div style="display: flex; gap: 16px; margin-bottom: 24px; font-size: 14px;">
-                    <span style="color: #d97706;">🔄 Substitutions: <strong>${data.substitutions || 0}</strong></span>
-                    <span style="color: #dc2626;">➖ Omissions: <strong>${data.omissions || 0}</strong></span>
-                    <span style="color: #2563eb;">➕ Insertions: <strong>${data.insertions || 0}</strong></span>
-                    <span style="color: #9333ea;">🔁 Repetitions: <strong>${data.repetitions || 0}</strong></span>
-                </div>
+        state.activeAttemptTab = currentAttemptNum;
 
-                <h4 style="margin-bottom: 8px;">What You Read:</h4>
-                
-                ${friendlyImageHtml}
-
-                <div style="background: #f8fafc; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-style: italic; color: #475569; margin-bottom: 32px;">
-                    "${escapeHtml(data.transcript || 'No transcript available.')}"
-                </div>
-                
-                <h3 style="margin-top: 0; border-top: 1px solid var(--border); padding-top: 24px;">Quiz Results</h3>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    ${quiz && quiz.length > 0 ? quiz.map(q => `
-                        <div style="display: flex; align-items: flex-start; gap: 8px;">
-                            <span style="font-size: 18px;">${q.is_correct ? '✅' : '❌'}</span>
-                            <div>
-                                <div style="font-weight: 500; font-size: 14px;">${q.question_number}.${escapeHtml(q.question_text)}</div>
-                                <div style="font-size: 13px; color: ${q.is_correct ? 'var(--success)' : 'var(--danger)'};">
-                                    Your answer: ${escapeHtml(q.student_answer || 'Skipped / Unanswered')}
-                                </div>
-                            </div>
-                        </div>
-                    `).join('') : '<div style="color: var(--muted); font-size: 14px;">No quiz attached to this reading material.</div>'}
-                </div>
+        // Render the modal with multi-attempt tabs
+        modalBody.innerHTML = `
+            <div style="padding: 8px 16px;">
+                <h3 style="margin-top: 0; margin-bottom: 16px;">
+                    ${escapeHtml(data.assignment_title || data.material_title || 'Assessment Review')}
+                </h3>
+                ${renderAttemptTabContainer(state.currentAttemptsMap, state.activeAttemptTab, data)}
             </div>
         `;
 
-        // When they close the modal, make sure the button comes back for future assignments
         const closeBtn = modal.querySelector(".modal-close");
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                startButton.style.display = "block";
+                if (startButton) startButton.style.display = "block";
             }, { once: true });
         }
 
     } catch (error) {
         console.error("Error loading details:", error);
-        document.querySelector(".modal-body").innerHTML = `<div style="color: red; padding: 20px;">Failed to load details: ${error.message}</div>`;
+        document.querySelector(".modal-body").innerHTML = `<div style="color: red; padding: 20px; text-align: center;">Failed to load details: ${escapeHtml(error.message)}</div>`;
     }
+}
+
+/* ============================================================
+   MULTI-ATTEMPT TAB UI HELPERS
+============================================================ */
+
+function renderAttemptTabContainer(attemptsMap, activeTab, materialInfo) {
+    const has1 = !!attemptsMap[1];
+    const has2 = !!attemptsMap[2];
+    const has3 = !!attemptsMap[3];
+
+    return `
+        <div class="attempts-tab-wrapper">
+            <div class="attempts-tabs" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+                <button type="button" class="tab-btn ${activeTab === 1 ? 'active' : ''}" 
+                        onclick="switchAttemptTab(1)" 
+                        style="padding: 8px 16px; border-radius: 6px; border: 1px solid ${activeTab === 1 ? 'var(--primary)' : 'var(--border)'}; background: ${activeTab === 1 ? 'var(--primary-light, #eff6ff)' : 'transparent'}; font-weight: 600; cursor: pointer; color: ${activeTab === 1 ? 'var(--primary)' : 'inherit'};">
+                    Attempt 1 ${has1 ? '✅' : '⚪'}
+                </button>
+                <button type="button" class="tab-btn ${activeTab === 2 ? 'active' : ''}" 
+                        onclick="switchAttemptTab(2)" 
+                        style="padding: 8px 16px; border-radius: 6px; border: 1px solid ${activeTab === 2 ? 'var(--primary)' : 'var(--border)'}; background: ${activeTab === 2 ? 'var(--primary-light, #eff6ff)' : 'transparent'}; font-weight: 600; cursor: pointer; color: ${activeTab === 2 ? 'var(--primary)' : 'inherit'};">
+                    Attempt 2 ${has2 ? '✅' : '⚪'}
+                </button>
+                <button type="button" class="tab-btn ${activeTab === 3 ? 'active' : ''}" 
+                        onclick="switchAttemptTab(3)" 
+                        style="padding: 8px 16px; border-radius: 6px; border: 1px solid ${activeTab === 3 ? 'var(--primary)' : 'var(--border)'}; background: ${activeTab === 3 ? 'var(--primary-light, #eff6ff)' : 'transparent'}; font-weight: 600; cursor: pointer; color: ${activeTab === 3 ? 'var(--primary)' : 'inherit'};">
+                    Attempt 3 ${has3 ? '✅' : '⚪'}
+                </button>
+            </div>
+            <div id="attemptTabContent">
+                ${renderSingleAttemptContent(attemptsMap[activeTab], activeTab, materialInfo)}
+            </div>
+        </div>
+    `;
+}
+
+function switchAttemptTab(tabNum) {
+    state.activeAttemptTab = tabNum;
+    const container = document.getElementById("attemptTabContent");
+    const materialInfo = state.currentAttemptsMap[tabNum] || state.currentAttemptsMap[1] || {};
+
+    // Update active button styles
+    const tabs = document.querySelectorAll(".attempts-tabs .tab-btn");
+    tabs.forEach((btn, idx) => {
+        const isCurrent = (idx + 1) === tabNum;
+        btn.style.borderColor = isCurrent ? 'var(--primary)' : 'var(--border)';
+        btn.style.background = isCurrent ? 'var(--primary-light, #eff6ff)' : 'transparent';
+        btn.style.color = isCurrent ? 'var(--primary)' : 'inherit';
+    });
+
+    if (container && state.currentAttemptsMap) {
+        container.innerHTML = renderSingleAttemptContent(state.currentAttemptsMap[tabNum], tabNum, materialInfo);
+    }
+}
+// Ensure it is exposed globally so the onclick HTML attributes work
+window.switchAttemptTab = switchAttemptTab;
+
+function renderSingleAttemptContent(attemptData, tabNum, materialInfo) {
+    // 💡 THE FRIENDLY EMPTY STATE MESSAGE
+    if (!attemptData) {
+        return `
+            <div class="attempt-panel-empty" style="text-align: center; padding: 40px 20px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; margin-top: 16px;">
+                <div style="font-size: 40px; margin-bottom: 12px;">📋</div>
+                <h4 style="margin: 0 0 8px 0; color: #334155; font-size: 16px;">Attempt ${tabNum} Not Taken Yet</h4>
+                <p style="margin: 0; font-size: 14px; color: #64748b; max-width: 340px; margin: 0 auto; line-height: 1.5;">
+                    This assignment attempt is currently empty. Once completed, the fluency and quiz results for Attempt ${tabNum} will appear here.
+                </p>
+            </div>
+        `;
+    }
+
+    const wcpm = attemptData.wcpm ?? 0;
+    const accuracy = attemptData.accuracy_percentage ?? attemptData.accuracy ?? 0;
+    const timeSec = attemptData.reading_time_seconds ?? attemptData.duration_seconds ?? 0;
+    const level = attemptData.final_reading_level || attemptData.reading_level || 'Pending';
+    
+    const subs = attemptData.substitutions ?? 0;
+    const omis = attemptData.omissions ?? 0;
+    const ins = attemptData.insertions ?? 0;
+    const reps = attemptData.repetitions ?? 0;
+
+    const transcript = attemptData.transcript || 'No transcript available for this attempt.';
+    const filePath = attemptData.file_path || materialInfo?.file_path;
+
+    const friendlyImageHtml = filePath 
+        ? `<div style="text-align: center; margin-bottom: 20px;">
+               <img src="../uploads/materials/${escapeHtml(filePath)}" alt="Story Illustration" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+           </div>` 
+        : '';
+
+    const quizDetails = attemptData.quiz_details || [];
+    const quizScore = attemptData.quiz_score ?? attemptData.score;
+    const quizTotal = attemptData.quiz_total ?? attemptData.total_questions;
+
+    return `
+        <div class="attempt-panel">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--muted);">WCPM</span>
+                    <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${wcpm}</div>
+                </div>
+                <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--muted);">Accuracy</span>
+                    <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${Math.round(accuracy)}%</div>
+                </div>
+                <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--muted);">Time Taken</span>
+                    <div style="font-size: 24px; font-weight: bold; color: var(--primary);">${timeSec}s</div>
+                </div>
+                <div style="background: var(--bg-alt); padding: 12px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--muted);">Reading Level</span>
+                    <div style="font-size: 18px; font-weight: bold; color: var(--primary); margin-top: 4px;">${escapeHtml(level)}</div>
+                </div>
+            </div>
+
+            <h4 style="margin-bottom: 8px;">Miscue Breakdown (AI Analysis)</h4>
+            <div style="display: flex; gap: 16px; margin-bottom: 24px; font-size: 14px; flex-wrap: wrap;">
+                <span style="color: #d97706;">🔄 Substitutions: <strong>${subs}</strong></span>
+                <span style="color: #dc2626;">➖ Omissions: <strong>${omis}</strong></span>
+                <span style="color: #2563eb;">➕ Insertions: <strong>${ins}</strong></span>
+                <span style="color: #9333ea;">🔁 Repetitions: <strong>${reps}</strong></span>
+            </div>
+
+            <h4 style="margin-bottom: 8px;">What You Read:</h4>
+            ${friendlyImageHtml}
+            <div style="background: #f8fafc; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-style: italic; color: #475569; margin-bottom: 32px;">
+                "${escapeHtml(transcript)}"
+            </div>
+
+            <h3 style="margin-top: 0; border-top: 1px solid var(--border); padding-top: 24px;">
+                Quiz Results ${quizScore !== undefined && quizTotal ? `(${quizScore}/${quizTotal})` : ''}
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${quizDetails && quizDetails.length > 0 ? quizDetails.map(q => `
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="font-size: 18px;">${q.is_correct ? '✅' : '❌'}</span>
+                        <div>
+                            <div style="font-weight: 500; font-size: 14px;">${q.question_number ? q.question_number + '.' : ''} ${escapeHtml(q.question_text || '')}</div>
+                            <div style="font-size: 13px; color: ${q.is_correct ? 'var(--success)' : 'var(--danger)'};">
+                                Your answer: ${escapeHtml(q.student_answer || 'Skipped / Unanswered')}
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : '<div style="color: var(--muted); font-size: 14px;">No detailed quiz breakdown available for this attempt.</div>'}
+            </div>
+        </div>
+    `;
 }
 
 /* ============================================================
