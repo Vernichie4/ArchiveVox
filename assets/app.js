@@ -2669,8 +2669,6 @@ function renderPrincipalDashboard() {
         </div>
     `;
 
-<<<<<<< HEAD
-=======
     // 5. EVENT LISTENERS
     document.getElementById('hero-view-reports-btn')?.addEventListener('click', () => {
         if (typeof setActiveView === 'function') setActiveView('reports');
@@ -2752,7 +2750,6 @@ function renderPrincipalDashboard() {
         });
     }, 300);
 
->>>>>>> 0a268e1f3d453cdd0b1fd858512032c2626a212e
     setTimeout(() => {
         if (typeof initPrincipalCharts === 'function') {
             initPrincipalCharts(dashboard);
