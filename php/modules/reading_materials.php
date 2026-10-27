@@ -65,6 +65,8 @@ function editReadingMaterial(int $materialId, array $data): array {
         return ['success' => false, 'message' => 'Database connection not established'];
     }
 
+    error_log('EDIT MATERIAL: material_id=' . $materialId . ', data=' . json_encode($data)); // Debug log
+
     // Check for duplicate title (excluding current material, case-insensitive)
     if (isset($data['title'])) {
         $checkStmt = $pdo->prepare('SELECT material_id FROM reading_material WHERE LOWER(title) = LOWER(:title) AND teacher_id = :teacher_id AND material_id != :material_id');
@@ -96,6 +98,8 @@ function editReadingMaterial(int $materialId, array $data): array {
     if (!$fields) {
         return ['success' => false, 'message' => 'No changes provided.'];
     }
+
+    error_log('EDIT MATERIAL: fields=' . implode(', ', $fields)); // Debug log
 
     try {
         $stmt = $pdo->prepare('UPDATE reading_material SET ' . implode(', ', $fields) . ' WHERE material_id = :material_id');

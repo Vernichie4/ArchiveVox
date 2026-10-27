@@ -3596,6 +3596,10 @@ async function handleMaterialUpload(e) {
         const ocrBox = document.getElementById('ocr-result');
         if (ocrBox) ocrBox.classList.add('hidden');
 
+        // Clear the OCR preview textarea so it doesn't interfere with next upload
+        const ocrPreview = document.getElementById('ocr-text-preview');
+        if (ocrPreview) ocrPreview.value = '';
+
         if (typeof requestCloseModal === 'function') {
             await requestCloseModal('upload-modal');
         } else {
@@ -3608,6 +3612,11 @@ async function handleMaterialUpload(e) {
             if (typeof state !== 'undefined' && state.activeView === 'materials' && typeof renderMaterials === 'function') {
                 renderMaterials();
             }
+        }
+
+        // View the newly uploaded material to show fresh data from database
+        if (data.material_id && typeof viewMaterial === 'function') {
+            await viewMaterial(data.material_id);
         }
 
     } catch (error) {
@@ -3725,7 +3734,7 @@ async function viewMaterial(materialId) {
 
                         <div id="edit-mode-buttons" class="hidden" style="display: flex; gap: 8px; flex: 1; justify-content: flex-end;">
                             <button id="view-material-cancel-btn" type="button" class="btn-secondary">Cancel</button>
-                            <button id="view-material-save-btn" type="submit" class="btn-primary">Save Changes</button>
+                            <button id="view-material-save-btn" type="button" class="btn-primary">Save Changes</button>
                         </div>
                         
                     </div>
@@ -3782,6 +3791,49 @@ async function viewMaterial(materialId) {
 
             // Standard Edit Handlers
             editBtn?.addEventListener('click', () => setEditing(true));
+            saveBtn?.addEventListener('click', async () => {
+                // Direct save logic instead of form submission
+                event.preventDefault();
+                clearFormErrors(form);
+
+                const titleField = document.getElementById('material-edit-title');
+                const ocrField = document.getElementById('material-edit-ocr');
+
+                const statusValue = String(document.getElementById('material-edit-status')?.value || '').trim();
+                const validStatus = statusValue === 'Active' || statusValue === 'Archived' ? statusValue : 'Active';
+
+                const payload = {
+                    teacher_id: state.user?.teacher_id || null,
+                    title: String(titleField?.value || '').trim(),
+                    description: String(document.getElementById('material-edit-description')?.value || '').trim(),
+                    grade_level: String(document.getElementById('material-edit-grade')?.value || '').trim(),
+                    language: String(document.getElementById('material-edit-language')?.value || '').trim(),
+                    material_type: String(document.getElementById('material-edit-type')?.value || '').trim(),
+                    difficulty: String(document.getElementById('material-edit-difficulty')?.value || '').trim(),
+                    status: validStatus,
+                    ocr_text: String(ocrField?.value || '').trim(),
+                    total_words: String(ocrField?.value || '').trim().split(/\s+/).filter(word => word.length > 0).length
+                };
+
+                let hasErrors = false;
+                if (!payload.title) { setFieldError(titleField, 'Material title is required.'); hasErrors = true; }
+                if (!payload.ocr_text) { setFieldError(ocrField, 'Full text is required for assessment use.'); hasErrors = true; }
+                if (hasErrors) { showToast('Please correct the highlighted fields.', 'error'); return; }
+
+                try {
+                    const update = await fetchJson(`php/api/shared/reading-materials.php?id=${encodeURIComponent(material.material_id)}`, {
+                        method: 'PUT', body: JSON.stringify(payload)
+                    });
+                    if (!update.success) throw new Error(update.message || 'Failed to update material');
+
+                    showToast('Material updated successfully!', 'success');
+                    await loadMaterials();
+                    if (state.activeView === 'materials') renderMaterials();
+                    await viewMaterial(material.material_id);
+                } catch (error) {
+                    showToast('Error updating material: ' + error.message, 'error');
+                }
+            });
             cancelBtn?.addEventListener('click', async () => {
                 if (modal?.dataset.dirty === 'true') {
                     const shouldDiscard = await showConfirm('Discard your material changes?', {
@@ -3827,9 +3879,12 @@ async function viewMaterial(materialId) {
                 if (hasErrors) { showToast('Please correct the highlighted fields.', 'error'); return; }
 
                 try {
+                    console.log('Sending PUT request to:', `php/api/shared/reading-materials.php?id=${encodeURIComponent(material.material_id)}`);
                     const update = await fetchJson(`php/api/shared/reading-materials.php?id=${encodeURIComponent(material.material_id)}`, {
                         method: 'PUT', body: JSON.stringify(payload)
                     });
+                    console.log('Update response:', update);
+
                     if (!update.success) throw new Error(update.message || 'Failed to update material');
 
                     showToast('Material updated successfully!', 'success');
@@ -3837,6 +3892,7 @@ async function viewMaterial(materialId) {
                     if (state.activeView === 'materials') renderMaterials();
                     await viewMaterial(material.material_id);
                 } catch (error) {
+                    console.error('Update error:', error);
                     showToast('Error updating material: ' + error.message, 'error');
                 }
             });
@@ -3859,18 +3915,20 @@ async function deleteMaterial(materialId) {
         confirmTone: 'danger'
     });
     if (!shouldDelete) return;
-    
+
     try {
         const result = await fetchJson(`php/api/shared/reading-materials.php?id=${encodeURIComponent(materialId)}`, {
             method: 'DELETE'
         });
-        
+
         if (result.success) {
             alert('✅ Material deleted successfully');
+            // Close the view material modal if it's open
+            closeModal('view-material-modal');
+            // Reload materials from database
             await loadMaterials();
-            if (state.activeView === 'materials') {
-                renderMaterials();
-            }
+            // Switch to materials view using setActiveView
+            setActiveView('materials');
         } else {
             alert('' + result.message);
         }

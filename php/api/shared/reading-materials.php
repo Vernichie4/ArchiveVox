@@ -119,7 +119,13 @@ try {
                     } catch (Throwable $e) {
                         $ocrText = null;
                     }
-                    
+
+                    // Use the edited OCR text from the form if user edited it, otherwise use OCR result
+                    $editedOcrText = $_POST['ocr_text'] ?? null;
+                    if ($editedOcrText !== null && trim($editedOcrText) !== '') {
+                        $ocrText = trim($editedOcrText);
+                    }
+
                     // Grab the active user's session data
                     $currentUser = currentUser();
                     $sessionTeacherId = $currentUser['teacher_id'] ?? null;
@@ -191,13 +197,13 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Invalid JSON data']);
                 break;
             }
-            
+
             $materialId = $_GET['id'] ?? 0;
             if ($materialId <= 0) {
                 echo json_encode(['success' => false, 'message' => 'Material ID required']);
                 break;
             }
-            
+
             $result = editReadingMaterial($materialId, $data);
             echo json_encode($result);
             break;
