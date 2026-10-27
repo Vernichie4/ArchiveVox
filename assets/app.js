@@ -3809,6 +3809,7 @@ async function viewMaterial(materialId) {
                 const validStatus = statusValue === 'Active' || statusValue === 'Archived' ? statusValue : 'Active';
 
                 const payload = {
+                    teacher_id: state.user?.teacher_id || null,
                     title: String(titleField?.value || '').trim(),
                     description: String(document.getElementById('material-edit-description')?.value || '').trim(),
                     grade_level: String(document.getElementById('material-edit-grade')?.value || '').trim(),

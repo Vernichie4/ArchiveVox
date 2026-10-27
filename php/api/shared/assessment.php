@@ -345,10 +345,15 @@ function handleRecordAssessment(PDO $pdo): void {
         $file = $_FILES['audio'];
         $studentId = (int)($_POST['student_id'] ?? 0);
         $materialId = (int)($_POST['material_id'] ?? 0);
-        
+
         // Capture the assignment_material_id sent from student.js
         $assignmentMaterialId = isset($_POST['assignment_material_id']) ? (int)$_POST['assignment_material_id'] : null;
-        
+
+        // Capture existing activity_id for re-recording (no new attempt consumed)
+        $existingActivityId = isset($_POST['activity_id']) ? (int)$_POST['activity_id'] : 0;
+
+        error_log("RECORDING: activity_id received = " . $existingActivityId); // Debug log
+
         $originalText = trim($_POST['original_text'] ?? '');
         $durationSeconds = max(1, (int)($_POST['duration_seconds'] ?? 120));
 
@@ -362,13 +367,31 @@ function handleRecordAssessment(PDO $pdo): void {
         // ==========================================
         $currentAttempt = 1;
         $isPractice = false;
-        
-        if ($assignmentMaterialId) {
-            // Count existing attempts for this specific assignment
+        $isRetry = false; // Flag to track if this is a re-recording
+
+        if ($existingActivityId > 0) {
+            // Re-recording: use the existing activity ID from start-reading
+            $activityId = $existingActivityId;
+            $isRetry = true;
+
+            // Get attempt info from existing activity
+            $stmt = $pdo->prepare('SELECT attempt_number, attempt_type, activity_status FROM reading_activity WHERE activity_id = ?');
+            $stmt->execute([$activityId]);
+            $activityInfo = $stmt->fetch();
+            if ($activityInfo) {
+                $currentAttempt = (int)$activityInfo['attempt_number'];
+                $isPractice = ($activityInfo['attempt_type'] === 'practice');
+                error_log("Existing activity found: ID=$activityId, attempt=$currentAttempt, status=" . $activityInfo['activity_status']);
+            } else {
+                error_log("Activity ID $activityId not found, will create new one");
+                $existingActivityId = 0; // Force new activity creation
+            }
+        } elseif ($assignmentMaterialId) {
+            // New attempt: count completed attempts
             $stmt = $pdo->prepare('
-                SELECT COUNT(*) FROM reading_activity 
-                WHERE student_id = :student_id 
-                AND assignment_material_id = :assignment_material_id 
+                SELECT COUNT(*) FROM reading_activity
+                WHERE student_id = :student_id
+                AND assignment_material_id = :assignment_material_id
                 AND activity_status IN ("Completed", "Practice Completed")
             ');
             $stmt->execute([
@@ -376,12 +399,12 @@ function handleRecordAssessment(PDO $pdo): void {
                 ':assignment_material_id' => $assignmentMaterialId
             ]);
             $previousAttempts = (int)$stmt->fetchColumn();
-            
+
             if ($previousAttempts >= 3) {
                 echo json_encode(['success' => false, 'message' => 'Maximum attempts (3) reached. This assignment is already finalized.']);
                 return;
             }
-            
+
             $currentAttempt = $previousAttempts + 1;
             $isPractice = ($currentAttempt < 3);
         }
@@ -421,19 +444,41 @@ function handleRecordAssessment(PDO $pdo): void {
 
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare(
-            "INSERT INTO reading_activity (student_id, material_id, assignment_material_id, started_at, audio_filename, audio_path, duration_seconds, activity_status)
-             VALUES (:student_id, :material_id, :assignment_material_id, NOW(), :audio_filename, :audio_path, :duration_seconds, 'Processing')"
-        );
-        $stmt->execute([
-            ':student_id' => $studentId,
-            ':material_id' => $materialId,
-            ':assignment_material_id' => $assignmentMaterialId,
-            ':audio_filename' => $filename,
-            ':audio_path' => 'uploads/audio/' . $filename,
-            ':duration_seconds' => $durationSeconds
-        ]);
-        $activityId = (int)$pdo->lastInsertId();
+        if ($isRetry) {
+            // Update existing activity (re-recording)
+            $stmt = $pdo->prepare(
+                "UPDATE reading_activity
+                 SET audio_filename = :audio_filename, audio_path = :audio_path, duration_seconds = :duration_seconds
+                 WHERE activity_id = :activity_id"
+            );
+            $stmt->execute([
+                ':activity_id' => $activityId,
+                ':audio_filename' => $filename,
+                ':audio_path' => 'uploads/audio/' . $filename,
+                ':duration_seconds' => $durationSeconds
+            ]);
+
+            // Delete previous assessment result for this activity
+            $stmt = $pdo->prepare('DELETE FROM assessment_result WHERE activity_id = :activity_id');
+            $stmt->execute([':activity_id' => $activityId]);
+        } else {
+            // Create new activity (new attempt)
+            $stmt = $pdo->prepare(
+                "INSERT INTO reading_activity (student_id, material_id, assignment_material_id, started_at, audio_filename, audio_path, duration_seconds, activity_status, attempt_number, attempt_type)
+                 VALUES (:student_id, :material_id, :assignment_material_id, NOW(), :audio_filename, :audio_path, :duration_seconds, 'Processing', :attempt_number, :attempt_type)"
+            );
+            $stmt->execute([
+                ':student_id' => $studentId,
+                ':material_id' => $materialId,
+                ':assignment_material_id' => $assignmentMaterialId,
+                ':audio_filename' => $filename,
+                ':audio_path' => 'uploads/audio/' . $filename,
+                ':duration_seconds' => $durationSeconds,
+                ':attempt_number' => $currentAttempt,
+                ':attempt_type' => $isPractice ? 'practice' : 'final'
+            ]);
+            $activityId = (int)$pdo->lastInsertId();
+        }
 
         $whisper = new WhisperService();
         $transcription = $whisper->transcribeAudio($filePath, $language);

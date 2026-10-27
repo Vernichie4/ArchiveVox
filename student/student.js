@@ -687,7 +687,7 @@ function renderModalMaterials(materials) {
    READING CONTENT
 ============================================================ */
 
-function showReadingContent() {
+function showReadingContent(preserveActivityId = false) {
     const detail = state.currentAssignmentDetail;
     if (!detail) {
         showError("No assignment detail loaded.");
@@ -700,6 +700,7 @@ function showReadingContent() {
     }
 
     // Reset reading state
+    const existingActivityId = preserveActivityId ? readingState.activityId : null;
     Object.assign(readingState, {
         audioBlob: null,
         mediaRecorder: null,
@@ -711,7 +712,7 @@ function showReadingContent() {
         playbackUrl: null,
         submitted: false,
         results: null,
-        activityId: null,
+        activityId: existingActivityId, // Preserve activity ID for re-recording
         assessmentId: null
     });
 
@@ -1132,6 +1133,13 @@ async function submitReading() {
     formData.append('duration_seconds', String(Math.max(1, readingState.seconds)));
     formData.append('original_text', material.ocr_text || '');
 
+    // For re-recording, use the activity_id from the result, not from state
+    // Because after first submit, state.currentActivityId might be lost
+    const activityIdToUse = readingState.activityId || state.currentActivityId || '';
+    formData.append('activity_id', activityIdToUse);
+
+    console.log('Submitting with activity_id:', activityIdToUse, '(readingState.activityId:', readingState.activityId, ', state.currentActivityId:', state.currentActivityId + ')'); // Debug log
+
     // Pure DOM selector fallback
     const submitBtn = document.getElementById('submit-reading-btn') || document.getElementById('modalStartButton');
     const statusEl = document.getElementById('recording-status');
@@ -1262,21 +1270,24 @@ function retryAttempt() {
         readingState.playbackUrl = null;
     }
 
-    // 2. Reset recording memory
+    // 2. Reset recording memory (same attempt, just re-recording)
     readingState.audioBlob = null;
     readingState.audioChunks = [];
     readingState.seconds = 0;
     readingState.submitted = false;
     readingState.results = null;
 
-    // 3. Re-render the reading screen for the next attempt
-    showReadingContent();
+    // IMPORTANT: Preserve the activity_id for re-recording
+    // Don't clear readingState.activityId as it's needed for re-recording without consuming attempts
 
-    // 4. Update the status message to show current attempt number
+    // 3. Re-render the reading screen for the SAME attempt (no increment)
+    showReadingContent(true); // Pass true to preserve activity ID for re-recording
+
+    // 4. Update the status message to show current attempt number (NOT incremented)
     const statusEl = document.getElementById('recording-status');
     if (statusEl) {
-        const nextAttempt = (readingState.attemptNumber || 1) + 1;
-        statusEl.textContent = `Ready for Attempt ${nextAttempt} of 3. Click "Start Recording" when ready.`;
+        const currentAttempt = readingState.attemptNumber || 1;
+        statusEl.textContent = `Ready for Attempt ${currentAttempt} of 3. Click "Start Recording" when ready.`;
     }
 }
 
