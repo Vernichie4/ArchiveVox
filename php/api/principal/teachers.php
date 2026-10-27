@@ -61,7 +61,8 @@ try {
             $teacherId = $_GET['id'] ?? 0;
             
             $stmt = $pdo->prepare('
-                SELECT 
+                SELECT
+                    s.class_id,
                     t.teacher_id,
                     t.user_id,
                     u.username,
@@ -138,7 +139,8 @@ try {
                 sendJson(['success' => false, 'message' => 'Teacher ID required'], 400);
             }
             $stmt = $pdo->prepare('
-                SELECT 
+                SELECT
+                    s.class_id,
                     s.student_id,
                     s.lrn,
                     s.first_name,

@@ -217,10 +217,7 @@ if (strpos($uri, '/api') !== 0) {
 }
 
 // Safely strip the local XAMPP folder for local testing. 
-// On Railway, this does nothing, allowing the router to work perfectly at the root level.
-$uri = preg_replace('#^/archivevox copy#', '', $uri);
-
-// Simple routing switch
+$uri = str_replace('/ArchiveVox/php/api/assignments.php', '', $uri);
 if ($method === 'GET' && $uri === '/api/health') {
     try {
         $pdo = get_db();
@@ -1268,8 +1265,37 @@ if ($method === 'GET' && $uri === '/api/health') {
     } finally {
         $pdo = null;
     }
-    
-}    else {
-    // Fallback error for unmatched routes
-    error("API endpoint not found.", 404);
-}
+
+    // 1. ADD THE MISSING ROUTE HERE (Right above the final "else")
+    } elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'list') {
+        $class_id = (int)($_GET['class_id'] ?? 0);
+        if (!$class_id) error("class_id is required.");
+
+        $pdo = get_db();
+        try {
+            $stmt = $pdo->prepare("
+                SELECT ra.assignment_id, ra.title, ra.instructions, ra.status, ra.assigned_at, ra.due_date,
+                    c.grade_level, c.section, c.school_year
+                FROM reading_assignment ra
+                INNER JOIN class c ON c.class_id = ra.class_id
+                WHERE ra.class_id = ?
+                ORDER BY ra.assigned_at DESC
+            ");
+            $stmt->execute([$class_id]);
+            $assignments = $stmt->fetchAll();
+            
+            foreach ($assignments as &$assignment) {
+                $assignment['materials'] = get_assignment_materials($pdo, $assignment['assignment_id']);
+            }
+            success(['assignments' => $assignments]);
+        } catch (Exception $e) {
+            error("Database error: " . $e->getMessage(), 500);
+        } finally {
+            $pdo = null;
+        }
+
+    // 2. THE FINAL FALLBACK GOES AT THE VERY END
+    } else {
+        // Fallback error for unmatched routes
+        error("API endpoint not found.", 404);
+    }

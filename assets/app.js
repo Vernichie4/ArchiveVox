@@ -1045,18 +1045,6 @@ function renderTopbar() {
             pageTitle = 'Assessment';
             pageSubtitle = 'Conduct reading fluency assessments';
             break;
-        case 'reports':
-            if (role === 'principal' || role === 'admin') {
-                pageTitle = 'School Reports';
-                pageSubtitle = 'School-wide reading progress analytics';
-            } else if (role === 'teacher') {
-                pageTitle = 'Class Reports';
-                pageSubtitle = 'Your class performance analytics';
-            } else {
-                pageTitle = 'Reports';
-                pageSubtitle = 'View your reading reports';
-            }
-            break;
         default:
             pageTitle = 'ArchiveVox';
             pageSubtitle = '';
@@ -1115,11 +1103,6 @@ function renderView() {
 
     if (state.activeView === 'assessment') {
         renderAssessment();
-        return;
-    }
-
-    if (state.activeView === 'reports') {
-        renderReports();
         return;
     }
 
@@ -1466,7 +1449,6 @@ function renderTeacherDashboard() {
     document.getElementById('search-student-btn')?.addEventListener('click', searchStudent);
     document.getElementById('start-assessment-btn')?.addEventListener('click', startAssessment);
     document.getElementById('view-all-students-btn')?.addEventListener('click', () => setActiveView('students'));
-    document.querySelector('.view-all-btn')?.addEventListener('click', () => setActiveView('reports'));
 
     // View All Assessments Modal buttons
     document.querySelectorAll('.view-all-modal-btn').forEach(btn => {
@@ -2515,6 +2497,27 @@ function renderPrincipalDashboard() {
         `;
     }).join('') : '<p class="u-text-muted u-text-center u-py-20">No assessments yet.</p>';
 
+    // 3.5 DETERMINE DYNAMIC CHART TITLE
+    let activityTitle = 'Weekly Activity'; // Default fallback
+    const startDateInput = document.getElementById('global-start-date')?.value;
+    const endDateInput = document.getElementById('global-end-date')?.value;
+
+    if (startDateInput && endDateInput) {
+        const startDay = new Date(startDateInput);
+        const endDay = new Date(endDateInput);
+        // Calculate the difference in days
+        const diffDays = Math.round(Math.abs((endDay - startDay) / (1000 * 60 * 60 * 24)));
+
+        if (diffDays === 0) {
+            activityTitle = 'Daily Activity';
+        } else if (diffDays >= 6 && diffDays <= 7) {
+            activityTitle = 'Weekly Activity';
+        } else if (diffDays >= 28 && diffDays <= 31) {
+            activityTitle = 'Monthly Activity';
+        } else {
+            activityTitle = 'Activity Timeline'; // For custom random ranges (e.g., 3 days or 14 days)
+        }
+    }
 
     // 4. APPLY UI
     viewContainer.innerHTML = `
@@ -2525,10 +2528,6 @@ function renderPrincipalDashboard() {
                 <span class="hero-tag" style="color: #c7d2fe;">School Overview</span>
                 <h2 class="hero-title">Principal Dashboard</h2>
                 <p class="hero-desc">Monitor school-wide reading progress, track assessment activity, and identify students needing intervention.</p>
-                <button id="hero-view-reports-btn" class="hero-btn" style="color: #4f46e5;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    View Full Reports
-                </button>
             </div>
 
             <!-- Stats Grid -->
@@ -2615,7 +2614,7 @@ function renderPrincipalDashboard() {
 
                 <div class="principal-chart-panel panel" style="padding: 24px;">
                     <div class="panel-header" style="flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 24px;">
-                        <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;">Weekly Activity</h3>
+                        <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;">${activityTitle}</h3>
                         <span class="chart-subtitle" style="font-size: 13px; color: #64748b;">Assessments conducted per day</span>
                     </div>
                     <div class="chart-container chart-h-250">
@@ -2626,11 +2625,6 @@ function renderPrincipalDashboard() {
             
         </div>
     `;
-
-    // 5. EVENT LISTENERS
-    document.getElementById('hero-view-reports-btn')?.addEventListener('click', () => {
-        if (typeof setActiveView === 'function') setActiveView('reports');
-    });
 
     setTimeout(() => {
         if (typeof initPrincipalCharts === 'function') {
@@ -2821,21 +2815,6 @@ async function renderStudentDashboard() {
     } catch (error) {
         viewContainer.innerHTML = `<div class="panel"><p class="u-text-danger">Error loading assignments: ${escapeAssessmentHtml(error.message)}</p></div>`;
     }
-}
-
-function renderParentDashboard() {
-    viewContainer.innerHTML = `
-        <div class="panel">
-            <h3><span class="icon-people" aria-hidden="true"><svg>...</svg></span> Parent Dashboard</h3>
-            <p>Welcome, ${state.user ? state.user.username : ''}!</p>
-            <p>This dashboard will show:</p>
-            <ul>
-                <li>My Children</li>
-                <li>Progress Overview</li>
-            </ul>
-            <p class="u-text-muted">Coming soon!</p>
-        </div>
-    `;
 }
 
 function renderDefaultDashboard() {
@@ -4184,23 +4163,6 @@ async function saveComprehensionScore(activityId, score, options = {}) {
     return true;
 }
 
-function exportAssessmentResults(assessmentId = null, options = {}) {
-    const params = new URLSearchParams({ action: 'export' });
-    if (assessmentId) {
-        params.set('assessment_id', String(assessmentId));
-    }
-    if (options.studentId) {
-        params.set('student_id', String(options.studentId));
-    }
-
-    const link = document.createElement('a');
-    link.href = `php/api/shared/assessment.php?${params.toString()}`;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-}
-
 async function openComprehensionModal(options = {}) {
     const modal = ensureComprehensionModal();
     const titleEl = document.getElementById('comprehension-modal-title');
@@ -4961,11 +4923,12 @@ async function renderTeacherDetail(teacherId) {
             const section = s.section || 'General';
             const classKey = `${grade}|${section}`;
             
-            if (!classesMap[classKey]) {
-                classesMap[classKey] = { grade, section, students: [] };
-            }
-            classesMap[classKey].students.push(s);
-        });
+        if (!classesMap[classKey]) {
+            // NEW: Add class_id to the grouping!
+            classesMap[classKey] = { grade, section, class_id: s.class_id, students: [] };
+        }
+        classesMap[classKey].students.push(s);
+    });
 
         const classesList = Object.values(classesMap).sort((a, b) => a.grade.localeCompare(b.grade));
 
@@ -5063,6 +5026,14 @@ async function renderTeacherDetail(teacherId) {
                                     <p class="subtitle" style="margin-top: 4px;">Teacher: ${escapeAssessmentHtml(teacher.first_name)} ${escapeAssessmentHtml(teacher.last_name)}</p>
                                 </div>
                             </div>
+                            <!-- NEW: Export Button -->
+                            <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onclick="openExportModal('${currentClass.class_id}')">                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export
+                            </button>
                         </div>
                     </div>
 
@@ -5335,6 +5306,288 @@ async function viewTeacherDetails(teacherId) {
         if (contentEl) {
             contentEl.innerHTML = `<p class="u-text-danger">Error loading teacher details: ${escapeAssessmentHtml(error.message)}</p>`;
         }
+    }
+}
+
+// Add this anywhere in your app.js
+state.exportContext = { class_id: null, language: '', materialId: '' };
+
+async function openExportModal(class_id) {
+    // Ensure state context exists
+    state.exportContext = state.exportContext || {};
+    state.exportContext.class_id = class_id;
+    state.exportContext.assignmentId = null; 
+    
+    // Remove existing modal if it was left open
+    document.getElementById('export-modal')?.remove();
+    
+    const modalHTML = `
+        <div id="export-modal" class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+            <div class="modal-content" style="background: #fff; padding: 24px; border-radius: 12px; width: 400px;">
+                <h3 style="margin-top: 0;">Export Class Reading Report</h3>
+                
+                <div style="margin-bottom: 24px; margin-top: 16px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600;">Select Assignment</label>
+                    <select id="export-assignment-select" class="input-inline-fill" style="width: 100%; padding: 8px;" onchange="state.exportContext.assignmentId = this.value" disabled>
+                        <option value="">Loading assignments...</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button class="btn-secondary" onclick="document.getElementById('export-modal').remove()">Cancel</button>
+                    <button class="btn-primary" onclick="downloadExport()">Generate & Download</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    const selectEl = document.getElementById('export-assignment-select');
+    try {
+        // Build the URL. Attach teacher_id if the Principal is viewing the teacher's class
+        let url = `php/api/assignments.php?action=list&class_id=${class_id}`;
+        if (state.selectedTeacherId) {
+            url += `&teacher_id=${state.selectedTeacherId}`;
+        }
+
+        const data = await fetchJson(url);
+        
+        if (data.success && data.assignments && data.assignments.length > 0) {
+            selectEl.innerHTML = '<option value="">-- Select an Assignment --</option>' + 
+                data.assignments.map(a => {
+                    const date = a.assigned_at ? new Date(a.assigned_at).toLocaleDateString() : 'N/A';
+                    return `<option value="${a.assignment_id}">${escapeAssessmentHtml(a.title)} (${date})</option>`;
+                }).join('');
+            selectEl.disabled = false;
+        } else {
+            selectEl.innerHTML = '<option value="">No assignments found for this class.</option>';
+        }
+    } catch (error) {
+        console.error("Error fetching assignment data:", error);
+        selectEl.innerHTML = '<option value="">Error loading assignments.</option>';
+    }
+}
+
+// Function to handle Step 1 -> Step 2 transition
+// Function to handle Step 1 -> Step 2 transition
+async function loadAssignmentsForExport(language) {
+    const selectEl = document.getElementById('export-assignment-select');
+    state.exportContext.assignmentId = null; // Reset selection
+    
+    if (!language) {
+        selectEl.innerHTML = '<option value="">-- Pending Language --</option>';
+        selectEl.disabled = true;
+        return;
+    }
+
+    selectEl.innerHTML = '<option value="">Loading assignments...</option>';
+    selectEl.disabled = true;
+
+    try {
+        // Fetch both assignments and reading materials concurrently for cross-referencing
+        const [assignmentsData, materialsData] = await Promise.all([
+            fetchJson(`php/api/assignments.php?action=list&class_id=${state.exportContext.class_id}`),
+            fetchJson('php/api/shared/reading-materials.php?action=list')
+        ]);
+        
+        if (assignmentsData.success && assignmentsData.assignments && materialsData.success && materialsData.materials) {
+            
+            // Create a lookup dictionary mapping material_id to its language
+            const materialLanguageMap = {};
+            materialsData.materials.forEach(m => {
+                materialLanguageMap[m.material_id] = m.language;
+            });
+
+            // Filter assignments based on the language of their attached material
+            const filteredAssignments = assignmentsData.assignments.filter(assignment => {
+                const assignmentLang = materialLanguageMap[assignment.material_id];
+                return assignmentLang === language;
+            });
+            
+            if (filteredAssignments.length > 0) {
+                selectEl.innerHTML = '<option value="">-- Select Assignment --</option>' + 
+                    filteredAssignments.map(a => `<option value="${a.activity_id}">${a.title}</option>`).join('');
+                selectEl.disabled = false;
+            } else {
+                selectEl.innerHTML = `<option value="">No ${language} assignments found.</option>`;
+            }
+        } else {
+            selectEl.innerHTML = '<option value="">No assignments found.</option>';
+        }
+    } catch (error) {
+        console.error("Error fetching assignment data:", error);
+        selectEl.innerHTML = '<option value="">Error loading assignments.</option>';
+    }
+}
+
+async function loadMaterialsForExport(language) {
+    state.exportContext.language = language;
+    const materialSelect = document.getElementById('export-material-select');
+    
+    if (!language) {
+        materialSelect.innerHTML = '<option value="">-- Pending Language --</option>';
+        materialSelect.disabled = true;
+        return;
+    }
+    
+    materialSelect.innerHTML = '<option value="">Loading...</option>';
+    
+    try {
+        // 1. Calls the correct endpoint that matches your backend
+        const response = await fetchJson('php/api/shared/reading-materials.php?action=list');
+        
+        if (response.success && response.materials && response.materials.length > 0) {
+            // 2. Filters the materials by the chosen language on the frontend
+            const filteredMaterials = response.materials.filter(m => m.language === language);
+            
+            if (filteredMaterials.length > 0) {
+                materialSelect.innerHTML = '<option value="">-- Select Material --</option>' + 
+                    filteredMaterials.map(m => `<option value="${m.material_id}">${m.title}</option>`).join('');
+                materialSelect.disabled = false;
+            } else {
+                materialSelect.innerHTML = `<option value="">No ${language} materials found</option>`;
+                materialSelect.disabled = true;
+            }
+        } else {
+            materialSelect.innerHTML = '<option value="">Failed to load materials</option>';
+            materialSelect.disabled = true;
+        }
+    } catch (error) {
+        console.error("Error fetching materials:", error);
+        materialSelect.innerHTML = '<option value="">Error loading materials</option>';
+        materialSelect.disabled = true;
+    }
+}
+
+// 1. Detailed downloadExport() for Class Reading Reports
+async function downloadExport() {
+    // Check for assignmentId instead of materialId
+    if (!state.exportContext.assignmentId) {
+        showToast("Please select an assignment.", "error");
+        return;
+    }
+
+    const btn = document.querySelector('#export-modal .btn-primary');
+    const originalText = btn ? btn.textContent : 'Generate & Download';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+    }
+
+    try {
+        // Pass assignment_id instead of material_id to match your backend logic
+        const url = `php/api/shared/export-class-report.php?class_id=${state.exportContext.class_id}&assignment_id=${state.exportContext.assignmentId}`;
+        // Fetch as a blob to prevent page redirects on PHP errors
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/json, text/plain' 
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `Failed to generate report (Status: ${response.status})`);
+        }
+
+        // Extract the filename from the Content-Disposition header provided by PHP
+        let filename = `CRLA_Scoresheet_Class_${state.exportContext.class_id}.xlsx`;
+        const disposition = response.headers.get('Content-Disposition');
+        if (disposition && disposition.includes('filename=')) {
+            const match = disposition.match(/filename="?([^"]+)"?/);
+            if (match && match[1]) {
+                filename = match[1];
+            }
+        }
+
+        // Convert to Blob and trigger safe download
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+
+        showToast("Class report exported successfully!", "success");
+        document.getElementById('export-modal')?.remove();
+        
+    } catch (error) {
+        console.error("Export error:", error);
+        showToast("Export error: " + error.message, "error");
+    } finally {
+        // Restore button state
+        if (btn && document.getElementById('export-modal')) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+}
+
+// 2. Detailed exportAssessmentResults() for individual/global CSV exports
+async function exportAssessmentResults(assessmentId = null, options = {}) {
+    const params = new URLSearchParams({ action: 'export' });
+    if (assessmentId) {
+        params.set('assessment_id', String(assessmentId));
+    }
+    if (options.studentId) {
+        params.set('student_id', String(options.studentId));
+    }
+
+    try {
+        showToast("Preparing export...", "info");
+        
+        const url = `php/api/shared/assessment.php?${params.toString()}`;
+        
+        // Fetch as blob to catch errors gracefully without breaking the UI
+        const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            let errorMsg = `Export failed with status: ${response.status}`;
+            try {
+                const errData = await response.json();
+                if (errData.message) errorMsg = errData.message;
+            } catch(e) {
+                const text = await response.text();
+                if (text) errorMsg = text;
+            }
+            throw new Error(errorMsg);
+        }
+
+        // Extract the filename from the Content-Disposition header provided by PHP
+        let filename = 'assessment_results.csv';
+        const disposition = response.headers.get('Content-Disposition');
+        if (disposition && disposition.includes('filename=')) {
+            const match = disposition.match(/filename="?([^"]+)"?/);
+            if (match && match[1]) {
+                filename = match[1];
+            }
+        }
+
+        // Convert to Blob and trigger safe download
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+
+        showToast("Assessment results exported successfully!", "success");
+        
+    } catch (error) {
+        console.error("Export Assessment error:", error);
+        showToast("Export error: " + error.message, "error");
     }
 }
 
@@ -6143,7 +6396,8 @@ function renderStudents() {
         const classKey = `${grade} - ${section}`;
         
         if (!classesMap[classKey]) {
-            classesMap[classKey] = { grade, section, students: [] };
+            // FIX: Added class_id to the map
+            classesMap[classKey] = { grade, section, class_id: s.class_id, students: [] };
         }
         classesMap[classKey].students.push(s);
     });
@@ -6273,7 +6527,7 @@ function renderStudents() {
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <!-- EXPORT BUTTON -->
-                    <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onclick="window.open('php/api/teacher/export-class-report.php?grade_level=' + encodeURIComponent('${currentClass.grade}'), '_blank')">
+                    <button class="btn-secondary" style="display: flex; align-items: center; gap: 6px; height: 40px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.02);" onclick="openExportModal('${currentClass.class_id}')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
