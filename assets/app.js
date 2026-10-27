@@ -2435,7 +2435,18 @@ function renderPrincipalDashboard() {
         students_below_target: 0,
         recent_assessments: [],
         weekly_activity: [],
-        grade_performance: []
+        grade_performance: [],
+        class_performance: []
+    };
+
+    // Store class performance data for charts
+    state.classPerformanceData = dashboard.class_performance || [];
+
+    // Initialize principal filter state
+    state.principalFilters = {
+        grade: '',
+        section: '',
+        assignment: ''
     };
     
     const recent = Array.isArray(dashboard.recent_assessments) ? dashboard.recent_assessments : [];
@@ -2622,15 +2633,237 @@ function renderPrincipalDashboard() {
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Class Performance Section -->
+            <div class="panel u-mt-16" style="padding: 24px;">
+                <div class="panel-header" style="flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 24px;">
+                    <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0;">Class Performance by Assignment</h3>
+                    <span class="chart-subtitle" style="font-size: 13px; color: #64748b;">Average performance by assignment across all classes</span>
+                </div>
+
+                <!-- Filters -->
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center;">
+                    <span style="font-size: 13px; color: #64748b; font-weight: 500;">Filter:</span>
+                    <select id="principal-grade-filter" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; background: #ffffff; cursor: pointer; min-width: 120px;">
+                        <option value="">All Grades</option>
+                    </select>
+                    <select id="principal-section-filter" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; background: #ffffff; cursor: pointer; min-width: 120px;">
+                        <option value="">All Sections</option>
+                    </select>
+                    <select id="principal-assignment-filter" style="padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; background: #ffffff; cursor: pointer; min-width: 180px;">
+                        <option value="">All Assignments</option>
+                    </select>
+                    <button id="principal-reset-filters" style="padding: 6px 16px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #64748b; cursor: pointer; font-weight: 500;">Reset</button>
+                </div>
+
+                <div class="grid two">
+                    <div class="chart-container chart-h-300">
+                        <canvas id="principalClassPerformanceChart"></canvas>
+                    </div>
+                    <div class="chart-container chart-h-300">
+                        <canvas id="principalMiscuePieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
         </div>
     `;
 
+<<<<<<< HEAD
+=======
+    // 5. EVENT LISTENERS
+    document.getElementById('hero-view-reports-btn')?.addEventListener('click', () => {
+        if (typeof setActiveView === 'function') setActiveView('reports');
+    });
+
+    // Populate filter dropdowns with cascading logic
+    setTimeout(() => {
+        const classPerfData = dashboard.class_performance || [];
+
+        // Store raw data for cascading filters
+        state.principalClassPerfData = classPerfData;
+
+        const gradeFilter = document.getElementById('principal-grade-filter');
+        const sectionFilter = document.getElementById('principal-section-filter');
+        const assignmentFilter = document.getElementById('principal-assignment-filter');
+
+        // Populate grade filter
+        if (gradeFilter) {
+            // Clear existing options except the first one
+            gradeFilter.innerHTML = '<option value="">All Grades</option>';
+
+            const grades = [...new Set(
+                classPerfData
+                    .map(item => item.grade_level)
+                    .filter(Boolean)
+                    .map(g => g.trim().toLowerCase())
+            )].sort(); // Sort and normalize to remove duplicates
+
+            console.log('Unique grades:', grades); // Debug log
+
+            grades.forEach(grade => {
+                const option = document.createElement('option');
+                option.value = grade;
+                option.textContent = grade.charAt(0).toUpperCase() + grade.slice(1); // Capitalize first letter
+                gradeFilter.appendChild(option);
+            });
+        }
+
+        // Initial population of sections and assignments (all)
+        populateSections(state.principalFilters.grade);
+        populateAssignments(state.principalFilters.grade, state.principalFilters.section);
+
+        // Grade change - cascade to sections and assignments
+        gradeFilter?.addEventListener('change', (e) => {
+            state.principalFilters.grade = e.target.value;
+            state.principalFilters.section = ''; // Reset section
+            state.principalFilters.assignment = ''; // Reset assignment
+            if (sectionFilter) sectionFilter.value = '';
+            if (assignmentFilter) assignmentFilter.value = '';
+            populateSections(e.target.value);
+            populateAssignments(e.target.value, '');
+            updatePrincipalCharts();
+        });
+
+        // Section change - cascade to assignments
+        sectionFilter?.addEventListener('change', (e) => {
+            state.principalFilters.section = e.target.value;
+            state.principalFilters.assignment = ''; // Reset assignment
+            if (assignmentFilter) assignmentFilter.value = '';
+            populateAssignments(state.principalFilters.grade, e.target.value);
+            updatePrincipalCharts();
+        });
+
+        // Assignment change
+        assignmentFilter?.addEventListener('change', (e) => {
+            state.principalFilters.assignment = e.target.value;
+            updatePrincipalCharts();
+        });
+
+        // Reset filters
+        document.getElementById('principal-reset-filters')?.addEventListener('click', () => {
+            state.principalFilters = { grade: '', section: '', assignment: '' };
+            if (gradeFilter) gradeFilter.value = '';
+            if (sectionFilter) sectionFilter.value = '';
+            if (assignmentFilter) assignmentFilter.value = '';
+            populateSections('');
+            populateAssignments('', '');
+            updatePrincipalCharts();
+        });
+    }, 300);
+
+>>>>>>> 0a268e1f3d453cdd0b1fd858512032c2626a212e
     setTimeout(() => {
         if (typeof initPrincipalCharts === 'function') {
             initPrincipalCharts(dashboard);
         }
     }, 200);
+}
+
+function populateSections(selectedGrade) {
+    const sectionFilter = document.getElementById('principal-section-filter');
+    if (!sectionFilter) return;
+
+    // Clear existing options except the first one
+    sectionFilter.innerHTML = '<option value="">All Sections</option>';
+
+    const classPerfData = state.principalClassPerfData || [];
+
+    // Filter sections based on selected grade
+    const sections = [...new Set(
+        classPerfData
+            .filter(item => !selectedGrade || item.grade_level.trim().toLowerCase() === selectedGrade.toLowerCase())
+            .map(item => item.section)
+            .filter(Boolean)
+            .map(s => s.trim())
+    )].sort();
+
+    sections.forEach(section => {
+        const option = document.createElement('option');
+        option.value = section;
+        option.textContent = section;
+        sectionFilter.appendChild(option);
+    });
+}
+
+function populateAssignments(selectedGrade, selectedSection) {
+    const assignmentFilter = document.getElementById('principal-assignment-filter');
+    if (!assignmentFilter) return;
+
+    // Clear existing options except the first one
+    assignmentFilter.innerHTML = '<option value="">All Assignments</option>';
+
+    const classPerfData = state.principalClassPerfData || [];
+
+    // Filter assignments based on selected grade and section
+    const assignments = [...new Set(
+        classPerfData
+            .filter(item => {
+                if (selectedGrade && item.grade_level.trim().toLowerCase() !== selectedGrade.toLowerCase()) return false;
+                if (selectedSection && item.section.trim() !== selectedSection) return false;
+                return true;
+            })
+            .map(item => item.assignment)
+            .filter(Boolean)
+            .map(a => a.trim())
+    )].sort();
+
+    assignments.forEach(assignment => {
+        const option = document.createElement('option');
+        option.value = assignment;
+        option.textContent = assignment;
+        assignmentFilter.appendChild(option);
+    });
+}
+
+function updatePrincipalCharts() {
+    const { grade, section, assignment } = state.principalFilters;
+    const classPerfData = state.classPerformanceData || [];
+
+    // Filter data based on selected filters
+    const filteredData = classPerfData.filter(item => {
+        if (grade && item.grade_level.trim().toLowerCase() !== grade.toLowerCase()) return false;
+        if (section && item.section.trim() !== section) return false;
+        if (assignment && item.assignment.trim() !== assignment) return false;
+        return true;
+    });
+
+    // Update class performance chart
+    const classPerfCtx = document.getElementById('principalClassPerformanceChart');
+    if (classPerfCtx && state.chartInstances.principal?.classPerformance) {
+        const assignmentLabels = filteredData.map(item => {
+            const title = item.assignment || '';
+            return title.length > 30 ? title.substring(0, 30) + '...' : title;
+        });
+        const wcpmData = filteredData.map(item => Number(item.avg_wcpm || 0));
+        const accuracyData = filteredData.map(item => Number(item.avg_accuracy || 0));
+
+        state.chartInstances.principal.classPerformance.data.labels = assignmentLabels;
+        state.chartInstances.principal.classPerformance.data.datasets[0].data = wcpmData;
+        state.chartInstances.principal.classPerformance.data.datasets[1].data = accuracyData;
+        state.chartInstances.principal.classPerformance.update();
+    }
+
+    // Update miscue pie chart
+    const miscueCtx = document.getElementById('principalMiscuePieChart');
+    if (miscueCtx && state.chartInstances.principal?.miscue) {
+        const totalSubstitutions = filteredData.reduce((sum, item) => sum + Number(item.total_substitutions || 0), 0);
+        const totalOmissions = filteredData.reduce((sum, item) => sum + Number(item.total_omissions || 0), 0);
+        const totalInsertions = filteredData.reduce((sum, item) => sum + Number(item.total_insertions || 0), 0);
+        const totalRepetitions = filteredData.reduce((sum, item) => sum + Number(item.total_repetitions || 0), 0);
+
+        const miscueData = [totalSubstitutions, totalOmissions, totalInsertions, totalRepetitions];
+        const totalMiscues = miscueData.reduce((a, b) => a + b, 0);
+
+        const percentages = miscueData.map((value) => {
+            return totalMiscues > 0 ? ((value / totalMiscues) * 100).toFixed(1) + '%' : '0%';
+        });
+
+        const labels = ['Substitutions', 'Omissions', 'Insertions', 'Repetitions'];
+        state.chartInstances.principal.miscue.data.labels = labels.map((label, index) => `${label} (${percentages[index]})`);
+        state.chartInstances.principal.miscue.data.datasets[0].data = miscueData;
+        state.chartInstances.principal.miscue.update();
+    }
 }
 
 function initPrincipalCharts(data) {
@@ -2658,6 +2891,14 @@ function initPrincipalCharts(data) {
         });
     }
     state.chartInstances.principal = {};
+
+    // Also destroy teacher charts to avoid conflicts
+    if (state.chartInstances.teacher) {
+        Object.values(state.chartInstances.teacher).forEach(chart => {
+            if (chart && chart.destroy) chart.destroy();
+        });
+    }
+    state.chartInstances.teacher = {};
 
     // Grade Performance Chart
     const gradeCtx = document.getElementById('gradePerformanceChart');
@@ -2745,6 +2986,151 @@ function initPrincipalCharts(data) {
                     },
                     x: {
                         grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // Class Performance Chart
+    const classPerfCtx = document.getElementById('principalClassPerformanceChart');
+    if (classPerfCtx) {
+        const classPerfData = Array.isArray(data.class_performance) ? data.class_performance : [];
+        const assignmentLabels = classPerfData.map(item => {
+            const title = item.assignment || '';
+            return title.length > 30 ? title.substring(0, 30) + '...' : title;
+        });
+        const wcpmData = classPerfData.map(item => Number(item.avg_wcpm || 0));
+        const accuracyData = classPerfData.map(item => Number(item.avg_accuracy || 0));
+
+        state.chartInstances.principal.classPerformance = new Chart(classPerfCtx, {
+            type: 'bar',
+            data: {
+                labels: assignmentLabels,
+                datasets: [
+                    {
+                        label: 'Avg. WCPM',
+                        data: wcpmData,
+                        backgroundColor: '#3b82f6',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Avg. Accuracy %',
+                        data: accuracyData,
+                        backgroundColor: '#10b981',
+                        borderColor: '#10b981',
+                        borderWidth: 1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'WCPM'
+                        },
+                        grid: { color: 'rgba(148, 163, 184, 0.18)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Accuracy %'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // Miscue Pie Chart
+    const miscueCtx = document.getElementById('principalMiscuePieChart');
+    if (miscueCtx) {
+        const classPerfData = Array.isArray(data.class_performance) ? data.class_performance : [];
+        const totalSubstitutions = classPerfData.reduce((sum, item) => sum + Number(item.total_substitutions || 0), 0);
+        const totalOmissions = classPerfData.reduce((sum, item) => sum + Number(item.total_omissions || 0), 0);
+        const totalInsertions = classPerfData.reduce((sum, item) => sum + Number(item.total_insertions || 0), 0);
+        const totalRepetitions = classPerfData.reduce((sum, item) => sum + Number(item.total_repetitions || 0), 0);
+
+        const miscueData = [totalSubstitutions, totalOmissions, totalInsertions, totalRepetitions];
+        const totalMiscues = miscueData.reduce((a, b) => a + b, 0);
+
+        const labels = ['Substitutions', 'Omissions', 'Insertions', 'Repetitions'];
+        const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'];
+        const percentages = miscueData.map((value, index) => {
+            return totalMiscues > 0 ? ((value / totalMiscues) * 100).toFixed(1) + '%' : '0%';
+        });
+
+        state.chartInstances.principal.miscue = new Chart(miscueCtx, {
+            type: 'pie',
+            data: {
+                labels: labels.map((label, index) => `${label} (${percentages[index]})`),
+                datasets: [{
+                    data: miscueData,
+                    backgroundColor: colors,
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Miscue Analysis',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const rawLabel = ['Substitutions', 'Omissions', 'Insertions', 'Repetitions'][context.dataIndex] || '';
+                                const value = context.parsed || 0;
+                                const descriptions = {
+                                    'Substitutions': 'Student replaces a word with another word',
+                                    'Omissions': 'Student skips or omits a word while reading',
+                                    'Insertions': 'Student adds a word that is not in the text',
+                                    'Repetitions': 'Student repeats a word or phrase'
+                                };
+                                return `${rawLabel}: ${value} - ${descriptions[rawLabel] || ''}`;
+                            }
+                        }
                     }
                 }
             }

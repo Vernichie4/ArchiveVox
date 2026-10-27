@@ -2,10 +2,7 @@ import sys
 import json
 import os
 import shutil
-
-# Suppress Whisper progress bars by redirecting stderr
 import io
-sys.stderr = io.StringIO()
 
 # Set cache directory BEFORE importing whisper to avoid permission issues
 cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'uploads', 'temp', '.whisper_cache')
@@ -61,9 +58,19 @@ def main():
         return
     
     try:
+        # Suppress Whisper's stdout/stderr during model loading
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+
         # Use tiny model for lower memory usage on Railway
         # tiny: ~39MB, base: ~139MB, small: ~461MB, medium: ~1.5GB, large: ~2.9GB
         model = whisper.load_model("tiny")
+
+        # Restore stdout/stderr
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
 
         # Build transcription arguments dynamically
         transcribe_args = {
@@ -76,7 +83,15 @@ def main():
         if target_language:
             transcribe_args["language"] = target_language
 
+        # Suppress output during transcription
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+
         result = model.transcribe(audio_path, **transcribe_args)
+
+        # Restore stdout/stderr for JSON output
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
 
         print(json.dumps({
             "success": True,
@@ -86,6 +101,9 @@ def main():
             "segments": result.get("segments", [])
         }))
     except Exception as e:
+        # Ensure stdout/stderr are restored on error
+        sys.stdout = original_stdout if 'original_stdout' in locals() else sys.__stdout__
+        sys.stderr = original_stderr if 'original_stderr' in locals() else sys.__stderr__
         print(json.dumps({"success": False, "error": str(e)}))
 
 if __name__ == "__main__":

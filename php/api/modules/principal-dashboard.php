@@ -233,6 +233,37 @@ try {
         $stmt->execute($params);
         $gradePerformance = $stmt->fetchAll();
 
+        // --- Class Performance by Assignment ---
+        $stmt = $pdo->prepare("
+            SELECT
+                ra2.title as assignment,
+                sc.grade_level,
+                c.section as section,
+                AVG(ar.wcpm) as avg_wcpm,
+                AVG(ar.accuracy_percentage) as avg_accuracy,
+                SUM(ar.substitutions) as total_substitutions,
+                SUM(ar.omissions) as total_omissions,
+                SUM(ar.insertions) as total_insertions,
+                SUM(ar.repetitions) as total_repetitions
+            FROM assessment_result ar
+            JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+            JOIN reading_assignment_material ram ON ra.assignment_material_id = ram.assignment_material_id
+            JOIN reading_assignment ra2 ON ram.assignment_id = ra2.assignment_id
+            JOIN student s ON ra.student_id = s.student_id
+            LEFT JOIN student_category sc ON s.category_id = sc.category_id
+            LEFT JOIN class c ON s.class_id = c.class_id
+            WHERE ra2.status = 'assigned'
+            AND ra2.title IS NOT NULL
+            AND ra2.title != ''
+            AND ra.assignment_material_id IS NOT NULL
+            $dateSql
+            GROUP BY ra2.assignment_id, ra2.title, sc.grade_level, c.section
+            ORDER BY ra2.assignment_id DESC
+            LIMIT 7
+        ");
+        $stmt->execute($params);
+        $classPerformance = $stmt->fetchAll();
+
         // --- Risk Students ---
         $stmt = $pdo->prepare("
             SELECT 
@@ -269,6 +300,7 @@ try {
                 'recent_assessments' => $recentAssessments ?: [],
                 'weekly_activity' => $weeklyActivity,
                 'grade_performance' => $gradePerformance ?: [],
+                'class_performance' => $classPerformance ?: [],
                 'risk_students' => $riskStudents ?: []
             ]
         ]);
