@@ -2616,6 +2616,17 @@ table tbody tr:hover {
     font-size: 1.8rem;
 }
 
+.miscue-input {
+  width: 64px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+.miscue-tile .miscue-input { margin-bottom: 4px; }
+
 .miscue-tiles {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));

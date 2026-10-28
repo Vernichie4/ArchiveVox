@@ -239,6 +239,11 @@ function handleGet(string $action, PDO $pdo): void {
             return;
         }
 
+        if ($action === 'validate_metrics') {
+            handleValidateMetrics($pdo);
+            return;
+        }
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             throw new Exception('Invalid JSON data');
@@ -387,12 +392,12 @@ function handleRecordAssessment(PDO $pdo): void {
                 $existingActivityId = 0; // Force new activity creation
             }
         } elseif ($assignmentMaterialId) {
-            // New attempt: count completed attempts
+            // New attempt: count completed attempts using valid ENUM ('Completed')
             $stmt = $pdo->prepare('
                 SELECT COUNT(*) FROM reading_activity
                 WHERE student_id = :student_id
                 AND assignment_material_id = :assignment_material_id
-                AND activity_status IN ("Completed", "Practice Completed")
+                AND activity_status = "Completed"
             ');
             $stmt->execute([
                 ':student_id' => $studentId,
@@ -498,37 +503,57 @@ function handleRecordAssessment(PDO $pdo): void {
         $scores = calculateORF($transcribedText, $originalText, $durationSeconds);
         $crlaProfile = calculateCRLAProfile($scores);
 
+        // Total miscues = the three counted error types (repetitions tracked separately)
+        $substitutions = (int)($scores['substitutions'] ?? 0);
+        $omissions     = (int)($scores['omissions'] ?? 0);
+        $insertions    = (int)($scores['insertions'] ?? 0);
+        $repetitions   = (int)($scores['repetitions'] ?? 0);
+        $totalMiscues  = $substitutions + $omissions + $insertions;
+
         $stmt = $pdo->prepare(
             'INSERT INTO assessment_result (
-                activity_id, total_words, words_correct, accuracy_percentage,
-                wcpm, reading_time_seconds, substitutions, omissions,
-                insertions, repetitions, transcript, reading_level, comprehension_score,
-                final_reading_level, observation_level, transcription_language, assessed_at
+                activity_id, total_words, words_correct,
+                accuracy_percentage, system_accuracy_percentage,
+                wcpm, system_wcpm,
+                reading_time_seconds, substitutions, omissions,
+                insertions, repetitions, miscues, system_miscues,
+                transcript, reading_level, comprehension_score,
+                final_reading_level, observation_level,
+                validation_status, transcription_language, assessed_at
             ) VALUES (
-                :activity_id, :total_words, :words_correct, :accuracy_percentage,
-                :wcpm, :reading_time_seconds, :substitutions, :omissions,
-                :insertions, :repetitions, :transcript, :reading_level, :comprehension_score,
-                :final_reading_level, :observation_level, :transcription_language, NOW()
+                :activity_id, :total_words, :words_correct,
+                :accuracy_percentage, :system_accuracy_percentage,
+                :wcpm, :system_wcpm,
+                :reading_time_seconds, :substitutions, :omissions,
+                :insertions, :repetitions, :miscues, :system_miscues,
+                :transcript, :reading_level, :comprehension_score,
+                :final_reading_level, :observation_level,
+                :validation_status, :transcription_language, NOW()
             )'
         );
-        
+
         $stmt->execute([
-            ':activity_id' => $activityId,
-            ':total_words' => $scores['total_words'],
-            ':words_correct' => $scores['words_correct'],
-            ':accuracy_percentage' => $scores['accuracy'],
-            ':wcpm' => $scores['wcpm'],
-            ':reading_time_seconds' => $scores['time_seconds'],
-            ':substitutions' => $scores['substitutions'],
-            ':omissions' => $scores['omissions'],
-            ':insertions' => $scores['insertions'],
-            ':repetitions' => $scores['repetitions'],
-            ':transcript' => $transcribedText,
-            ':reading_level' => $scores['reading_level'], 
-            ':comprehension_score' => null,
-            ':final_reading_level' => $scores['crla_level'], 
-            ':observation_level' => $crlaProfile['observation_level'],
-            ':transcription_language' => $language
+            ':activity_id'                 => $activityId,
+            ':total_words'                 => $scores['total_words'],
+            ':words_correct'               => $scores['words_correct'],
+            ':accuracy_percentage'         => $scores['accuracy'],
+            ':system_accuracy_percentage'  => $scores['accuracy'],
+            ':wcpm'                        => $scores['wcpm'],
+            ':system_wcpm'                 => $scores['wcpm'],
+            ':reading_time_seconds'        => $scores['time_seconds'],
+            ':substitutions'               => $substitutions,
+            ':omissions'                   => $omissions,
+            ':insertions'                  => $insertions,
+            ':repetitions'                 => $repetitions,
+            ':miscues'                     => $totalMiscues,
+            ':system_miscues'              => $totalMiscues,
+            ':transcript'                  => $transcribedText,
+            ':reading_level'               => $scores['reading_level'],
+            ':comprehension_score'         => null,
+            ':final_reading_level'         => $scores['crla_level'],
+            ':observation_level'           => $crlaProfile['observation_level'],
+            ':validation_status'           => 'unverified',
+            ':transcription_language'      => $language,
         ]);
 
         $assessmentId = (int)$pdo->lastInsertId();
@@ -719,6 +744,193 @@ function handleUpdateComprehension(PDO $pdo): void {
             'success' => false,
             'message' => 'Error updating comprehension: ' . $e->getMessage()
         ]);
+    }
+}
+
+/**
+ * Handle teacher validation of reading metrics.
+ * Accepts EITHER mode:
+ *   Quick Mode  : { activity_id, miscues, comprehension_score?, teacher_feedback?, teacher_id? }
+ *   Detailed Mode: { activity_id, substitutions, omissions, insertions, repetitions, ... }
+ * When "miscues" is supplied it is authoritative; otherwise the breakdown sum is used.
+ * Everything downstream (accuracy, wcpm, levels) is recalculated server-side.
+ */
+function handleValidateMetrics(PDO $pdo): void {
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($data)) {
+        throw new Exception('Invalid JSON data');
+    }
+
+    $activityId = (int)($data['activity_id'] ?? 0);
+    if ($activityId <= 0) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'activity_id is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare('SELECT * FROM assessment_result WHERE activity_id = :activity_id LIMIT 1');
+        $stmt->execute([':activity_id' => $activityId]);
+        $assessment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$assessment) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Assessment not found for this activity']);
+            return;
+        }
+
+        $totalWords  = max(1, (int)($assessment['total_words'] ?? 0));
+        $readingTime = max(1, (int)($assessment['reading_time_seconds'] ?? 0));
+
+        // ---------- Resolve miscues (Quick vs Detailed) ----------
+        $hasBreakdown = isset($data['substitutions']) || isset($data['omissions']) || isset($data['insertions']);
+        $hasTotal     = isset($data['miscues']) && $data['miscues'] !== '';
+
+        if ($hasBreakdown) {
+            $substitutions = max(0, (int)($data['substitutions'] ?? 0));
+            $omissions     = max(0, (int)($data['omissions']     ?? 0));
+            $insertions    = max(0, (int)($data['insertions']    ?? 0));
+            $repetitions   = max(0, (int)($data['repetitions']   ?? $assessment['repetitions'] ?? 0));
+            $totalMiscues  = $substitutions + $omissions + $insertions;
+
+            // If the teacher also typed a total, keep the breakdown honest:
+            // nudge insertions so the parts always add up to the stated total.
+            if ($hasTotal) {
+                $statedTotal = max(0, (int)$data['miscues']);
+                $insertions  = max(0, $statedTotal - $substitutions - $omissions);
+                $totalMiscues = $statedTotal;
+            }
+        } elseif ($hasTotal) {
+            $totalMiscues  = max(0, (int)$data['miscues']);
+            $substitutions = max(0, (int)($assessment['substitutions'] ?? 0));
+            $omissions     = max(0, (int)($assessment['omissions']     ?? 0));
+            $insertions    = max(0, (int)($assessment['insertions']    ?? 0));
+            $repetitions   = max(0, (int)($assessment['repetitions']   ?? 0));
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Provide "miscues" or the substitutions/omissions/insertions breakdown.']);
+            return;
+        }
+
+        // Guards: cannot exceed the passage length
+        if ($totalMiscues > $totalWords) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => "Miscues ($totalMiscues) cannot exceed total words ($totalWords)."]);
+            return;
+        }
+
+        // ---------- Recalculate ----------
+        $wordsCorrect = max(0, $totalWords - $totalMiscues);
+        $accuracy     = round(($wordsCorrect / $totalWords) * 100, 2);
+        $wcpm         = round(($wordsCorrect / $readingTime) * 60, 2);
+
+        // 5-tier ORF level (same thresholds as calculateORF)
+        if ($accuracy >= 95)      $readingLevel = 'Reading At Grade Level';
+        elseif ($accuracy >= 90)  $readingLevel = 'Transitioning Reader';
+        elseif ($accuracy >= 80)  $readingLevel = 'Developing Reader';
+        elseif ($accuracy >= 60)  $readingLevel = 'High Emerging Reader';
+        else                      $readingLevel = 'Low Emerging Reader';
+
+        // Comprehension (optional in the payload)
+        $compRaw = array_key_exists('comprehension_score', $data) ? $data['comprehension_score'] : $assessment['comprehension_score'];
+        $compScore = ($compRaw === null || $compRaw === '') ? null : (int)$compRaw;
+        if ($compScore !== null && ($compScore < 0 || $compScore > 7)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'comprehension_score must be between 0 and 7']);
+            return;
+        }
+
+        $finalReadingLevel = 'Pending Quiz';
+        if ($compScore !== null) {
+            $part2Score = calculatePart2Score($compScore);
+            $finalReadingLevel = determineCRLAReadingLevel($accuracy, $part2Score, $readingTime);
+        }
+
+        $observationLevel = determineObservationLevel(
+            $substitutions,
+            $omissions,
+            $insertions,
+            $totalWords,
+            (float)($assessment['pronunciation_score'] ?? 5),
+            (float)($assessment['expression_score'] ?? 5)
+        );
+
+        // 'confirmed' = teacher agreed with the system; 'adjusted' = teacher changed it
+        $systemMiscues = (int)($assessment['system_miscues'] ?? $assessment['miscues'] ?? 0);
+        $validationStatus = ($totalMiscues === $systemMiscues) ? 'confirmed' : 'adjusted';
+
+        $feedback = array_key_exists('teacher_feedback', $data)
+            ? trim((string)$data['teacher_feedback'])
+            : ($assessment['teacher_feedback'] ?? null);
+
+        $upd = $pdo->prepare('
+            UPDATE assessment_result
+            SET words_correct        = :words_correct,
+                accuracy_percentage  = :accuracy,
+                wcpm                 = :wcpm,
+                substitutions        = :substitutions,
+                omissions            = :omissions,
+                insertions           = :insertions,
+                repetitions          = :repetitions,
+                miscues              = :miscues,
+                reading_level        = :reading_level,
+                comprehension_score  = :comprehension_score,
+                final_reading_level  = :final_reading_level,
+                observation_level    = :observation_level,
+                teacher_feedback     = :teacher_feedback,
+                validation_status    = :validation_status,
+                validated_at         = NOW()
+            WHERE activity_id = :activity_id
+        ');
+
+        $upd->execute([
+            ':words_correct'       => $wordsCorrect,
+            ':accuracy'            => $accuracy,
+            ':wcpm'                => $wcpm,
+            ':substitutions'       => $substitutions,
+            ':omissions'           => $omissions,
+            ':insertions'          => $insertions,
+            ':repetitions'         => $repetitions,
+            ':miscues'             => $totalMiscues,
+            ':reading_level'       => $readingLevel,
+            ':comprehension_score' => $compScore,
+            ':final_reading_level' => $finalReadingLevel,
+            ':observation_level'   => $observationLevel,
+            ':teacher_feedback'    => $feedback,
+            ':validation_status'   => $validationStatus,
+            ':activity_id'         => $activityId,
+        ]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => $validationStatus === 'confirmed'
+                ? 'Score confirmed — system result was accurate.'
+                : 'Miscues adjusted and reading metrics recalculated.',
+            'validation_status' => $validationStatus,
+            'system' => [
+                'accuracy_percentage' => $assessment['system_accuracy_percentage'] ?? $assessment['accuracy_percentage'],
+                'wcpm'                => $assessment['system_wcpm'] ?? $assessment['wcpm'],
+                'miscues'             => $systemMiscues,
+            ],
+            'updated_reading_profile' => [
+                'total_words'          => $totalWords,
+                'words_correct'        => $wordsCorrect,
+                'miscues'              => $totalMiscues,
+                'substitutions'        => $substitutions,
+                'omissions'            => $omissions,
+                'insertions'           => $insertions,
+                'repetitions'          => $repetitions,
+                'accuracy_percentage'  => $accuracy,
+                'wcpm'                 => $wcpm,
+                'reading_level'        => $readingLevel,
+                'final_reading_level'  => $finalReadingLevel,
+                'observation_level'    => $observationLevel,
+                'comprehension_score'  => $compScore,
+            ],
+        ]);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Error validating metrics: ' . $e->getMessage()]);
     }
 }
 

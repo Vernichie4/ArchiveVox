@@ -4759,27 +4759,7 @@ function renderStep4Results() {
                             </div>
                         </div>
 
-                        <div class="panel u-mt-16">
-                            <h4 class="u-mt-0">Miscue Analysis</h4>
-                            <div class="miscue-tiles">
-                                <div class="miscue-tile miscue-substitution">
-                                    <div class="miscue-count">${profile.miscues?.substitutions || scoreSummary.substitutions || 0}</div>
-                                    <div class="u-text-muted-xs">Substitutions</div>
-                                </div>
-                                <div class="miscue-tile miscue-omission">
-                                    <div class="miscue-count">${profile.miscues?.omissions || scoreSummary.omissions || 0}</div>
-                                    <div class="u-text-muted-xs">Omissions</div>
-                                </div>
-                                <div class="miscue-tile miscue-insertion">
-                                    <div class="miscue-count">${profile.miscues?.insertions || scoreSummary.insertions || 0}</div>
-                                    <div class="u-text-muted-xs">Insertions</div>
-                                </div>
-                                <div class="miscue-tile miscue-repetition">
-                                    <div class="miscue-count">${profile.miscues?.repetitions || scoreSummary.repetitions || 0}</div>
-                                    <div class="u-text-muted-xs">Repetitions</div>
-                                </div>
-                            </div>
-                        </div>
+                        <div id="validation-mount"></div>
 
                         ${hasComprehensionScore && results.interpretation ? `
                             <div class="panel u-mt-16 crla-profile-panel">
@@ -4854,6 +4834,28 @@ function renderStep4Results() {
     document.getElementById('view-history-btn')?.addEventListener('click', loadAssessmentHistory);
     document.getElementById('export-assessment-btn')?.addEventListener('click', () => exportAssessmentResults(assessmentId));
     document.getElementById('print-results-btn')?.addEventListener('click', printAssessmentResults);
+
+    // Mount the teacher validation editor (live session)
+    const validationMount = document.getElementById('validation-mount');
+    if (validationMount && activityId) {
+        renderValidationEditor(validationMount, {
+            activityId: activityId,
+            assessmentId: assessmentId,
+            totalWords: profile.total_words || assessmentRecord.total_words || scoreSummary.total_words || 0,
+            readingSeconds: readingSeconds,
+            record: {
+                ...assessmentRecord,
+                substitutions: profile.miscues?.substitutions ?? scoreSummary.substitutions ?? 0,
+                omissions: profile.miscues?.omissions ?? scoreSummary.omissions ?? 0,
+                insertions: profile.miscues?.insertions ?? scoreSummary.insertions ?? 0,
+                repetitions: profile.miscues?.repetitions ?? scoreSummary.repetitions ?? 0
+            },
+            onSaved: async () => {
+                await refreshAssessmentProfile(assessmentId);
+                renderAssessment();
+            }
+        });
+    }
 }
 
 function printAssessmentResults() {
@@ -6477,6 +6479,7 @@ async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) 
                                     <th style="padding: 12px; text-align: left;">Quiz Score</th>
                                     <th style="padding: 12px; text-align: left;">Attempt Type</th>
                                     <th style="padding: 12px; text-align: left;">Status</th>
+                                    <th style="padding: 12px; text-align: left;">Validation</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -6486,13 +6489,17 @@ async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) 
                                         : `<span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">Practice (#${attempt.attempt_number})</span>`;
 
                                     let readHtml = '<span style="color: #94a3b8; font-size: 13px;">-</span>';
+                                    let raForValidation = null;
                                     if (attempt.reading_attempts && attempt.reading_attempts.length > 0) {
                                         const ra = attempt.reading_attempts[attempt.reading_attempts.length - 1];
+                                        raForValidation = ra;
                                         const acc = ra.accuracy_percentage ? Math.round(ra.accuracy_percentage) : 0;
                                         const wcpm = ra.wcpm ? Math.round(ra.wcpm) : 0;
-                                        readHtml = `<strong style="color: #059669;">${acc}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${wcpm} WCPM</span>`;
+                                        const sysTag = (ra.system_accuracy_percentage && Number(ra.system_accuracy_percentage) !== Number(ra.accuracy_percentage))
+                                            ? `<br><span style="font-size: 11px; color: #94a3b8;">system: ${Math.round(ra.system_accuracy_percentage)}%</span>`
+                                            : '';
+                                        readHtml = `<strong style="color: #059669;">${acc}% Acc</strong><br><span style="font-size: 12px; color: #475569;">${wcpm} WCPM</span>${sysTag}`;
                                     }
-
                                     let quizHtml = '<span style="color: #94a3b8; font-size: 13px;">-</span>';
                                     if (attempt.quiz_attempts && attempt.quiz_attempts.length > 0) {
                                         const qa = attempt.quiz_attempts[attempt.quiz_attempts.length - 1];
@@ -6513,6 +6520,18 @@ async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) 
                                             <td style="padding: 16px 12px;">
                                                 <span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;">${latestStatus}</span>
                                             </td>
+                                            <td style="padding: 16px 12px;">
+                                                ${raForValidation ? `
+                                                    <button type="button" class="btn-secondary btn-sm validate-attempt-btn"
+                                                            data-activity-id="${raForValidation.activity_id}"
+                                                            data-attempt-number="${attempt.attempt_number}">Validate</button>
+                                                    ${raForValidation.validation_status === 'confirmed'
+                                                        ? '<span style="color:#15803d; font-size:12px; font-weight:600;">✓ Confirmed</span>'
+                                                        : raForValidation.validation_status === 'adjusted'
+                                                            ? '<span style="color:#b45309; font-size:12px; font-weight:600;">✎ Adjusted</span>'
+                                                            : '<span style="color:#94a3b8; font-size:12px;">🤖 Unverified</span>'}
+                                                ` : '<span style="color:#94a3b8; font-size:13px;">-</span>'}
+                                            </td>
                                         </tr>
                                     `;
                                 }).join('')}
@@ -6526,6 +6545,38 @@ async function showAssignmentAttempts(studentId, assignmentId, assignmentTitle) 
         const modalDiv = document.createElement('div');
         modalDiv.innerHTML = modalHtml;
         document.body.appendChild(modalDiv);
+
+            // Validation editor inside the attempts modal
+        const validationHost = document.createElement('div');
+        validationHost.id = 'attempts-validation-host';
+        validationHost.style.marginTop = '20px';
+        modalDiv.querySelector('div[style*="background: white"]')?.appendChild(validationHost);
+
+        modalDiv.querySelectorAll('.validate-attempt-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const activityId = btn.dataset.activityId;
+                validationHost.innerHTML = '<p class="u-text-muted">Loading assessment…</p>';
+                validationHost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                try {
+                    const detail = await fetchJson(
+                        `php/api/assignments.php?action=teacher/attempt-detail&activity_id=${encodeURIComponent(activityId)}`
+                    );
+                    const rec = detail.assessment || {};
+                    validationHost.innerHTML = '';
+                    renderValidationEditor(validationHost, {
+                        activityId: activityId,
+                        assessmentId: rec.assessment_id,
+                        totalWords: rec.total_words,
+                        readingSeconds: rec.reading_time_seconds,
+                        record: rec,
+                        onSaved: () => showAssignmentAttempts(studentId, assignmentId, assignmentTitle)
+                    });
+                } catch (err) {
+                    validationHost.innerHTML = `<p class="u-text-danger">Failed to load: ${escapeAssessmentHtml(err.message)}</p>`;
+                }
+            });
+        });
+
     } catch (error) {
         console.error('Error loading assignment attempts:', error);
         alert('Failed to load assignment attempts: ' + error.message);
@@ -7219,6 +7270,223 @@ function getStudentModalsHTML() {
             </div>
         </div>
     `;
+}
+
+/* ============================================================
+   TEACHER SCORE VALIDATION — shared miscue editor (Quick + Detailed)
+   Used by Step 4 Results (live session) and View Attempts (review)
+   ============================================================ */
+
+function renderValidationEditor(host, opts) {
+    // opts: { activityId, assessmentId, totalWords, readingSeconds, record, onSaved }
+    const r = opts.record || {};
+    const totalWords = Math.max(1, Number(opts.totalWords || r.total_words || 0));
+    const readingSeconds = Math.max(1, Number(opts.readingSeconds || r.reading_time_seconds || 0));
+
+    const subs = Number(r.substitutions || 0);
+    const omit = Number(r.omissions || 0);
+    const ins  = Number(r.insertions || 0);
+    const reps = Number(r.repetitions || 0);
+    const sysAcc = r.system_accuracy_percentage ?? r.accuracy_percentage ?? 0;
+    const sysWcpm = r.system_wcpm ?? r.wcpm ?? 0;
+    const status = r.validation_status || 'unverified';
+
+    const badge = status === 'confirmed'
+        ? `<span class="status-badge status-success">✓ Confirmed</span>`
+        : status === 'adjusted'
+            ? `<span class="status-badge status-warning">✎ Adjusted by teacher</span>`
+            : `<span class="status-badge status-warning">🤖 Auto-detected (unverified)</span>`;
+
+    host.innerHTML = `
+        <div class="panel u-mt-16" id="validation-panel">
+            <div class="u-row-between u-mb-12">
+                <div>
+                    <h4 class="u-m-0">Teacher Validation</h4>
+                    <small class="u-text-muted">Correct the miscue count if microphone or audio quality affected detection.</small>
+                </div>
+                ${badge}
+            </div>
+
+            <div class="u-row-wrap u-gap-12 u-mb-12">
+                <span><strong>Passage length:</strong> ${totalWords} words</span>
+                <span class="u-text-muted">•</span>
+                <span><strong>System (ASR):</strong> <span style="color:#64748b;">${safeNumber(sysAcc,1)}% · ${safeNumber(sysWcpm,1)} WCPM</span></span>
+            </div>
+
+            <div class="u-row-wrap u-gap-8 u-mb-12" id="val-mode-tabs">
+                <button type="button" class="btn-secondary btn-sm active" data-mode="quick">Quick — total miscues</button>
+                <button type="button" class="btn-secondary btn-sm" data-mode="detailed">Detailed — by type</button>
+            </div>
+
+            <!-- QUICK MODE -->
+            <div id="val-quick">
+                <label class="u-text-muted-xs" style="display:block; margin-bottom:6px;">Actual miscues heard by teacher</label>
+                <input type="number" id="val-miscues" class="input-inline" min="0" max="${totalWords}"
+                       value="${Number(r.miscues ?? (subs+omit+ins))}" style="width:120px;">
+                <div class="u-text-muted-xs u-mt-6">
+                    Teacher heard <strong id="val-quick-acc">—</strong> accuracy
+                    (<span id="val-quick-correct">—</span> words correct)
+                </div>
+            </div>
+
+            <!-- DETAILED MODE -->
+            <div id="val-detailed" class="hidden">
+                <div class="miscue-tiles">
+                    <div class="miscue-tile miscue-substitution">
+                        <input type="number" id="val-subs" class="miscue-input" min="0" max="${totalWords}" value="${subs}">
+                        <div class="u-text-muted-xs">Substitutions</div>
+                    </div>
+                    <div class="miscue-tile miscue-omission">
+                        <input type="number" id="val-omit" class="miscue-input" min="0" max="${totalWords}" value="${omit}">
+                        <div class="u-text-muted-xs">Omissions</div>
+                    </div>
+                    <div class="miscue-tile miscue-insertion">
+                        <input type="number" id="val-ins" class="miscue-input" min="0" max="${totalWords}" value="${ins}">
+                        <div class="u-text-muted-xs">Insertions</div>
+                    </div>
+                    <div class="miscue-tile miscue-repetition">
+                        <input type="number" id="val-reps" class="miscue-input" min="0" max="${totalWords}" value="${reps}">
+                        <div class="u-text-muted-xs">Repetitions</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; margin-top:14px;">
+                <div class="u-row-wrap u-gap-16">
+                    <span>Miscues: <strong id="val-out-miscues">—</strong></span>
+                    <span>Words correct: <strong id="val-out-correct">—</strong></span>
+                    <span>Accuracy: <strong id="val-out-acc" style="color:#059669;">—</strong></span>
+                    <span>WCPM: <strong id="val-out-wcpm" style="color:#2563eb;">—</strong></span>
+                    <span>Level: <strong id="val-out-level">—</strong></span>
+                </div>
+                <div class="u-mt-6 u-text-muted-xs">
+                    1 min = ${readingSeconds} s reading time
+                </div>
+            </div>
+
+            <label class="u-text-muted-xs" style="display:block; margin-top:12px;">Teacher note (optional)</label>
+            <input type="text" id="val-feedback" class="input-inline-fill" placeholder="e.g. Mic cut out in paragraph 2"
+                   value="${escapeAssessmentHtml(r.teacher_feedback || '')}">
+
+            <div class="u-row-wrap u-gap-8 u-mt-12">
+                <button type="button" id="val-save-btn" class="btn-primary btn-sm">✓ Recalculate &amp; Save</button>
+                <button type="button" id="val-confirm-btn" class="btn-secondary btn-sm">Confirm system score as-is</button>
+            </div>
+            <div id="val-status" class="u-text-muted-xs u-mt-6"></div>
+        </div>
+    `;
+
+    const $ = (id) => host.querySelector('#' + id);
+    const shown = { mode: 'quick' };
+
+    function currentInputs() {
+        if (shown.mode === 'quick') {
+            const m = Math.max(0, Number($('val-miscues').value || 0));
+            return { miscues: m, subdivisionsMode: false };
+        }
+        const s = Math.max(0, Number($('val-subs').value || 0));
+        const o = Math.max(0, Number($('val-omit').value || 0));
+        const i = Math.max(0, Number($('val-ins').value || 0));
+        const rp = Math.max(0, Number($('val-reps').value || 0));
+        return { substitutions: s, omissions: o, insertions: i, repetitions: rp, subdivisionsMode: true };
+    }
+
+    function levelFor(acc) {
+        if (acc >= 95) return 'Reading At Grade Level';
+        if (acc >= 90) return 'Transitioning Reader';
+        if (acc >= 80) return 'Developing Reader';
+        if (acc >= 60) return 'High Emerging Reader';
+        return 'Low Emerging Reader';
+    }
+
+    function preview() {
+        const v = currentInputs();
+        const misc = v.subdivisionsMode ? (v.substitutions + v.omissions + v.insertions) : v.miscues;
+        const clamped = Math.min(misc, totalWords);
+        const correct = Math.max(0, totalWords - clamped);
+        const acc = (correct / totalWords) * 100;
+        const wcpm = (correct / readingSeconds) * 60;
+
+        $('val-out-miscues').textContent = clamped + (misc > totalWords ? ` (capped from ${misc})` : '');
+        $('val-out-correct').textContent = correct;
+        $('val-out-acc').textContent = acc.toFixed(1) + '%';
+        $('val-out-wcpm').textContent = wcpm.toFixed(1);
+        $('val-out-level').textContent = levelFor(acc);
+
+        if (shown.mode === 'quick') {
+            $('val-quick-acc').textContent = acc.toFixed(1) + '%';
+            $('val-quick-correct').textContent = correct;
+        }
+    }
+
+    // Mode tabs
+    host.querySelectorAll('#val-mode-tabs button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            host.querySelectorAll('#val-mode-tabs button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            shown.mode = btn.dataset.mode;
+            $('val-quick').classList.toggle('hidden', shown.mode !== 'quick');
+            $('val-detailed').classList.toggle('hidden', shown.mode !== 'detailed');
+            preview();
+        });
+    });
+
+    // Live recalculation on every keystroke
+    host.querySelectorAll('input[type="number"]').forEach(inp => {
+        inp.addEventListener('input', preview);
+    });
+
+    async function save(payload) {
+        const statusEl = $('val-status');
+        const saveBtn = $('val-save-btn');
+        const confirmBtn = $('val-confirm-btn');
+        saveBtn.disabled = true;
+        confirmBtn.disabled = true;
+        statusEl.textContent = 'Saving and recalculating...';
+
+        try {
+            const result = await fetchJson('php/api/shared/assessment.php?action=validate_metrics', {
+                method: 'POST',
+                body: JSON.stringify(Object.assign({ activity_id: opts.activityId }, payload))
+            });
+            if (!result.success) throw new Error(result.message || 'Validation failed');
+
+            const p = result.updated_reading_profile || {};
+            statusEl.textContent = `${result.message} → ${safeNumber(p.accuracy_percentage,1)}% · ${safeNumber(p.wcpm,1)} WCPM · ${p.final_reading_level || p.reading_level}`;
+
+            await loadAssessments();
+            if (typeof opts.onSaved === 'function') {
+                await opts.onSaved(result);
+            }
+        } catch (err) {
+            statusEl.textContent = 'Error: ' + err.message;
+        } finally {
+            saveBtn.disabled = false;
+            confirmBtn.disabled = false;
+        }
+    }
+
+    $('val-save-btn').addEventListener('click', () => {
+        const v = currentInputs();
+        save({
+            substitutions: v.subdivisionsMode ? v.substitutions : undefined,
+            omissions:     v.subdivisionsMode ? v.omissions     : undefined,
+            insertions:    v.subdivisionsMode ? v.insertions    : undefined,
+            repetitions:   v.subdivisionsMode ? v.repetitions   : undefined,
+            miscues:       v.subdivisionsMode ? undefined       : v.miscues,
+            teacher_feedback: $('val-feedback').value
+        });
+    });
+
+    // "As-is" = send the untouched system numbers back, so it records a 'confirmed' status
+    $('val-confirm-btn').addEventListener('click', () => {
+        save({
+            substitutions: subs, omissions: omit, insertions: ins, repetitions: reps,
+            teacher_feedback: $('val-feedback').value
+        });
+    });
+
+    preview();
 }
 
 // ============================================================

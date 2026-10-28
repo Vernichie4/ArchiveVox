@@ -668,12 +668,21 @@ if ($method === 'GET' && $uri === '/api/health') {
         $materials = get_assignment_materials($pdo, $assignment_id);
 
         // Get student's reading activities with attempt info - all materials combined
+        $reading_results = [];
+        $quiz_results = [];
+
         $material_ids = array_column($materials, 'assignment_material_id');
         if ($material_ids) {
+
             $placeholders = implode(',', array_fill(0, count($material_ids), '?'));
             $rStmt = $pdo->prepare("
                 SELECT ra.assignment_material_id, ra.activity_id, ra.activity_status, ra.attempt_number, ra.attempt_type,
-                       ar.accuracy_percentage, ar.wcpm
+                       ar.assessment_id, ar.accuracy_percentage, ar.wcpm,
+                       ar.total_words, ar.words_correct, ar.reading_time_seconds,
+                       ar.substitutions, ar.omissions, ar.insertions, ar.repetitions,
+                       ar.miscues, ar.system_accuracy_percentage, ar.system_wcpm, ar.system_miscues,
+                       ar.reading_level, ar.final_reading_level, ar.observation_level,
+                       ar.comprehension_score, ar.validation_status
                 FROM reading_activity ra
                 LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
                 WHERE ra.student_id = ? AND ra.assignment_material_id IN ($placeholders)
@@ -1294,8 +1303,9 @@ if ($method === 'GET' && $uri === '/api/health') {
             $pdo = null;
         }
 
-    } elseif ($method === 'GET' && preg_match('#^/api/shared/activity/(\d+)/details$#', $uri, $matches)) {
-    $activity_id = (int)$matches[1];
+    } elseif ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'teacher/attempt-detail') {
+    $activity_id = (int)($_GET['activity_id'] ?? 0);
+    if (!$activity_id) error("activity_id is required.");
     $pdo = get_db();
     try {
         // 1. Get the base reading activity to identify student and material
@@ -1321,7 +1331,10 @@ if ($method === 'GET' && $uri === '/api/health') {
         $allAttemptsStmt = $pdo->prepare("
             SELECT ra.activity_id, ra.activity_status, ra.attempt_number, ra.attempt_type,
                    ar.accuracy_percentage, ar.wcpm, ar.reading_time_seconds, ar.final_reading_level, ar.reading_level,
-                   ar.transcript, ar.substitutions, ar.omissions, ar.insertions, ar.repetitions
+                   ar.transcript, ar.substitutions, ar.omissions, ar.insertions, ar.repetitions,
+                   ar.assessment_id, ar.total_words, ar.words_correct, ar.miscues,
+                   ar.system_accuracy_percentage, ar.system_wcpm, ar.system_miscues,
+                   ar.comprehension_score, ar.validation_status
             FROM reading_activity ra
             LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
             WHERE ra.student_id = ? AND ra.assignment_material_id = ?
@@ -1376,15 +1389,18 @@ if ($method === 'GET' && $uri === '/api/health') {
             $assessment_current['assignment_title'] = $base_activity['assignment_title'];
             $assessment_current['file_path'] = $base_activity['file_path'];
         }
-
+        
         success([
             'assessment' => $assessment_current,
             'quiz_details' => $quiz_details,
             'all_attempts' => $all_attempts
         ]);
+    } catch (Throwable $e) {
+        error("Failed to load activity details: " . $e->getMessage(), 500);
     } finally {
         $pdo = null;
     }
+
 
     // 2. THE FINAL FALLBACK GOES AT THE VERY END
     } else {
