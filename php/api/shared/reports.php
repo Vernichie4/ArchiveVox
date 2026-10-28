@@ -374,6 +374,73 @@ try {
                 GROUP BY ar.part1_reading_level
             ");
             $dashboard['part1_stats'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        // ============================================================
+                        // ASR vs TEACHER VALIDATION ACCURACY
+                        // Quantifies how far the automatic speech recognition drifted
+                        // from the teacher's manual miscue count.
+                        // ============================================================
+                $stmt = $pdo->query("
+                    SELECT
+                        COUNT(*) AS total_assessments,
+                        SUM(CASE WHEN ar.validation_status <> 'unverified' THEN 1 ELSE 0 END) AS reviewed,
+                        SUM(CASE WHEN ar.validation_status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed,
+                        SUM(CASE WHEN ar.validation_status = 'adjusted' THEN 1 ELSE 0 END) AS adjusted,
+                        ROUND(AVG(ar.system_accuracy_percentage), 1) AS avg_system_accuracy,
+                        ROUND(AVG(ar.accuracy_percentage), 1) AS avg_validated_accuracy,
+                        ROUND(AVG(ar.system_wcpm), 1) AS avg_system_wcpm,
+                        ROUND(AVG(ar.wcpm), 1) AS avg_validated_wcpm,
+                        ROUND(AVG(ar.accuracy_percentage - ar.system_accuracy_percentage), 1) AS avg_accuracy_delta,
+                        ROUND(AVG(ABS(ar.accuracy_percentage - ar.system_accuracy_percentage)), 1) AS avg_abs_accuracy_delta,
+                        ROUND(MAX(ar.accuracy_percentage - ar.system_accuracy_percentage), 1) AS max_gain
+                    FROM assessment_result ar
+                    JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                    JOIN student s ON ra.student_id = s.student_id
+                    WHERE s.teacher_id = $teacherId
+                    AND ar.system_accuracy_percentage IS NOT NULL
+                    $langFilterRa $dateFilterSql
+                ");
+                $asrRow = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+                $dashboard['asr_validation'] = [
+                    'total_assessments'      => (int)($asrRow['total_assessments'] ?? 0),
+                    'reviewed'               => (int)($asrRow['reviewed'] ?? 0),
+                    'confirmed'              => (int)($asrRow['confirmed'] ?? 0),
+                    'adjusted'               => (int)($asrRow['adjusted'] ?? 0),
+                    'avg_system_accuracy'    => (float)($asrRow['avg_system_accuracy'] ?? 0),
+                    'avg_validated_accuracy' => (float)($asrRow['avg_validated_accuracy'] ?? 0),
+                    'avg_system_wcpm'        => (float)($asrRow['avg_system_wcpm'] ?? 0),
+                    'avg_validated_wcpm'     => (float)($asrRow['avg_validated_wcpm'] ?? 0),
+                    'avg_accuracy_delta'     => (float)($asrRow['avg_accuracy_delta'] ?? 0),
+                    'avg_abs_accuracy_delta' => (float)($asrRow['avg_abs_accuracy_delta'] ?? 0),
+                    'max_gain'               => (float)($asrRow['max_gain'] ?? 0),
+                ];
+
+            // Per-assessment detail, worst drift first — the proof table
+            $stmt = $pdo->query("
+                SELECT
+                    CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                    rm.title AS material_title,
+                    ra.attempt_number,
+                    ar.total_words,
+                    ar.system_miscues,
+                    ar.miscues,
+                    ar.system_accuracy_percentage,
+                    ar.accuracy_percentage,
+                    ROUND(ar.accuracy_percentage - ar.system_accuracy_percentage, 1) AS accuracy_delta,
+                    ar.validation_status,
+                    ar.validated_at
+                FROM assessment_result ar
+                JOIN reading_activity ra ON ar.activity_id = ra.activity_id
+                JOIN student s ON ra.student_id = s.student_id
+                JOIN reading_material rm ON rm.material_id = ra.material_id
+                WHERE s.teacher_id = $teacherId
+                AND ar.system_accuracy_percentage IS NOT NULL
+                AND ar.validation_status <> 'unverified'
+                $langFilterRa $dateFilterSql
+                ORDER BY ABS(ar.accuracy_percentage - ar.system_accuracy_percentage) DESC
+                LIMIT 15
+            ");
+            $dashboard['asr_validation_detail'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         sendJson(['success' => true, 'dashboard' => $dashboard]);

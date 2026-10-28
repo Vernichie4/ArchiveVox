@@ -75,7 +75,9 @@ async function renderTeacherDashboard() {
         recentStudents: rawData?.recent_students || [],
         profileStats: rawData?.profile_stats || [],
         part1Stats: rawData?.part1_stats || [],
-        materialReports: materialReportsData
+        materialReports: materialReportsData,
+        asrValidation: rawData?.asr_validation || null,
+        asrValidationDetail: rawData?.asr_validation_detail || []
     };
 
     viewContainer.innerHTML = `
@@ -340,6 +342,8 @@ function getTeacherDashTabContent(tab, dashData) {
                     </table>
                 </div>
             </div>
+
+            ${renderAsrValidationPanel(dashData.asrValidation, dashData.asrValidationDetail)}
         `;
     } 
 
@@ -501,6 +505,128 @@ function getTeacherDashTabContent(tab, dashData) {
     }
 
     return '';
+}
+
+/**
+ * ASR vs Teacher Validation panel.
+ * Shows how much the automatic transcription drifted from the teacher's count.
+ */
+function renderAsrValidationPanel(stats, detail) {
+    const rows = Array.isArray(detail) ? detail : [];
+
+    if (!stats || !stats.total_assessments) {
+        return `
+            <div class="td-card" style="margin-top: 1.5rem;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">ASR vs Teacher Validation</div>
+                <p class="td-text-muted" style="font-size: 0.875rem; margin: 0;">
+                    No validated assessments yet. Once a teacher confirms or adjusts a reading score,
+                    the difference between the automatic result and the teacher's count appears here.
+                </p>
+            </div>
+        `;
+    }
+
+    const reviewedPct = stats.total_assessments > 0
+        ? Math.round((stats.reviewed / stats.total_assessments) * 100)
+        : 0;
+
+    const delta = Number(stats.avg_accuracy_delta || 0);
+    const deltaColor = delta > 0 ? '#16a34a' : (delta < 0 ? '#dc2626' : '#64748b');
+    const deltaLabel = delta > 0
+        ? `+${delta.toFixed(1)} pts (ASR under-scored)`
+        : delta < 0
+            ? `${delta.toFixed(1)} pts (ASR over-scored)`
+            : 'No average drift';
+
+    const badgeFor = (status) => {
+        if (status === 'adjusted')  return '<span class="td-badge td-badge-amber">Adjusted</span>';
+        if (status === 'confirmed') return '<span class="td-badge td-badge-emerald">Confirmed</span>';
+        return '<span class="td-badge td-badge-grey">Unverified</span>';
+    };
+
+    return `
+        <div class="td-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;">
+            <div style="padding: 1.25rem; border-bottom: 1px solid rgba(26,31,54,0.09);">
+                <div style="font-weight: 600;">ASR vs Teacher Validation</div>
+                <div class="td-text-muted" style="font-size: 0.8125rem; margin-top: 2px;">
+                    How far the automatic transcription drifted from the teacher's manual miscue count.
+                </div>
+            </div>
+
+            <!-- Stat strip -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; padding: 1.5rem 0; border-bottom: 1px solid rgba(26,31,54,0.09);">
+                <div style="border-right: 1px solid rgba(26,31,54,0.09);">
+                    <div class="td-mono" style="font-size: 1.75rem; color: #64748b;">${stats.avg_system_accuracy.toFixed(1)}%</div>
+                    <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">ASR Accuracy</div>
+                </div>
+                <div style="border-right: 1px solid rgba(26,31,54,0.09);">
+                    <div class="td-mono td-text-emerald" style="font-size: 1.75rem;">${stats.avg_validated_accuracy.toFixed(1)}%</div>
+                    <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Validated Accuracy</div>
+                </div>
+                <div style="border-right: 1px solid rgba(26,31,54,0.09);">
+                    <div class="td-mono" style="font-size: 1.75rem; color: ${deltaColor};">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</div>
+                    <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Avg. Points Recovered</div>
+                </div>
+                <div>
+                    <div class="td-mono" style="font-size: 1.75rem;">${stats.reviewed} / ${stats.total_assessments}</div>
+                    <div class="td-text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Assessments Reviewed</div>
+                </div>
+            </div>
+
+            <div style="padding: 0.875rem 1.25rem; font-size: 0.8125rem; color: #475569; display: flex; flex-wrap: wrap; gap: 1.25rem; border-bottom: 1px solid rgba(26,31,54,0.09);">
+                <span>Reviewed: <strong>${reviewedPct}%</strong></span>
+                <span>Confirmed as-is: <strong>${stats.confirmed}</strong></span>
+                <span>Adjusted by teacher: <strong>${stats.adjusted}</strong></span>
+                <span>Largest single recovery: <strong>+${stats.max_gain.toFixed(1)} pts</strong></span>
+                <span style="color: ${deltaColor};">${deltaLabel}</span>
+            </div>
+
+            ${rows.length ? `
+                <div style="overflow-x: auto;">
+                    <table class="td-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Material</th>
+                                <th>Words</th>
+                                <th>Miscues (ASR → Teacher)</th>
+                                <th>Accuracy (ASR → Teacher)</th>
+                                <th>Δ</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(r => {
+                                const d = Number(r.accuracy_delta || 0);
+                                const dClass = d > 0 ? 'td-text-emerald' : (d < 0 ? 'td-text-red' : 'td-text-muted');
+                                const dText = (d > 0 ? '+' : '') + d.toFixed(1);
+                                return `
+                                <tr>
+                                    <td style="font-weight: 600; color: #0f172a;">${escapeAssessmentHtml(r.student_name)}</td>
+                                    <td class="td-text-muted" style="font-size: 0.8125rem;">
+                                        ${escapeAssessmentHtml(r.material_title)}
+                                        <span style="font-size: 0.7rem;">(#${r.attempt_number})</span>
+                                    </td>
+                                    <td class="td-mono">${r.total_words || 0}</td>
+                                    <td class="td-mono td-text-muted">
+                                        ${r.system_miscues ?? '—'} → ${r.miscues ?? '—'}
+                                    </td>
+                                    <td class="td-mono">
+                                        <span style="color: #94a3b8;">${Number(r.system_accuracy_percentage || 0).toFixed(1)}%</span>
+                                        →
+                                        <span class="td-text-emerald">${Number(r.accuracy_percentage || 0).toFixed(1)}%</span>
+                                    </td>
+                                    <td class="td-mono ${dClass}">${dText}</td>
+                                    <td>${badgeFor(r.validation_status)}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : ''}
+        </div>
+    `;
 }
 
 function getExportModalHTML(dashData) {

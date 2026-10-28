@@ -1431,6 +1431,7 @@ function renderTeacherDashboard() {
                     </div>
                 `}
             </div>
+            ${renderAsrValidationPanel(dashboard.asr_validation, dashboard.asr_validation_detail)}
         </div>
 
         <!-- View All Assessments Modal -->
@@ -7487,6 +7488,133 @@ function renderValidationEditor(host, opts) {
     });
 
     preview();
+}
+
+/**
+ * ASR vs Teacher Validation panel for the teacher dashboard home.
+ * Quantifies how far the automatic transcription drifted from the teacher's count.
+ */
+function renderAsrValidationPanel(stats, detail) {
+    const rows = Array.isArray(detail) ? detail : [];
+
+    if (!stats || !stats.total_assessments) {
+        return `
+            <div class="panel u-mt-16">
+                <div class="panel-header">
+                    <h3>ASR vs Teacher Validation</h3>
+                    <span class="chart-subtitle">Accuracy of the automatic miscue detection</span>
+                </div>
+                <p class="u-text-muted u-mb-0">
+                    No validated assessments yet. Once a teacher confirms or adjusts a reading score,
+                    the gap between the automatic result and the teacher's manual count appears here.
+                </p>
+            </div>
+        `;
+    }
+
+    const reviewedPct = stats.total_assessments > 0
+        ? Math.round((stats.reviewed / stats.total_assessments) * 100)
+        : 0;
+
+    const delta = Number(stats.avg_accuracy_delta || 0);
+    const deltaClass = delta > 0 ? 'text-green' : (delta < 0 ? 'text-red' : 'u-text-muted');
+    const deltaLabel = delta > 0
+        ? `+${delta.toFixed(1)} pts recovered (ASR under-scored)`
+        : delta < 0
+            ? `${delta.toFixed(1)} pts lost (ASR over-scored)`
+            : 'No average drift';
+
+    const badgeFor = (status) => {
+        if (status === 'adjusted')  return '<span class="status-badge status-warning">Adjusted</span>';
+        if (status === 'confirmed') return '<span class="status-badge status-success">Confirmed</span>';
+        return '<span class="status-badge status-default">Unverified</span>';
+    };
+
+    return `
+        <div class="panel u-mt-16">
+            <div class="panel-header">
+                <h3>ASR vs Teacher Validation</h3>
+                <span class="chart-subtitle">How far automatic transcription drifted from the teacher's count</span>
+            </div>
+
+            <div class="stats-grid u-mb-16">
+                <div class="stat-box">
+                    <div class="stat-text">
+                        <span class="stat-title">ASR Accuracy</span>
+                        <span class="stat-val u-text-muted">${Number(stats.avg_system_accuracy || 0).toFixed(1)}<span class="stat-unit">%</span></span>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-text">
+                        <span class="stat-title">Validated Accuracy</span>
+                        <span class="stat-val text-green">${Number(stats.avg_validated_accuracy || 0).toFixed(1)}<span class="stat-unit">%</span></span>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-text">
+                        <span class="stat-title">Avg. Points Recovered</span>
+                        <span class="stat-val ${deltaClass}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</span>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-text">
+                        <span class="stat-title">Assessments Reviewed</span>
+                        <span class="stat-val">${stats.reviewed} <span class="stat-unit">/ ${stats.total_assessments}</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="u-row-wrap u-gap-16 u-text-muted-sm u-mb-16">
+                <span>Reviewed: <strong>${reviewedPct}%</strong></span>
+                <span>Confirmed as-is: <strong>${stats.confirmed}</strong></span>
+                <span>Adjusted by teacher: <strong>${stats.adjusted}</strong></span>
+                <span>Largest single recovery: <strong>+${Number(stats.max_gain || 0).toFixed(1)} pts</strong></span>
+                <span class="${deltaClass}">${deltaLabel}</span>
+            </div>
+
+            ${rows.length ? `
+                <div class="u-scroll-x">
+                    <table class="table-clean">
+                        <thead>
+                            <tr class="table-head-accent">
+                                <th class="u-ta-left">Student</th>
+                                <th class="u-ta-left">Material</th>
+                                <th class="u-ta-center">Words</th>
+                                <th class="u-ta-center">Miscues (ASR → Teacher)</th>
+                                <th class="u-ta-center">Accuracy (ASR → Teacher)</th>
+                                <th class="u-ta-center">Δ</th>
+                                <th class="u-ta-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(r => {
+                                const d = Number(r.accuracy_delta || 0);
+                                const dClass = d > 0 ? 'text-green' : (d < 0 ? 'text-red' : 'u-text-muted');
+                                return `
+                                <tr class="table-row">
+                                    <td class="u-ta-left"><strong>${escapeAssessmentHtml(r.student_name || 'Student')}</strong></td>
+                                    <td class="u-ta-left u-text-muted-sm">
+                                        ${escapeAssessmentHtml(r.material_title || 'Material')}
+                                        <span class="u-text-muted-xs">(#${r.attempt_number})</span>
+                                    </td>
+                                    <td class="u-ta-center">${r.total_words || 0}</td>
+                                    <td class="u-ta-center">${r.system_miscues ?? '—'} → ${r.miscues ?? '—'}</td>
+                                    <td class="u-ta-center">
+                                        <span class="u-text-muted">${Number(r.system_accuracy_percentage || 0).toFixed(1)}%</span>
+                                        →
+                                        <span class="text-green">${Number(r.accuracy_percentage || 0).toFixed(1)}%</span>
+                                    </td>
+                                    <td class="u-ta-center ${dClass}">${d > 0 ? '+' : ''}${d.toFixed(1)}</td>
+                                    <td class="u-ta-center">${badgeFor(r.validation_status)}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : ''}
+        </div>
+    `;
 }
 
 // ============================================================
