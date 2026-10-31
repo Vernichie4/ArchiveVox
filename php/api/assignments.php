@@ -994,6 +994,114 @@ if ($method === 'GET' && $uri === '/api/health') {
         $pdo = null;
     }
 
+} elseif ($method === 'GET' && preg_match('#^/api/student/activity/(\d+)/details$#', $uri, $matches)) {
+    $activity_id = (int)$matches[1];
+    $student_id  = (int)($_GET['student_id'] ?? 0);
+    if (!$student_id)  error("student_id is required.");
+    if (!$activity_id) error("activity_id is required.");
+
+    $pdo = get_db();
+    try {
+        // 1. Base activity + ownership check + titles for the modal heading
+        $stmt = $pdo->prepare("
+            SELECT ra.student_id, ra.assignment_material_id, ra.attempt_number,
+                   rm.title AS material_title, rm.ocr_text,
+                   rtitle.title AS assignment_title
+            FROM reading_activity ra
+            INNER JOIN reading_material rm ON rm.material_id = ra.material_id
+            INNER JOIN reading_assignment_material ram ON ram.assignment_material_id = ra.assignment_material_id
+            INNER JOIN reading_assignment rtitle ON rtitle.assignment_id = ram.assignment_id
+            WHERE ra.activity_id = ? AND ra.student_id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$activity_id, $student_id]);
+        $base = $stmt->fetch();
+        if (!$base) error("Activity not found for this student.", 404);
+
+        $assignment_material_id = $base['assignment_material_id'];
+
+        // 2. All attempts on this material — feeds the Attempt 1/2/3 tabs.
+        //    Deliberately excludes system_* / validation_status: teacher-facing only.
+        $stmt = $pdo->prepare("
+            SELECT ra.activity_id, ra.activity_status, ra.attempt_number, ra.attempt_type,
+                   ar.accuracy_percentage, ar.wcpm, ar.reading_time_seconds,
+                   ar.reading_level, ar.final_reading_level, ar.observation_level,
+                   ar.transcript, ar.substitutions, ar.omissions, ar.insertions,
+                   ar.repetitions, ar.miscues, ar.total_words, ar.words_correct,
+                   ar.comprehension_score, ar.assessed_at
+            FROM reading_activity ra
+            LEFT JOIN assessment_result ar ON ar.activity_id = ra.activity_id
+            WHERE ra.student_id = ? AND ra.assignment_material_id = ?
+            ORDER BY ra.attempt_number ASC
+        ");
+        $stmt->execute([$student_id, $assignment_material_id]);
+        $all_attempts = $stmt->fetchAll();
+
+        // 3. Quiz attempts, matched by attempt_number
+        foreach ($all_attempts as &$att) {
+            $q = $pdo->prepare("
+                SELECT attempt_id, score, total_questions, percentage
+                FROM quiz_attempt
+                WHERE student_id = ? AND assignment_material_id = ? AND attempt_number = ?
+                LIMIT 1
+            ");
+            $q->execute([$student_id, $assignment_material_id, $att['attempt_number']]);
+            $qa = $q->fetch();
+            if ($qa) {
+                $att['quiz_score']  = $qa['score'];
+                $att['quiz_total']  = $qa['total_questions'];
+                $att['quiz_percentage'] = $qa['percentage'];
+            }
+        }
+        unset($att);
+
+        // 4. The activity the student clicked
+        $assessment_current = null;
+        foreach ($all_attempts as $a) {
+            if ((int)$a['activity_id'] === $activity_id) { $assessment_current = $a; break; }
+        }
+
+        // 5. Per-question breakdown, only for the selected attempt
+        $quiz_details = [];
+        if ($assessment_current) {
+            $q = $pdo->prepare("
+                SELECT attempt_id FROM quiz_attempt
+                WHERE student_id = ? AND assignment_material_id = ? AND attempt_number = ?
+                LIMIT 1
+            ");
+            $q->execute([$student_id, $assignment_material_id, $assessment_current['attempt_number']]);
+            $attQuizId = $q->fetchColumn();
+            if ($attQuizId) {
+                $qa = $pdo->prepare("
+                    SELECT q.question_number, q.question_text, a.is_correct, c.choice_text AS student_answer
+                    FROM quiz_answer a
+                    INNER JOIN quiz_question q ON q.question_id = a.question_id
+                    LEFT JOIN quiz_choice c ON c.choice_id = a.selected_choice_id
+                    WHERE a.attempt_id = ?
+                    ORDER BY q.question_number
+                ");
+                $qa->execute([$attQuizId]);
+                $quiz_details = $qa->fetchAll();
+            }
+        }
+
+        // 6. Titles for the modal heading
+        if ($assessment_current) {
+            $assessment_current['material_title']   = $base['material_title'];
+            $assessment_current['assignment_title'] = $base['assignment_title'];
+            $assessment_current['file_path']        = null;
+        }
+
+        success([
+            'assessment'   => $assessment_current,
+            'quiz_details' => $quiz_details,
+            'all_attempts' => $all_attempts,
+        ]);
+    } catch (Throwable $e) {
+        error("Failed to load activity details: " . $e->getMessage(), 500);
+    } finally {
+        $pdo = null;
+    }
 } elseif ($method === 'POST' && preg_match('#^/api/student/activities/(\d+)/save-result$#', $uri, $matches)) {
     $activity_id = (int)$matches[1];
     $metrics = get_json_payload();
@@ -1389,7 +1497,7 @@ if ($method === 'GET' && $uri === '/api/health') {
             $assessment_current['assignment_title'] = $base_activity['assignment_title'];
             $assessment_current['file_path'] = $base_activity['file_path'];
         }
-        
+
         success([
             'assessment' => $assessment_current,
             'quiz_details' => $quiz_details,

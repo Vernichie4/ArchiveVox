@@ -1724,7 +1724,7 @@ async function viewActivityDetails(activityId) {
         if (startButton) startButton.style.display = "none"; 
 
         // This will now perfectly hit the new route we just added to assignments.php!
-        const response = await fetchJson(`/api/shared/activity/${activityId}/details`);
+        const response = await fetchJson(`/api/student/activity/${activityId}/details?student_id=${encodeURIComponent(STUDENT_ID)}`);
         
         const data = response.assessment || response.data?.assessment || response.data || response;
         const quiz = response.quiz_details || response.data?.quiz_details || response.quiz || [];
