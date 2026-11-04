@@ -178,6 +178,12 @@ class WhisperService
         $ch = curl_init();
         $cfile = new CURLFile($audioPath, 'audio/webm', basename($audioPath));
 
+        $headers = [];
+        $apiKey = getenv('TRANSCRIPTION_API_KEY');
+        if ($apiKey) {
+            $headers[] = 'X-API-Key: ' . $apiKey;
+        }
+
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
@@ -187,6 +193,7 @@ class WhisperService
             ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 120, // 2 minutes to submit (increased from 30s)
+            CURLOPT_HTTPHEADER => $headers,
         ]);
 
         $response = curl_exec($ch);
@@ -231,10 +238,17 @@ class WhisperService
             $statusUrl = rtrim($serviceUrl, '/') . '/status/' . $jobId;
             $ch = curl_init();
 
+            $headers = [];
+            $apiKey = getenv('TRANSCRIPTION_API_KEY');
+            if ($apiKey) {
+                $headers[] = 'X-API-Key: ' . $apiKey;
+            }
+
             curl_setopt_array($ch, [
                 CURLOPT_URL => $statusUrl,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 10,
+                CURLOPT_HTTPHEADER => $headers,
             ]);
 
             $statusResponse = curl_exec($ch);
