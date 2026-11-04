@@ -217,85 +217,106 @@ class WhisperService
         }
 
         $result = json_decode($response, true);
-        if (!is_array($result) || !isset($result['job_id'])) {
+        
+        // Check for synchronous response (direct result)
+        if (is_array($result) && isset($result['success']) && $result['success'] && isset($result['result'])) {
+            return [
+                'success' => true,
+                'text' => $result['result']['text'],
+                'language' => $result['result']['language'] ?? 'unknown',
+                'detected_language' => $result['result']['detected_language'] ?? 'unknown'
+            ];
+        }
+        
+        // Check for synchronous response with error
+        if (is_array($result) && isset($result['success']) && !$result['success']) {
             return [
                 'success' => false,
-                'error' => 'Invalid response from transcription service',
-                'response' => $response
+                'error' => $result['error'] ?? 'Transcription failed'
+            ];
+        }
+        
+        // Fallback: check for async response (job_id) for backward compatibility
+        if (is_array($result) && isset($result['job_id'])) {
+            $jobId = $result['job_id'];
+
+            // Step 2: Poll for status until completed
+            $maxAttempts = 150; // 150 attempts * 2 seconds = 5 minutes max
+            $attempt = 0;
+
+            while ($attempt < $maxAttempts) {
+                sleep(2); // Wait 2 seconds between polls
+                $attempt++;
+
+                $statusUrl = rtrim($serviceUrl, '/') . '/status/' . $jobId;
+                $ch = curl_init();
+
+                $headers = [];
+                $apiKey = getenv('TRANSCRIPTION_API_KEY');
+                if ($apiKey) {
+                    $headers[] = 'X-API-Key: ' . $apiKey;
+                }
+
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $statusUrl,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 10,
+                    CURLOPT_HTTPHEADER => $headers,
+                ]);
+
+                $statusResponse = curl_exec($ch);
+                $statusHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $statusError = curl_error($ch);
+                curl_close($ch);
+
+                if ($statusError) {
+                    // Retry on network error
+                    continue;
+                }
+
+                if ($statusHttpCode !== 200) {
+                    return [
+                        'success' => false,
+                        'error' => 'Status check failed: HTTP ' . $statusHttpCode
+                    ];
+                }
+
+                $statusResult = json_decode($statusResponse, true);
+                if (!is_array($statusResult)) {
+                    continue; // Retry on invalid response
+                }
+
+                // Check job status
+                if ($statusResult['status'] === 'completed' && isset($statusResult['result'])) {
+                    return [
+                        'success' => true,
+                        'text' => $statusResult['result']['text'],
+                        'language' => $statusResult['result']['language'] ?? 'unknown',
+                        'detected_language' => $statusResult['result']['detected_language'] ?? 'unknown'
+                    ];
+                }
+
+                if ($statusResult['status'] === 'failed') {
+                    return [
+                        'success' => false,
+                        'error' => 'Transcription failed: ' . ($statusResult['error'] ?? 'Unknown error')
+                    ];
+                }
+
+                // Still queued or processing, continue polling
+            }
+
+            return [
+                'success' => false,
+                'error' => 'Transcription timed out after ' . ($maxAttempts * 2) . ' seconds'
             ];
         }
 
-        $jobId = $result['job_id'];
-
-        // Step 2: Poll for status until completed
-        $maxAttempts = 150; // 150 attempts * 2 seconds = 5 minutes max
-        $attempt = 0;
-
-        while ($attempt < $maxAttempts) {
-            sleep(2); // Wait 2 seconds between polls
-            $attempt++;
-
-            $statusUrl = rtrim($serviceUrl, '/') . '/status/' . $jobId;
-            $ch = curl_init();
-
-            $headers = [];
-            $apiKey = getenv('TRANSCRIPTION_API_KEY');
-            if ($apiKey) {
-                $headers[] = 'X-API-Key: ' . $apiKey;
-            }
-
-            curl_setopt_array($ch, [
-                CURLOPT_URL => $statusUrl,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 10,
-                CURLOPT_HTTPHEADER => $headers,
-            ]);
-
-            $statusResponse = curl_exec($ch);
-            $statusHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $statusError = curl_error($ch);
-            curl_close($ch);
-
-            if ($statusError) {
-                // Retry on network error
-                continue;
-            }
-
-            if ($statusHttpCode !== 200) {
-                return [
-                    'success' => false,
-                    'error' => 'Status check failed: HTTP ' . $statusHttpCode
-                ];
-            }
-
-            $statusResult = json_decode($statusResponse, true);
-            if (!is_array($statusResult)) {
-                continue; // Retry on invalid response
-            }
-
-            // Check job status
-            if ($statusResult['status'] === 'completed' && isset($statusResult['result'])) {
-                return [
-                    'success' => true,
-                    'text' => $statusResult['result']['text'],
-                    'language' => $statusResult['result']['language'] ?? 'unknown',
-                    'detected_language' => $statusResult['result']['detected_language'] ?? 'unknown'
-                ];
-            }
-
-            if ($statusResult['status'] === 'failed') {
-                return [
-                    'success' => false,
-                    'error' => 'Transcription failed: ' . ($statusResult['error'] ?? 'Unknown error')
-                ];
-            }
-
-            // Still queued or processing, continue polling
-        }
-
+        // Unknown response format
         return [
             'success' => false,
-            'error' => 'Transcription timed out after ' . ($maxAttempts * 2) . ' seconds'
+            'error' => 'Invalid response from transcription service',
+            'response' => $response
         ];
     }
     
